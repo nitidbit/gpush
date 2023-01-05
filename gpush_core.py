@@ -104,8 +104,6 @@ def scss_lint_for_changed_files(git_repo_root_dir):
 def eslint_for_changed_files(git_repo_root_dir):
     result = {}
     changed_filenames = _get_changed_files(git_repo_root_dir)
-    print('=~~~~~~')
-    print(changed_filenames)
     changed_js_files = [fn for fn in changed_filenames if (fn.endswith('js') or fn.endswith('jsx'))]
 
     COMMAND = ['npx', 'eslint']
@@ -115,9 +113,6 @@ def eslint_for_changed_files(git_repo_root_dir):
         result["eslint"] = {
             'args': COMMAND
         }
-
-    print('====')
-    print(result)
 
     return result
 
