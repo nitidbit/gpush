@@ -1,0 +1,11 @@
+{
+  "extends": "stylelint-config-standard",
+  "customSyntax": "postcss-scss",
+  "rules": {
+    "at-rule-no-unknown": null,
+    "alpha-value-notation": null,
+    "import-notation": null,
+    "selector-id-pattern": null,
+    "string-quotes": "single"
+  }
+}

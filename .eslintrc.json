@@ -1,0 +1,32 @@
+{
+  "extends": [
+    "airbnb"
+  ],
+  "parser": "@babel/eslint-parser",
+  "env": {
+    "browser": true,
+    "node": true,
+    "es6": true,
+    "jest": true
+  },
+  "rules": {
+    "arrow-body-style": 1,
+    "arrow-parens": 1,
+    "comma-dangle": 0,
+    "jsx-quotes": 1,
+    "jsx-a11y/label-has-associated-control": 1,
+    "no-trailing-spaces": [1],
+    "no-undef": [2],
+    "no-unused-vars": [1],
+    "object-curly-spacing": 1,
+    "quotes": 1,
+    "react/function-component-definition": [2, { "namedComponents": "arrow-function" }],
+    "react/jsx-curly-spacing": 1,
+    "react/jsx-tag-spacing": ["error", {
+      "beforeSelfClosing": "always"
+    }],
+    "react/jsx-props-no-spreading": 0,
+    "react/self-closing-comp": 1,
+    "semi": 1
+  }
+}

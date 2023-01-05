@@ -1,0 +1,152 @@
+inherit_from: .rubocop_todo.yml
+
+AllCops:
+  TargetRubyVersion: 3.1.2
+  UseCache: true
+  NewCops: enable
+  Exclude:
+    - 'node_modules/**/*'
+    - 'vendor/**/*'
+    - 'bin/**/*'
+    - 'db/**/*'
+    - 'spec/**/*'
+    - 'Gemfile'
+    - 'config/initializers/rack_attack.rb'
+
+# sometimes static methods are below 'private' and this gets annoyed. which annoys
+Lint/IneffectiveAccessModifier:
+  Enabled: false
+
+# It should be easily discoverable if a param isnt used, when it isnt. hungarian notation annoys
+Lint/UnusedBlockArgument:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Max: 25
+
+# Screens are huge now. sometimes a line is a line.
+Layout/LineLength:
+  Max: 160
+  AllowedPatterns: ['(\A|\s)#']
+
+# Many AbcSize in the 50-100 range.
+Metrics/AbcSize:
+  Max: 80
+#   Enabled: false
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Max: 200
+
+Metrics/PerceivedComplexity:
+  Max: 20
+
+# Trade off between obvious class searching and tons of indentation. leaving it as is.
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+# This is a concise way to force true/false instead of returning objects or who knows what and making other people deal with it
+Style/DoubleNegation:
+  Enabled: false
+
+Style/FormatString:
+  Enabled: false
+
+Style/HashSyntax:
+  EnforcedStyle: 'ruby19'
+
+# separate every three digits in a zip code/phone number? gtfo.
+Style/NumericLiterals:
+  Enabled: false
+
+# is_ and has_ provide extra information and were a style at one point
+Naming/PredicateName:
+  Enabled: false
+
+# we have too many db fields like address_1 and population_women_13_to_44
+Naming/VariableNumber:
+  Enabled: false
+
+# += is tricky and unneccessary.
+Style/SelfAssignment:
+  Enabled: false
+
+Style/StringLiterals:
+  Enabled: false
+
+Style/StringConcatenation:
+  Enabled: false
+
+Layout/SpaceAroundEqualsInParameterDefault:
+  EnforcedStyle: space
+
+Style/NumericPredicate:
+  EnforcedStyle: comparison
+
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+Style/SymbolArray:
+  EnforcedStyle: brackets
+
+Style/WordArray:
+  Enabled: false
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: compact
+
+Layout/EmptyLinesAroundBlockBody:
+  Enabled: false
+
+Layout/EmptyLinesAroundClassBody:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  Enabled: false
+
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
+
+Style/TrailingCommaInArguments:
+  Enabled: false
+
+Style/Next:
+  Enabled: false
+
+Layout/CommentIndentation:
+  Enabled: false
+
+Layout/MultilineMethodCallIndentation:
+  Enabled: false
+
+Layout/ExtraSpacing:
+  Enabled: false
+
+Layout/MultilineMethodCallBraceLayout:
+  Enabled: false
+
+Style/MultilineBlockChain:
+  Enabled: false
+
+Style/PercentLiteralDelimiters:
+  Enabled: false
+
+Layout/HashAlignment:
+  Enabled: false
+
+Style/FormatStringToken:
+  EnforcedStyle: template
+
+Layout/ParameterAlignment:
+  Enabled: false
