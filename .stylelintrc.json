@@ -5,7 +5,7 @@
     "at-rule-no-unknown": null,
     "alpha-value-notation": null,
     "import-notation": null,
-    "selector-id-pattern": null,
-    "string-quotes": "single"
+    "selector-class-pattern": null, // can't require kebab case; active admin uses camel_case class names
+    "selector-id-pattern": null
   }
 }
