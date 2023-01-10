@@ -7,6 +7,8 @@
     "import-notation": null,
     "selector-id-pattern": null,
     "selector-class-pattern": null,
+    "selector-list-comma-newline-after": null,
+    "declaration-empty-line-before": null,
     "string-quotes": "single"
   }
 }
