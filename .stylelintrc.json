@@ -6,6 +6,7 @@
     "alpha-value-notation": null,
     "import-notation": null,
     "selector-id-pattern": null,
+    "selector-class-pattern": null,
     "string-quotes": "single"
   }
 }
