@@ -4,6 +4,7 @@
   "rules": {
     "at-rule-no-unknown": null,
     "alpha-value-notation": null,
+    "font-family-no-missing-generic-family-keyword": null,
     "import-notation": null,
     "selector-id-pattern": null,
     "selector-class-pattern": null,
