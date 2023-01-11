@@ -10,7 +10,6 @@
     "selector-class-pattern": null,
     "selector-list-comma-newline-after": null,
     "declaration-empty-line-before": null,
-    "string-quotes": "single",
-    "no-descending-specificity": null
+    "string-quotes": "single"
   }
 }
