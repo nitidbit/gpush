@@ -1,0 +1,12 @@
+{
+  "singleQuote": true,
+  "jsx-single-quote": false,
+  "overrides": [
+    {
+      "files": ["*.css", "*.scss"],
+      "options": {
+        "printWidth": 100
+      }
+    }
+  ]
+}
