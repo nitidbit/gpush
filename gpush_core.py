@@ -105,11 +105,12 @@ def eslint_for_changed_files(git_repo_root_dir):
     result = {}
     changed_filenames = _get_changed_files(git_repo_root_dir)
     changed_js_files = [fn for fn in changed_filenames if (fn.endswith('js') or fn.endswith('jsx'))]
+    changed_js_files_no_deletes = [fn for fn in changed_js_files if (os.path.exists(fn))]
 
     COMMAND = ['npx', 'eslint']
-    COMMAND.extend(changed_js_files)
+    COMMAND.extend(changed_js_files_no_deletes)
 
-    if (changed_js_files):
+    if (changed_js_files_no_deletes):
         result["eslint"] = {
             'args': COMMAND
         }
