@@ -150,3 +150,6 @@ Style/FormatStringToken:
 
 Layout/ParameterAlignment:
   Enabled: false
+
+Rails/I18nLazyLookup:
+  Enabled: false
