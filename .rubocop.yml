@@ -15,6 +15,7 @@ AllCops:
     - 'spec/**/*'
     - 'Gemfile'
     - 'config/initializers/rack_attack.rb'
+    - 'script/single_use/**/*'
 
 # sometimes static methods are below 'private' and this gets annoyed. which annoys
 Lint/IneffectiveAccessModifier:
@@ -155,4 +156,7 @@ Layout/ParameterAlignment:
   Enabled: false
 
 Rails/I18nLazyLookup:
+  Enabled: false
+
+Rails/HasAndBelongsToMany:
   Enabled: false
