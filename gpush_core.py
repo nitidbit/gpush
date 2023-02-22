@@ -12,6 +12,7 @@ from os.path import join, splitext, basename
 import argparse
 import json
 from shutil import which
+import functools
 
 # Ansi escape codes
 RED = "\033[31m"
@@ -213,6 +214,7 @@ def _searchable_strings(filenames, filename_stop_words):
 
 # Return list of files that have changed since 'origin/BRANCH'
 # e.g. ['/Users/winstonw/bedsider-web/bedsider/app/models/clinic.rb', ...]
+@functools.cache
 def _get_changed_files(git_repo_root_dir):
     git_result = run("git rev-parse --abbrev-ref HEAD").decode()
     local_branch = git_result.strip()
