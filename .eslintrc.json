@@ -1,6 +1,7 @@
 {
   "extends": [
-    "airbnb"
+    "airbnb",
+    "prettier"
   ],
   "parser": "@babel/eslint-parser",
   "env": {
@@ -30,6 +31,7 @@
     "react/jsx-boolean-value": 0,
     "react/jsx-props-no-spreading": 0,
     "react/self-closing-comp": 1,
+    "react/prop-types": 0,
     "semi": 1
   }
 }

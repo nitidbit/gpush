@@ -1,11 +1,11 @@
 {
-  "singleQuote": true,
-  "jsx-single-quote": false,
   "overrides": [
     {
-      "files": ["*.css", "*.scss"],
+      "files": ["*.js", "*.jsx"],
       "options": {
-        "printWidth": 100
+        "semi": false,
+        "singleQuote": true,
+        "bracketSpacing": true
       }
     }
   ]
