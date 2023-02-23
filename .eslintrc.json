@@ -13,7 +13,13 @@
   "rules": {
     "arrow-body-style": 1,
     "arrow-parens": 2,
-    "comma-dangle": 2,
+    "comma-dangle": ["error", {
+        "arrays": "always-multiline",
+        "objects": "always-multiline",
+        "imports": "always-multiline",
+        "exports": "always-multiline",
+        "functions": "only-multiline"
+    }],
     "import/extensions": 0,
     "jsx-quotes": 1,
     "jsx-a11y/label-has-associated-control": 1,
