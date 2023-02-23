@@ -36,7 +36,6 @@
     "react/jsx-boolean-value": 0,
     "react/jsx-props-no-spreading": 0,
     "react/self-closing-comp": 1,
-    "react/prop-types": 0,
-    "semi": 0
+    "react/prop-types": 0
   }
 }
