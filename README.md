@@ -16,6 +16,7 @@ Eslint - most likely, it is already installed automatically in a React codebase
 "devDependencies": {
   "eslint-config-airbnb": "^19",
   "eslint-config-prettier": "^8",
+  "postcss-scss": "^4",
   "prettier": "^2"
   "stylelint": "^14",
   "stylelint-config-prettier": "^9",
