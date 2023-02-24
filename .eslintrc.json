@@ -13,6 +13,7 @@
   "rules": {
     "arrow-body-style": 1,
     "arrow-parens": 2,
+    "camelcase": 1,
     "comma-dangle": ["error", {
         "arrays": "always-multiline",
         "objects": "always-multiline",
@@ -20,13 +21,21 @@
         "exports": "always-multiline",
         "functions": "only-multiline"
     }],
+    "dot-notation": [1, {"allowKeywords": true}],
     "import/extensions": 0,
+    "import/no-extraneous-dependencies": [ "error", { "optionalDependencies": false }],
+    "import/prefer-default-export": 0,
     "jsx-quotes": 1,
+    "jsx-a11y/label-has-for": 1,
     "jsx-a11y/label-has-associated-control": 1,
     "no-trailing-spaces": [2],
     "no-undef": [2],
     "no-unused-vars": [1],
+    "no-useless-escape": 1,
+    "prefer-template": 1,
     "quotes": 1,
+    "radix": 0,
+    "react/destructuring-assignment": 0,
     "react/function-component-definition": [2, { "namedComponents": "arrow-function" }],
     "react/jsx-curly-spacing": 1,
     "react/jsx-tag-spacing": ["error", {
