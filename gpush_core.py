@@ -182,7 +182,7 @@ def rspec_for_changed_files(
     if specs:
         result["rspec"] = {
             'cwd': rspec_root_dir,
-            'args': ['bundle', 'exec', 'rspec', '--fail-fast'] + list(specs)}
+            'args': ['bundle', 'exec', 'rspec'] + list(specs)}
     return result
 
 
