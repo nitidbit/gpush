@@ -9,6 +9,13 @@
     "@typescript-eslint"
   ],
   "parser": "@typescript-eslint/parser",
+  "settings": {
+    "import/resolver": {
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    }
+  },
   "env": {
     "browser": true,
     "node": true,
@@ -47,6 +54,7 @@
     "react/destructuring-assignment": 0,
     "react/function-component-definition": [2, { "namedComponents": "arrow-function" }],
     "react/jsx-curly-spacing": 1,
+    "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
     "react/jsx-tag-spacing": ["error", {
       "beforeSelfClosing": "always"
     }],
