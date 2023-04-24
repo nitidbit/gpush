@@ -8,40 +8,54 @@ AllCops:
   UseCache: true
   NewCops: enable
   Exclude:
-    - 'node_modules/**/*'
-    - 'vendor/**/*'
-    - 'bin/**/*'
-    - 'db/**/*'
-    - 'spec/**/*'
-    - 'Gemfile'
-    - 'config/initializers/rack_attack.rb'
-    - 'script/single_use/**/*'
+    - "node_modules/**/*"
+    - "vendor/**/*"
+    - "bin/**/*"
+    - "db/**/*"
+    - "spec/**/*"
+    - "Gemfile"
+    - "config/initializers/rack_attack.rb"
+    - "script/single_use/**/*"
 
+# let prettier handle everything to do with Layout
 Layout:
-  # let prettier take care of it
   Enabled: false
-
-Metrics/CyclomaticComplexity:
-  Max: 25
 
 # Many AbcSize in the 50-100 range.
 Metrics/AbcSize:
   Max: 80
 
-Metrics/ClassLength:
-  # Enabled: false
-
 Metrics/BlockLength:
-  # Enabled: false
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Max: 25
+
+Metrics/ClassLength:
+  Enabled: false
 
 Metrics/MethodLength:
-  # Enabled: false
+  Enabled: false
 
 Metrics/ModuleLength:
   Max: 200
 
 Metrics/PerceivedComplexity:
   Max: 20
+
+# is_ and has_ provide extra information and were a style at one point
+Naming/PredicateName:
+  Enabled: false
+
+# we have too many db fields like address_1 and population_women_13_to_44
+Naming/VariableNumber:
+  Enabled: false
+
+Rails/I18nLazyLookup:
+  Enabled: false
+
+Rails/HasAndBelongsToMany:
+  Enabled: false
 
 # Trade off between obvious class searching and tons of indentation. leaving it as is.
 Style/ClassAndModuleChildren:
@@ -54,48 +68,49 @@ Style/Documentation:
 Style/DoubleNegation:
   Enabled: false
 
-# separate every three digits in a zip code/phone number? gtfo.
-Style/NumericLiterals:
-  Enabled: false
-
-# is_ and has_ provide extra information and were a style at one point
-Naming/PredicateName:
-  # Enabled: false
-  # Let's try it and see what happens
-
-# we have too many db fields like address_1 and population_women_13_to_44
-Naming/VariableNumber:
-  Enabled: false
-
-Style/StringLiterals:
-  Enabled: false
-
-Style/StringConcatenation:
-  Enabled: false
-
-Style/NumericPredicate:
-  Enabled: false
-
-# TODO add string literals
-Style/FrozenStringLiteralComment:
-  Enabled: false
-
-Style/SymbolArray:
-  Enabled: false
-  # let prettier handle it
-
-Style/WordArray:
-  Enabled: false
-  # let prettier handle it
-
-Style/MultilineBlockChain:
+# let prettier handle it
+Style/IfUnlessModifier:
   Enabled: false
 
 Style/FormatStringToken:
   EnforcedStyle: template
 
-Rails/I18nLazyLookup:
+# TODO add string literals
+Style/FrozenStringLiteralComment:
   Enabled: false
 
-Rails/HasAndBelongsToMany:
+Style/MultilineBlockChain:
+  Enabled: false
+
+# separate every three digits in a zip code/phone number? gtfo.
+Style/NumericLiterals:
+  Enabled: false
+
+# (f == 0) or (f.zero?) you decide.
+Style/NumericPredicate:
+  Enabled: false
+
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: "[]"
+
+Style/StringConcatenation:
+  Enabled: false
+
+# let prettier handle it
+Style/StringLiterals:
+  Enabled: false
+
+# let prettier handle it
+Style/SymbolArray:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+# let prettier handle it
+Style/WordArray:
   Enabled: false
