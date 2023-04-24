@@ -20,6 +20,8 @@ AllCops:
 # let prettier handle everything to do with Layout
 Layout:
   Enabled: false
+Layout/LineLength:
+  Max: 999 # rubocop still throws LineLength errors without this
 
 # Many AbcSize in the 50-100 range.
 Metrics/AbcSize:
