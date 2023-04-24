@@ -89,7 +89,7 @@ def cli_arg_parser(commands):
 
 def scss_lint_for_changed_files(git_repo_root_dir):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes: True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes = True)
     changed_scss_files = [fn for fn in changed_filenames if fn.endswith('css')]
 
     COMMAND = ['npx', 'stylelint']
@@ -105,7 +105,7 @@ def scss_lint_for_changed_files(git_repo_root_dir):
 
 def eslint_for_changed_files(git_repo_root_dir):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes: True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes = True)
     changed_js_files = [fn for fn in changed_filenames if (fn.endswith('js') or fn.endswith('jsx'))]
 
     COMMAND = ['npx', 'eslint']
@@ -120,7 +120,7 @@ def eslint_for_changed_files(git_repo_root_dir):
 
 def prettier_for_changed_files(git_repo_root_dir):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes: True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes = True)
     # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
 
     COMMAND = ['npx', 'prettier', '--check']
@@ -229,7 +229,7 @@ def _searchable_strings(filenames, filename_stop_words):
 # Return list of files that have changed since 'origin/BRANCH'
 # e.g. ['/Users/winstonw/bedsider-web/bedsider/app/models/clinic.rb', ...]
 @functools.cache
-def _get_changed_files(git_repo_root_dir, no_deletes: False):
+def _get_changed_files(git_repo_root_dir, no_deletes = False):
     git_result = run("git rev-parse --abbrev-ref HEAD").decode()
     local_branch = git_result.strip()
 
