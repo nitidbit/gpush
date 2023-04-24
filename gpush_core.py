@@ -89,7 +89,7 @@ def cli_arg_parser(commands):
 
 def scss_lint_for_changed_files(git_repo_root_dir):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes: True)
     changed_scss_files = [fn for fn in changed_filenames if fn.endswith('css')]
 
     COMMAND = ['npx', 'stylelint']
@@ -105,15 +105,29 @@ def scss_lint_for_changed_files(git_repo_root_dir):
 
 def eslint_for_changed_files(git_repo_root_dir):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes: True)
     changed_js_files = [fn for fn in changed_filenames if (fn.endswith('js') or fn.endswith('jsx'))]
-    changed_js_files_no_deletes = [fn for fn in changed_js_files if (os.path.exists(fn))]
 
     COMMAND = ['npx', 'eslint']
-    COMMAND.extend(changed_js_files_no_deletes)
+    COMMAND.extend(changed_js_files)
 
-    if changed_js_files_no_deletes:
+    if changed_js_files:
         result["eslint"] = {
+            'args': COMMAND
+        }
+
+    return result
+
+def prettier_for_changed_files(git_repo_root_dir):
+    result = {}
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes: True)
+    # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
+
+    COMMAND = ['npx', 'prettier', '--check']
+    COMMAND.extend(changed_filenames)
+
+    if changed_filenames:
+        result["prettier"] = {
             'args': COMMAND
         }
 
@@ -215,7 +229,7 @@ def _searchable_strings(filenames, filename_stop_words):
 # Return list of files that have changed since 'origin/BRANCH'
 # e.g. ['/Users/winstonw/bedsider-web/bedsider/app/models/clinic.rb', ...]
 @functools.cache
-def _get_changed_files(git_repo_root_dir):
+def _get_changed_files(git_repo_root_dir, no_deletes: False):
     git_result = run("git rev-parse --abbrev-ref HEAD").decode()
     local_branch = git_result.strip()
 
@@ -237,6 +251,9 @@ push? [{}] '''.format(local_branch, DEFAULT)
     files = filter(lambda fn: fn, output.split("\n"))  # filter out emtpy lines
 
     files = [os.path.realpath(os.path.join(git_repo_root_dir, fn)) for fn in files]
+
+    if no_deletes # filter out deleted files
+        files = [fn for fn in files if (os.path.exists(fn))]
 
     return files
 
