@@ -252,7 +252,7 @@ push? [{}] '''.format(local_branch, DEFAULT)
 
     files = [os.path.realpath(os.path.join(git_repo_root_dir, fn)) for fn in files]
 
-    if no_deletes # filter out deleted files
+    if no_deletes: # filter out deleted files
         files = [fn for fn in files if (os.path.exists(fn))]
 
     return files
