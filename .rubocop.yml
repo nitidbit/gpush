@@ -1,4 +1,6 @@
-inherit_from: .rubocop_todo.yml
+inherit_from:
+  - .rubocop_todo.yml
+  - node_modules/@prettier/plugin-ruby/rubocop.yml
 
 require:
   - rubocop-rails
@@ -20,8 +22,10 @@ AllCops:
 # let prettier handle everything to do with Layout
 Layout:
   Enabled: false
+
+# rubocop still throws LineLength errors without this
 Layout/LineLength:
-  Max: 999 # rubocop still throws LineLength errors without this
+  Max: 999
 
 # Many AbcSize in the 50-100 range.
 Metrics/AbcSize:
@@ -70,18 +74,11 @@ Style/Documentation:
 Style/DoubleNegation:
   Enabled: false
 
-# let prettier handle it
-Style/IfUnlessModifier:
-  Enabled: false
-
 Style/FormatStringToken:
   EnforcedStyle: template
 
 # TODO add string literals
 Style/FrozenStringLiteralComment:
-  Enabled: false
-
-Style/MultilineBlockChain:
   Enabled: false
 
 # separate every three digits in a zip code/phone number? gtfo.
@@ -99,20 +96,8 @@ Style/PercentLiteralDelimiters:
 Style/StringConcatenation:
   Enabled: false
 
-# let prettier handle it
-Style/StringLiterals:
-  Enabled: false
-
-# let prettier handle it
-Style/SymbolArray:
-  Enabled: false
-
 Style/TrailingCommaInArrayLiteral:
   EnforcedStyleForMultiline: consistent_comma
 
 Style/TrailingCommaInHashLiteral:
   EnforcedStyleForMultiline: consistent_comma
-
-# let prettier handle it
-Style/WordArray:
-  Enabled: false
