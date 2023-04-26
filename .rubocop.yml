@@ -77,6 +77,10 @@ Style/DoubleNegation:
 Style/FormatStringToken:
   EnforcedStyle: template
 
+# Let prettier handle this one
+Style/IfUnlessModifier:
+  Enabled: false
+
 # TODO add string literals
 Style/FrozenStringLiteralComment:
   Enabled: false
