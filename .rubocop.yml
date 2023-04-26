@@ -1,47 +1,43 @@
-inherit_from: .rubocop_todo.yml
+inherit_from:
+  - .rubocop_todo.yml
+  - node_modules/@prettier/plugin-ruby/rubocop.yml
 
 require:
   - rubocop-rails
 
 AllCops:
-  TargetRubyVersion: 3.1.2
+  TargetRubyVersion: 3.2.2
   UseCache: true
   NewCops: enable
   Exclude:
-    - 'node_modules/**/*'
-    - 'vendor/**/*'
-    - 'bin/**/*'
-    - 'db/**/*'
-    - 'spec/**/*'
-    - 'Gemfile'
-    - 'config/initializers/rack_attack.rb'
-    - 'script/single_use/**/*'
+    - "node_modules/**/*"
+    - "vendor/**/*"
+    - "bin/**/*"
+    - "db/**/*"
+    - "spec/**/*"
+    - "Gemfile"
+    - "config/initializers/rack_attack.rb"
+    - "script/single_use/**/*"
 
-# sometimes static methods are below 'private' and this gets annoyed. which annoys
-Lint/IneffectiveAccessModifier:
+# let prettier handle everything to do with Layout
+Layout:
   Enabled: false
 
-# It should be easily discoverable if a param isnt used, when it isnt. hungarian notation annoys
-Lint/UnusedBlockArgument:
+# rubocop still throws LineLength errors without this
+Layout/LineLength:
+  Max: 999
+
+# Many AbcSize in the 50-100 range.
+Metrics/AbcSize:
+  Max: 80
+
+Metrics/BlockLength:
   Enabled: false
 
 Metrics/CyclomaticComplexity:
   Max: 25
 
-# Screens are huge now. sometimes a line is a line.
-Layout/LineLength:
-  Max: 160
-  AllowedPatterns: ['(\A|\s)#']
-
-# Many AbcSize in the 50-100 range.
-Metrics/AbcSize:
-  Max: 80
-#   Enabled: false
-
 Metrics/ClassLength:
-  Enabled: false
-
-Metrics/BlockLength:
   Enabled: false
 
 Metrics/MethodLength:
@@ -52,6 +48,20 @@ Metrics/ModuleLength:
 
 Metrics/PerceivedComplexity:
   Max: 20
+
+# is_ and has_ provide extra information and were a style at one point
+Naming/PredicateName:
+  Enabled: false
+
+# we have too many db fields like address_1 and population_women_13_to_44
+Naming/VariableNumber:
+  Enabled: false
+
+Rails/I18nLazyLookup:
+  Enabled: false
+
+Rails/HasAndBelongsToMany:
+  Enabled: false
 
 # Trade off between obvious class searching and tons of indentation. leaving it as is.
 Style/ClassAndModuleChildren:
@@ -64,99 +74,38 @@ Style/Documentation:
 Style/DoubleNegation:
   Enabled: false
 
-Style/FormatString:
+Style/FormatStringToken:
+  EnforcedStyle: template
+
+# Let prettier handle this one
+Style/IfUnlessModifier:
   Enabled: false
 
-Style/HashSyntax:
-  EnforcedStyle: 'ruby19'
+# TODO add string literals
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+# if prettier can fit it all on one line, it's gonna do it, even if it has to use nested ternarys
+Style/NestedTernaryOperator:
+  Enabled: false
 
 # separate every three digits in a zip code/phone number? gtfo.
 Style/NumericLiterals:
   Enabled: false
 
-# is_ and has_ provide extra information and were a style at one point
-Naming/PredicateName:
+# (f == 0) or (f.zero?) you decide.
+Style/NumericPredicate:
   Enabled: false
 
-# we have too many db fields like address_1 and population_women_13_to_44
-Naming/VariableNumber:
-  Enabled: false
-
-# += is tricky and unneccessary.
-Style/SelfAssignment:
-  Enabled: false
-
-Style/StringLiterals:
-  Enabled: false
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: "[]"
 
 Style/StringConcatenation:
   Enabled: false
 
-Layout/SpaceAroundEqualsInParameterDefault:
-  EnforcedStyle: space
-
-Style/NumericPredicate:
-  EnforcedStyle: comparison
-
-Style/FrozenStringLiteralComment:
-  Enabled: false
-
-Style/SymbolArray:
-  EnforcedStyle: brackets
-
-Style/WordArray:
-  Enabled: false
-
-Layout/SpaceInsideHashLiteralBraces:
-  EnforcedStyle: compact
-
-Layout/EmptyLinesAroundBlockBody:
-  Enabled: false
-
-Layout/EmptyLinesAroundClassBody:
-  Enabled: false
-
 Style/TrailingCommaInArrayLiteral:
-  Enabled: false
+  EnforcedStyleForMultiline: consistent_comma
 
 Style/TrailingCommaInHashLiteral:
-  Enabled: false
-
-Style/TrailingCommaInArguments:
-  Enabled: false
-
-Style/Next:
-  Enabled: false
-
-Layout/CommentIndentation:
-  Enabled: false
-
-Layout/MultilineMethodCallIndentation:
-  Enabled: false
-
-Layout/ExtraSpacing:
-  Enabled: false
-
-Layout/MultilineMethodCallBraceLayout:
-  Enabled: false
-
-Style/MultilineBlockChain:
-  Enabled: false
-
-Style/PercentLiteralDelimiters:
-  Enabled: false
-
-Layout/HashAlignment:
-  Enabled: false
-
-Style/FormatStringToken:
-  EnforcedStyle: template
-
-Layout/ParameterAlignment:
-  Enabled: false
-
-Rails/I18nLazyLookup:
-  Enabled: false
-
-Rails/HasAndBelongsToMany:
-  Enabled: false
+  EnforcedStyleForMultiline: consistent_comma
