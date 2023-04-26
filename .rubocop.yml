@@ -85,6 +85,10 @@ Style/IfUnlessModifier:
 Style/FrozenStringLiteralComment:
   Enabled: false
 
+# if prettier can fit it all on one line, it's gonna do it, even if it has to use nested ternarys
+Style/NestedTernaryOperator:
+  Enabled: false
+
 # separate every three digits in a zip code/phone number? gtfo.
 Style/NumericLiterals:
   Enabled: false
