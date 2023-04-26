@@ -7,6 +7,12 @@
         "singleQuote": true,
         "bracketSpacing": true
       }
+    },
+    {
+      "files": ["*.rb", "*.rba", "*.rake"],
+      "options": {
+        "trailingComma": "all"
+      }
     }
   ]
 }
