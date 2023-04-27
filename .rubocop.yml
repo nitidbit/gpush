@@ -67,6 +67,10 @@ Rails/HasAndBelongsToMany:
 Style/ClassAndModuleChildren:
   Enabled: false
 
+# prettier sometimes splits a block over multiple lines if it would not fit within the line length, but keeps the {} braces if there is only one line in the block
+Style/BlockDelimiters:
+  Enabled: false
+
 Style/Documentation:
   Enabled: false
 
