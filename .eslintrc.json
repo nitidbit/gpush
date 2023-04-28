@@ -32,6 +32,12 @@
     "jsx-a11y/label-has-associated-control": 1,
     "jsx-a11y/no-static-element-interactions": 1,
     "jsx-a11y/tabindex-no-positive" :1,
+    "no-console": ["error", { "allow": ["warn", "debug"] }],
+    // these undo decisions in the AirBnB config (see https://github.com/airbnb/javascript/issues/1271 )
+    "no-restricted-syntax": [
+      "off",
+      "ForOfStatement"
+    ],
     "no-trailing-spaces": [2],
     "no-undef": [2],
     "no-unused-vars": [1],
