@@ -9,7 +9,7 @@
       }
     },
     {
-      "files": ["*.rb", "*.rba", "*.rake"],
+      "files": ["*.rb", "*.arb", "*.rake"],
       "options": {
         "trailingComma": "all"
       }
