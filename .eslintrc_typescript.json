@@ -24,6 +24,8 @@
     "jquery": true
   },
   "rules": {
+    "@typescript-eslint/no-shadow": 2,
+    "@typescript-eslint/no-unused-vars": 1,
     "arrow-body-style": 0,
     "arrow-parens": 2,
     "camelcase": 0,
@@ -45,8 +47,9 @@
     "jsx-a11y/no-static-element-interactions": 1,
     "jsx-a11y/tabindex-no-positive" :1,
     "no-trailing-spaces": [2],
+    "no-shadow": "off",
     "no-undef": [2],
-    "no-unused-vars": [1],
+    "no-unused-vars": "off",
     "no-useless-escape": 1,
     "prefer-template": 1,
     "quotes": 1,
