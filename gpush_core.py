@@ -4,15 +4,16 @@
 """
 
 from __future__ import print_function
-import subprocess
-import time
+
+import argparse
+import functools
+import json
 import os
 import os.path
+import subprocess
+import time
 from os.path import join, splitext, basename
-import argparse
-import json
 from shutil import which
-import functools
 
 # Ansi escape codes
 RED = "\033[31m"
@@ -89,15 +90,15 @@ def cli_arg_parser(commands):
 
 def scss_lint_for_changed_files(git_repo_root_dir):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes = True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
     changed_scss_files = [fn for fn in changed_filenames if fn.endswith('css')]
 
-    COMMAND = ['npx', 'stylelint']
-    COMMAND.extend(changed_scss_files)
+    command = ['npx', 'stylelint']
+    command.extend(changed_scss_files)
 
     if changed_scss_files:
         result["stylelint"] = {
-            'args': COMMAND
+            'args': command
         }
 
     return result
@@ -105,30 +106,31 @@ def scss_lint_for_changed_files(git_repo_root_dir):
 
 def eslint_for_changed_files(git_repo_root_dir):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes = True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
     changed_js_files = [fn for fn in changed_filenames if (fn.endswith('js') or fn.endswith('jsx'))]
 
-    COMMAND = ['npx', 'eslint']
-    COMMAND.extend(changed_js_files)
+    command = ['npx', 'eslint']
+    command.extend(changed_js_files)
 
     if changed_js_files:
         result["eslint"] = {
-            'args': COMMAND
+            'args': command
         }
 
     return result
 
+
 def prettier_for_changed_files(git_repo_root_dir):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes = True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
     # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
 
-    COMMAND = ['npx', 'prettier', '--check']
-    COMMAND.extend(changed_filenames)
+    command = ['npx', 'prettier', '--check']
+    command.extend(changed_filenames)
 
     if changed_filenames:
         result["prettier"] = {
-            'args': COMMAND
+            'args': command
         }
 
     return result
@@ -229,7 +231,7 @@ def _searchable_strings(filenames, filename_stop_words):
 # Return list of files that have changed since 'origin/BRANCH'
 # e.g. ['/Users/winstonw/bedsider-web/bedsider/app/models/clinic.rb', ...]
 @functools.cache
-def _get_changed_files(git_repo_root_dir, no_deletes = False):
+def _get_changed_files(git_repo_root_dir, no_deletes=False):
     git_result = run("git rev-parse --abbrev-ref HEAD").decode()
     local_branch = git_result.strip()
 
@@ -239,11 +241,11 @@ def _get_changed_files(git_repo_root_dir, no_deletes = False):
 
     except subprocess.CalledProcessError:
         # Assuming error: when we are on a local branch, diffing with origin/$BRANCH fails
-        DEFAULT = 'main'
+        default = 'main'
         prompt = '''
 Could not `git diff` against origin/{}. What branch should I diff against to determine what you are going to
-push? [{}] '''.format(local_branch, DEFAULT)
-        origin_branch = input(prompt).strip() or DEFAULT
+push? [{}] '''.format(local_branch, default)
+        origin_branch = input(prompt).strip() or default
 
         cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(origin_branch, local_branch)
         output = run(cmd)
@@ -252,7 +254,7 @@ push? [{}] '''.format(local_branch, DEFAULT)
 
     files = [os.path.realpath(os.path.join(git_repo_root_dir, fn)) for fn in files]
 
-    if no_deletes: # filter out deleted files
+    if no_deletes:  # filter out deleted files
         files = [fn for fn in files if (os.path.exists(fn))]
 
     return files
@@ -264,18 +266,21 @@ def _get_specs(spec_dir, keywords, spec_ignore_dirs):
 
     # find all spec files
     for base, dirs, files in os.walk(spec_dir):
-        if base in spec_ignore_dirs: continue
+        if base in spec_ignore_dirs:
+            continue
 
         for filename in files:
-            if not filename.endswith('_spec.rb'): continue
+            if not filename.endswith('_spec.rb'):
+                continue
 
             potential_spec = join(base, filename)
             specs.add(potential_spec)
 
     # choose only files with our keywords
-    def contains_keywords(filename):
+    def contains_keywords(candidate_filename):
         for keyword in keywords:
-            if keyword in filename: return True
+            if keyword in candidate_filename:
+                return True
         return False
 
     specs = list(filter(contains_keywords, specs))
