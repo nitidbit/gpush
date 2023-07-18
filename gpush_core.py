@@ -293,7 +293,21 @@ def _get_specs(spec_dir, keywords, spec_ignore_dirs):
 #   `export GPUSH_NO_NOTIFIER=1`
 # This only works (and is quietly skipped otherwise) if you install `terminal-notifier` with your favorite packager:
 #   `brew install terminal-notifier`
+#
+# Bonus effects for the inspired. If you set env vars GPUSH_SOUND_SUCCESS and/or GPUSH_SOUND_FAIL to the path
+# of a sound file, they will be played as needed. Suggest these two solid options:
+# https://pixabay.com/sound-effects/wah-wah-sad-trombone-6347/
+# https://pixabay.com/sound-effects/tada-fanfare-a-6313/
+# These could be baked into gpush, but grabbing your own favorites seems more fun.
 def notify(success=True, msg="Finished!"):
+    afplay = which('afplay')
+    if afplay is not None:
+        if "GPUSH_SOUND_SUCCESS" in os.environ and os.path.isfile(os.environ["GPUSH_SOUND_SUCCESS"]) and success:
+            subprocess.Popen([afplay, os.environ["GPUSH_SOUND_SUCCESS"]])
+
+        if "GPUSH_SOUND_FAIL" in os.environ and os.path.isfile(os.environ["GPUSH_SOUND_FAIL"]) and not success:
+            subprocess.Popen([afplay, os.environ["GPUSH_SOUND_FAIL"]])
+
     terminal_notifier = which('terminal-notifier')
     if terminal_notifier is None or "GPUSH_NO_NOTIFIER" in os.environ:
         return
