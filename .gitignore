@@ -1,3 +1,8 @@
 # code editors
 .idea/
 .vscode/
+
+# other
+.DS_Store
+**/.envrc
+**/.env
