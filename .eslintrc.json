@@ -23,6 +23,7 @@
         "functions": "only-multiline"
     }],
     "dot-notation": 0,
+    "func-names": ["error", "as-needed"],
     "import/extensions": 0,
     "import/no-extraneous-dependencies": [ "error", { "optionalDependencies": false }],
     "import/prefer-default-export": 0,
@@ -42,6 +43,7 @@
     "no-undef": [2],
     "no-unused-vars": [1],
     "no-useless-escape": 1,
+    "one-var": ["error", { "initialized": "never" }],
     "prefer-template": 1,
     "quotes": 1,
     "radix": 0,
