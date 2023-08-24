@@ -10,6 +10,7 @@ import functools
 import json
 import os
 import os.path
+import stat
 import subprocess
 import time
 from os.path import join, splitext, basename
@@ -200,6 +201,18 @@ def rspec_for_changed_files(
             'cwd': rspec_root_dir,
             'args': ['bundle', 'exec', 'rspec'] + list(specs)}
     return result
+
+
+# gpush.py client code should call this once files have been fetched and after import, like this:
+#   import gpush_core
+#   gpush_core.after_downloads()
+# TODO: automate running this after all downloads (which will become a config step)
+def after_downloads():
+    # make lint.py executable by all
+    lint_path = "./lint.py"
+    if os.path.isfile(lint_path):
+        lint_stat = os.stat(lint_path)
+        os.chmod(lint_path, lint_stat.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 # Print all the commands running and if they have finished or not
