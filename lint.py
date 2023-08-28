@@ -6,6 +6,7 @@ import os
 from os.path import join, dirname
 
 PROJECT_ROOT_DIR = dirname(__file__)
+ESLINT_FILE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']
 
 def run(command):
     result = subprocess.check_output([command], stderr=subprocess.STDOUT, shell=True)
@@ -40,9 +41,10 @@ Could not `git diff` against origin. What branch should I diff against? [{}] '''
 
 if __name__ == '__main__':
     changed_filenames = get_changed_files(PROJECT_ROOT_DIR)
+    eslint_files = [fn for fn in changed_filenames if fn.endswith(tuple(ESLINT_FILE_EXTENSIONS))]
 
     subprocess.run(['npx', 'prettier', '--write'] + changed_filenames)
-    subprocess.run(['npx', 'eslint', '--fix'] + changed_filenames)
+    subprocess.run(['npx', 'eslint', '--fix'] + eslint_files)
     subprocess.run([
         'bundle',
         'exec',
