@@ -136,6 +136,20 @@ def prettier_for_changed_files(git_repo_root_dir):
 
     return result
 
+def rubocop_for_changed_files(git_repo_root_dir):
+    result = {}
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
+
+    command = ['bundle', 'exec', 'rubocop', '--force-exclusion', '--only-recognized-file-types']
+    command.extend(changed_filenames)
+
+    if changed_filenames:
+        result["rubocop"] = {
+            'args': command
+        }
+
+    return result
 
 def jest_soft_limit_warning(git_repo_root_dir):
     # read package json hard limits
