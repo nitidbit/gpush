@@ -33,7 +33,7 @@
     "jsx-a11y/label-has-associated-control": "warn",
     "jsx-a11y/no-static-element-interactions": "warn",
     "jsx-a11y/tabindex-no-positive" :"warn",
-    "no-console": ["error", { "allow": ["warn", "debug"] }],
+    "no-console": ["error", { "allow": ["debug", "warn", "error"] }],
     // these undo decisions in the AirBnB config (see https://github.com/airbnb/javascript/issues/1271 )
     "no-restricted-syntax": [
       "off",
