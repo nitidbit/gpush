@@ -54,7 +54,7 @@ def run_in_parallel(commands):
 
             if active_process_count == 0:
                 errors = {name: proc.poll() for name, proc in processes.items()
-                          if proc.poll() is not None and proc.poll() > 0}
+                          if proc.poll() is not None and proc.poll() != 0}
                 return errors
 
             time.sleep(5)
