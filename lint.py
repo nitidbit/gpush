@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+Rewrite files with linters: ESLint, Prettier, and Rubocop. Only affects files that you
+have changed since you last pushed to git.
+"""
+
 import subprocess
 import os
 from os.path import join, dirname
