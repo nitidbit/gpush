@@ -126,7 +126,7 @@ def prettier_for_changed_files(git_repo_root_dir):
     changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
     # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
 
-    command = ['npx', 'prettier', '--check']
+    command = ['npx', 'prettier', '--check', '--plugin=@prettier/plugin-ruby']
     command.extend(changed_filenames)
 
     if changed_filenames:
