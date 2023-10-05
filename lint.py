@@ -48,7 +48,9 @@ if __name__ == '__main__':
     changed_filenames = get_changed_files(PROJECT_ROOT_DIR)
     eslint_files = [fn for fn in changed_filenames if fn.endswith(tuple(ESLINT_FILE_EXTENSIONS))]
 
-    subprocess.run(['npx', 'prettier', '--write', '--plugin=@prettier/plugin-ruby'] + changed_filenames)
+    prettier_command = ['npx', 'prettier', '--write', '--plugin=@prettier/plugin-ruby'] + changed_filenames
+
+    subprocess.run(prettier_command)
     subprocess.run(['npx', 'eslint', '--fix'] + eslint_files)
     subprocess.run([
         'bundle',
@@ -58,6 +60,6 @@ if __name__ == '__main__':
         '--autocorrect-all',
         '--only-recognized-file-types'
         ] + changed_filenames)
-    subprocess.run(['npx', 'prettier', '--write'] + changed_filenames)
+    subprocess.run(prettier_command)
 
     print("Done Linting")
