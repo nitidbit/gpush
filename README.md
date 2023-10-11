@@ -8,6 +8,13 @@ In your project, please install the following:
 
 ### Gemfile
 Rubocop - most likely, it is already installed automatically in a Rails codebase
+For "@prettier/plugin-ruby", need to add the following gems:
+```
+  gem 'prettier_print'
+  gem 'syntax_tree'
+  gem 'syntax_tree-haml'
+  gem 'syntax_tree-rbs'
+```
 
 ### Package.json
 Eslint - most likely, it is already installed automatically in a React codebase
@@ -24,6 +31,13 @@ Eslint - most likely, it is already installed automatically in a React codebase
   "stylelint-prettier": "^2"
 }
 ```
+Prettier - to run prettier on ruby files:
+```
+"devDependencies": {
+  "@prettier/plugin-ruby": "^4,
+}
+```
+Note: if running in cmd line, `npx prettier -w` does not automatically include ruby files, have to `npx prettier -w --plugin=@prettier/plugin-ruby` # add to prettierrc.json once file expansion regression addressed
 
 ## Prettier formatting on save
 
