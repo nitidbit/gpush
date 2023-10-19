@@ -57,6 +57,9 @@ Naming/PredicateName:
 Naming/VariableNumber:
   Enabled: false
 
+Rails/OutputSafety:
+  Enabled: false
+
 Rails/I18nLazyLookup:
   Enabled: false
 
