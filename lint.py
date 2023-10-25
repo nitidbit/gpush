@@ -57,7 +57,7 @@ if __name__ == '__main__':
         'exec',
         'rubocop',
         '--force-exclusion',
-        '--autocorrect-all',
+        '--autocorrect',
         '--only-recognized-file-types'
         ] + changed_filenames)
     subprocess.run(prettier_command)
