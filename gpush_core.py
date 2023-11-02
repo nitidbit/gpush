@@ -60,6 +60,7 @@ def run_in_parallel(commands):
             time.sleep(5)
     except KeyboardInterrupt:
         print('KeyboardInterrupt...')
+        return {"kbdint": 1}
     finally:
         for name, proc in processes.items():
             status = proc.poll()
@@ -310,7 +311,7 @@ def _get_specs(spec_dir, keywords, spec_ignore_dirs):
                 return True
         return False
 
-    specs = list(filter(contains_keywords, specs))
+    specs = list(filter(contains_keywords, sorted(specs)))
 
     return specs
 
@@ -350,32 +351,3 @@ def notify(success=True, msg="Finished!"):
                     # for the icon... (should be able to specify a file but that doesn't seem to work)
                     '-sender', 'com.apple.terminal',
                     ])
-
-# [Winston Aug 2021] jest_with_coverage_for_changed_files() will run coverage on just changed files.
-# But I want to try out just checking the global values, and updating it from time to time. Which way will
-# work better to encourage increased test coverage?
-
-# Return command to run Jest, plus checking test coverage for changed .JS/X files
-#  def jest_with_coverage_for_changed_files():
-
-#      changed_filenames = _get_changed_files(git_repo_root_dir)
-
-#      is_javascript = lambda fn: fn.endswith('.js') or fn.endswith('.jsx')
-#      changed_js_files = filter(is_javascript, changed_filenames)
-
-#      coverage_args = []
-#      if len(changed_js_files) > 0:
-#          print 'These Javascript files have changed. They must pass test coverage requirements:'
-#          print '   ', ', '.join(changed_js_files)
-
-#          # move file paths from 'bedsider/app/models/clinics.rb' -> 'app/models/clinics.rb'
-#          changed_js_files = [os.path.relpath(fn, BEDSIDER_DIR) for fn in changed_js_files]
-
-#          coverage_args = ['--coverage'] + \
-#              ['--collectCoverageOnlyFrom={}'.format(fn) for fn in changed_js_files]
-
-#      jest_cmd = {"jest": {
-#          'cwd': BEDSIDER_DIR,
-#          'args': ['npx', 'jest', '--silent', '--watchAll=false', '--runInBand'] + coverage_args,
-#      }}
-#      return jest_cmd
