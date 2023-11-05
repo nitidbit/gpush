@@ -1,0 +1,75 @@
+# Root directory to execute commands
+root_dir: "./"
+
+# Files to be fetched before running the commands
+fetch_files:
+  # Each item in the list is a pair where the first element is the URL and the second is the local filename
+  - - "https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json"
+    - ".prettierrc.json"
+  # Single file fetch configuration (local file will be placed in the root_dir with the same filename)
+  - "https://raw.githubusercontent.com/nitidbit/gpush/main/.rubocop.yml"
+
+# List of commands to run
+commands:
+  # Inherit command settings from a predefined command 'uncommitted_git_changes'
+  - inherit_from: "uncommitted_git_changes"
+
+  # Run predefined command 'jest' tests with additional file selection criteria
+  - inherit_from: "jest"
+    file_selection:
+      # exclude takes string with a glob pattern. Can also take an array of strings.
+      exclude: "node/modules/**/*"
+    # Environment variables for this command
+    env:
+      NODE_ENV: "test"
+
+  # Define a custom script command with a description and arguments
+  - name: "custom_script"
+    description: "User defined custom script"
+    args: ["./scripts/my_custom_script.sh"]
+
+  # Define an command without inheriting from a predefined command
+  - name: "rspec"
+    file_selection:
+      # entries in file_selection are read top to bottom. Order matters.
+      heuristic:
+        # Attempt to find files to run based on
+        # Ignore files containing these keywords
+        ignore_keywords: ["factories", "fixtures"]
+        # Minimum length of a keyword to be included in the ignore list
+        keyword_min_length: 3
+
+      # git diff against a branch for changed files.
+      # Array of fallbacks if first one returns an error (eg origin branch does not exist)
+      git_diff_branch: ["origin", "origin/main"]
+
+      # Glob pattern to include files for the test run
+      include: "spec/*spec.rb"
+      # Patterns to exclude files from the test run
+      exclude: ["*helper*", "spec/factories/**/*"]
+    # Command arguments to run 'rspec'
+    args: ["bundle", "exec", "rspec"]
+
+# Notification settings for desktop alerts
+notification:
+  enable_desktop_notification: true
+  success_message: "All checks passed successfully!"
+  failure_message: "Checks failed, please review the issues."
+
+# Run commands but do not git push
+dry_run: false
+
+# Limit the number of concurrent commands
+concurrency_limit: 5
+
+# Whether to save command output to a file
+save_output: true
+
+# Script to run before executing the commands
+setup_script: "./scripts/setup.sh"
+
+# Script to run after executing the commands
+teardown_script: "./scripts/teardown.sh"
+
+# Set the verbosity level of the logs
+log_level: "info"
