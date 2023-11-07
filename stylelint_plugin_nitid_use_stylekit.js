@@ -6,7 +6,18 @@ const messages = stylelint.utils.ruleMessages(ruleName, {
     `Expected "${declaration}" to be used within a mixin.`,
 })
 
-const pluginRule = stylelint.createPlugin(ruleName, function (primaryOption) {
+function isInsideMixin(declaration) {
+  let { parent } = declaration
+  while (parent) {
+    if (parent.type === 'atrule' && parent.name === 'mixin') {
+      return true
+    }
+    parent = parent.parent // eslint-disable-line prefer-destructuring
+  }
+  return false
+}
+
+const pluginRule = stylelint.createPlugin(ruleName, (primaryOption) => {
   return (root, result) => {
     if (!primaryOption || primaryOption.length === 0) return
 
@@ -22,17 +33,6 @@ const pluginRule = stylelint.createPlugin(ruleName, function (primaryOption) {
     })
   }
 })
-
-function isInsideMixin(declaration) {
-  let { parent } = declaration
-  while (parent) {
-    if (parent.type === 'atrule' && parent.name === 'mixin') {
-      return true
-    }
-    parent = parent.parent
-  }
-  return false
-}
 
 module.exports = pluginRule
 module.exports.ruleName = ruleName
