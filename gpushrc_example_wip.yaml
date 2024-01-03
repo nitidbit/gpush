@@ -1,24 +1,31 @@
-# Root directory to execute commands
+# Root directory to execute commands (relative to this file)
 root_dir: "./"
 
-# Files to be fetched before running the commands
-fetch_files:
-  # Each item in the list is a pair where the first element is the URL and the second is the local filename
-  - - "https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json"
-    - ".prettierrc.json"
-  # Single file fetch configuration (local file will be placed in the root_dir with the same filename)
-  - "https://raw.githubusercontent.com/nitidbit/gpush/main/.rubocop.yml"
+pre_run:
+# array of shell commands as strings 
+# eg download config files for eslint, prettier, etc.
+  - 'curl -O ...'
+
+# import a file with command definitions (for 'run_command' under parallel commands)
+# can be a local file or a url
+import: "filename"
+
+# shell commands (could be a .sh script) to be run after the commands complete
+post_run: # run always
+  - "shell command one"
+  - "shell command two"
+  - run_command: 'foo'
+post_run_success: 
+post_run_failure:
 
 # List of commands to run
-commands:
+# auto discover commands smartly ???
+parallel_commands:
   # Inherit command settings from a predefined command 'uncommitted_git_changes'
-  - inherit_from: "uncommitted_git_changes"
+  - run_command: "uncommitted_git_changes"
 
-  # Run predefined command 'jest' tests with additional file selection criteria
-  - inherit_from: "jest"
-    file_selection:
-      # exclude takes string with a glob pattern. Can also take an array of strings.
-      exclude: "node/modules/**/*"
+  # Run predefined command 'jest' tests with additional options
+  - run_command: "jest"
     # Environment variables for this command
     env:
       NODE_ENV: "test"
@@ -26,29 +33,13 @@ commands:
   # Define a custom script command with a description and arguments
   - name: "custom_script"
     description: "User defined custom script"
-    args: ["./scripts/my_custom_script.sh"]
+    shell: "./scripts/my_custom_script.sh"
+    root_dir: "./some_subdir"
 
   # Define an command without inheriting from a predefined command
   - name: "rspec"
-    file_selection:
-      # entries in file_selection are read top to bottom. Order matters.
-      heuristic:
-        # Attempt to find files to run based on
-        # Ignore files containing these keywords
-        ignore_keywords: ["factories", "fixtures"]
-        # Minimum length of a keyword to be included in the ignore list
-        keyword_min_length: 3
-
-      # git diff against a branch for changed files.
-      # Array of fallbacks if first one returns an error (eg origin branch does not exist)
-      git_diff_branch: ["origin", "origin/main"]
-
-      # Glob pattern to include files for the test run
-      include: "spec/*spec.rb"
-      # Patterns to exclude files from the test run
-      exclude: ["*helper*", "spec/factories/**/*"]
     # Command arguments to run 'rspec'
-    args: ["bundle", "exec", "rspec"]
+    shell: "bundle exec rspec $(gpush find-rspec-files --include 'spec/*.rb')"
 
 # Notification settings for desktop alerts
 notification:
@@ -59,17 +50,12 @@ notification:
 # Run commands but do not git push
 dry_run: false
 
-# Limit the number of concurrent commands
-concurrency_limit: 5
+
+
+# ======== low priority additional options =========
 
 # Whether to save command output to a file
 save_output: true
 
-# Script to run before executing the commands
-setup_script: "./scripts/setup.sh"
-
-# Script to run after executing the commands
-teardown_script: "./scripts/teardown.sh"
-
-# Set the verbosity level of the logs
-log_level: "info"
+# Limit the number of concurrent commands
+concurrency_limit: 5
