@@ -18,8 +18,11 @@ post_run: # run always
 post_run_success: 
 post_run_failure:
 
+skip_commands:
+ - "name_one"
+ - "name_two"
+
 # List of commands to run
-# auto discover commands smartly ???
 parallel_commands:
   # Inherit command settings from a predefined command 'uncommitted_git_changes'
   - run_command: "uncommitted_git_changes"
