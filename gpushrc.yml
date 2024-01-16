@@ -1,0 +1,65 @@
+# Root directory to execute commands (relative to this file)
+# root_dir: "./"
+
+pre_run:
+  # array of shell commands as strings 
+  # eg download config files for eslint, prettier, etc.
+  - 'echo "this is a pre-run command"'
+  - 'echo "current directory is $(pwd)"'
+
+
+# import a file with command definitions (for 'run_command' under parallel commands)
+# can be a local file or a url
+# import: "filename"
+
+# shell commands (could be a .sh script) to be run after the commands complete
+post_run: # run always
+  - echo "this is a post_run command"
+
+# post_run_success: 
+# post_run_failure:
+
+# skip_commands:
+#  - "name_one"
+#  - "name_two"
+
+# # List of commands to run
+# parallel_commands:
+#   # Inherit command settings from a predefined command 'uncommitted_git_changes'
+#   - run_command: "uncommitted_git_changes"
+
+#   # Run predefined command 'jest' tests with additional options
+#   - run_command: "jest"
+#     # Environment variables for this command
+#     env:
+#       NODE_ENV: "test"
+
+#   # Define a custom script command with a description and arguments
+#   - name: "custom_script"
+#     description: "User defined custom script"
+#     shell: "./scripts/my_custom_script.sh"
+#     root_dir: "./some_subdir"
+
+#   # Define an command without inheriting from a predefined command
+#   - name: "rspec"
+#     # Command arguments to run 'rspec'
+#     shell: "bundle exec rspec $(gpush find-rspec-files --include 'spec/*.rb')"
+
+# # Notification settings for desktop alerts
+# notification:
+#   enable_desktop_notification: true
+#   success_message: "All checks passed successfully!"
+#   failure_message: "Checks failed, please review the issues."
+
+# # Run commands but do not git push
+# dry_run: false
+
+
+
+# # ======== low priority additional options =========
+
+# # Whether to save command output to a file
+# save_output: true
+
+# # Limit the number of concurrent commands
+# concurrency_limit: 5
