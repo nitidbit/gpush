@@ -1,12 +1,21 @@
 import subprocess
 import os
 
+def check_allowed_keys(allowed, dictionary):
+    actual_keys = dictionary.keys()
+    bad_keys = set(actual_keys) - set(allowed)
+    if bad_keys:
+        raise RuntimeError(f'Problem with command.  {repr(dictionary)} has these unknown keys: {", ".join(bad_keys)}. Allowed keys for a command are: {", ".join(allowed_keys)}')
+
+
 def check_type(line_intro, value, expected_type, explanation):
     if not isinstance(value, expected_type):
         raise RuntimeError(f'Problem with {line_intro}.  {repr(value)} needs to be of type {repr(expected_type)}.  {explanation}')
 
+allowed_keys = ['shell', 'env', 'if']
 def run(list_of_commands):
     for cmd in list_of_commands:
+        check_allowed_keys(allowed_keys, cmd)
         check_type('Command', cmd, dict, 'Commands need to be a hash with at least a "shell:" line.')
 
         if 'shell' not in cmd:
