@@ -1,9 +1,9 @@
 # gPush
-=======
+
 > This repo contains files needed for the `gpush` script, which runs tests/linters/etc prior to git push in order to ensure better code
 
 ## Developer Setup
-==================
+
 
 ### Installation
 
@@ -19,9 +19,11 @@
     ./gpush.py
 
 ## Important files
-==================
+
 ### gpush settings
-- ``
+- *default values*: see `gpushrc_default.yml`
+- *customizable configuration*: copy `gpushrc_example.yaml` into your project and make edits
+
 ### linter configurations
 - eslint (for JavaScript & TypeScript)
   - `.eslintrc.json`
@@ -41,10 +43,8 @@
 - `.prettierrc.json`
 
 ## What actually happens during gPush?
-================
 
 See below image:
-
 ![Flow](https://github.com/nitidbit/gpush/blob/release/v2-hackathon/gpush_diagram.png?raw=true)
 
 
