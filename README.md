@@ -20,7 +20,7 @@ also get new version with Brew
 
 ### Libraries
     cd gpush
-    pip install -r requirements.txt
+    pip3 install -r requirements.txt
 
 ### Run
     ./gpush.py
