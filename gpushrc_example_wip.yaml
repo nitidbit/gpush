@@ -1,59 +1,57 @@
-# Root directory to execute commands (relative to this file)
-root_dir: "./"
+settings:
+  # Run commands but do not git push
+  dry_run: false
 
-pre_run:
-# array of shell commands as strings 
-# eg download config files for eslint, prettier, etc.
-  - 'curl -O ...'
+  paths:
+    # Root directory to execute commands (relative to this file)
+    root_dir: "./"
+    # import a file with command definitions (for 'run_command' under parallel commands), can be a local file or a url
+    import_path: "filename"
 
-# import a file with command definitions (for 'run_command' under parallel commands)
-# can be a local file or a url
-import: "filename"
+  # Notification settings for desktop alerts
+  notification:
+    enable_desktop_notification: true
+    success_message: "All checks passed successfully!"
+    failure_message: "Checks failed, please review the issues."
 
-# shell commands (could be a .sh script) to be run after the commands complete
-post_run: # run always
-  - "shell command one"
-  - "shell command two"
-  - run_command: 'foo'
-post_run_success: 
-post_run_failure:
+commands:
+  # array of shell commands as strings, eg download config files for eslint, prettier, etc.
+  pre_run:
+    - "shell command one"
+    - run_command: 'foo'
+  
+  parallel_run:
+    # Inherit command settings from a predefined command 'uncommitted_git_changes'
+    - run_command: "uncommitted_git_changes"
 
-skip_commands:
- - "name_one"
- - "name_two"
+    # Run predefined command 'jest' tests with additional options
+    - run_command: "jest"
+      # Environment variables for this command
+      env:
+        NODE_ENV: "test"
+      option:
+        - 'coverage'
+        - watchAll: false
 
-# List of commands to run
-parallel_commands:
-  # Inherit command settings from a predefined command 'uncommitted_git_changes'
-  - run_command: "uncommitted_git_changes"
+    # Define an command without inheriting from a predefined command
+    - name: "rspec"
+      # Command arguments to run 'rspec'
+      shell: "bundle exec rspec $(gpush find-rspec-files --include 'spec/*.rb')"
+    
+    # Define a custom script command with a description and arguments
+    - name: "custom_script"
+      description: "User defined custom script"
+      shell: "./scripts/my_custom_script.sh"
 
-  # Run predefined command 'jest' tests with additional options
-  - run_command: "jest"
-    # Environment variables for this command
-    env:
-      NODE_ENV: "test"
-
-  # Define a custom script command with a description and arguments
-  - name: "custom_script"
-    description: "User defined custom script"
-    shell: "./scripts/my_custom_script.sh"
-    root_dir: "./some_subdir"
-
-  # Define an command without inheriting from a predefined command
-  - name: "rspec"
-    # Command arguments to run 'rspec'
-    shell: "bundle exec rspec $(gpush find-rspec-files --include 'spec/*.rb')"
-
-# Notification settings for desktop alerts
-notification:
-  enable_desktop_notification: true
-  success_message: "All checks passed successfully!"
-  failure_message: "Checks failed, please review the issues."
-
-# Run commands but do not git push
-dry_run: false
-
-
+  # shell commands (could be a .sh script) to be run after the commands complete
+  post_run:
+    always_run:
+      - "shell command one"
+      - run_command: 'foo'
+    always_skip:
+    on_success:
+    on_failure:
+    
 
 # ======== low priority additional options =========
 
