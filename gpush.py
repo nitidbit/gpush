@@ -80,6 +80,19 @@ def go():
     yml = find_and_parse_config()
 
     command.run(yml['pre_run'])
+
+    command_definitions = yml.get('command_definitions', {})
+    commands_to_run_in_parallel = []
+    for x in yml.get('parallel_commands', []):
+        if isinstance(x, str):
+            if x in command_definitions:
+                command_x = {**command_definitions[x], 'name': x}
+                commands_to_run_in_parallel.append(command_x)
+            else:
+                raise ValueError(f"Command not found in 'command_definitions': {x}")
+        else:
+            commands_to_run_in_parallel.append(x)
+
     command.run(yml['post_run'])
 
 
