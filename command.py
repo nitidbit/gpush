@@ -46,9 +46,12 @@ class Command:
         shell = self.dict['shell']
         print('\ngpush:', self.name())
 
-        subprocess.run(shell, shell=True, env=env)
+        return subprocess.run(shell, shell=True, env=env)
 
 def run(list_of_commands):
     for cmd_dict in list_of_commands:
-        return Command(cmd_dict).run()
+        run_one(cmd_dict)
+
+def run_one(cmd_dict):
+    return Command(cmd_dict).run()
 

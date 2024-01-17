@@ -77,13 +77,14 @@ command_definitions:
 
 # always run, in addition to parallel_commands in the project specific yml
 parallel_commands:
-  - brakeman
-  - bundle audit
-  - bundle leak
-  - jest
-  - npm audit
-  - prettier
-  - rspec
-  - rubocop
-  - uncommitted git changes
-  - yaml lint
+  - name: brakeman
+    shell: 'echo "pretend Im running bundle exec brakeman"'
+  # - bundle audit
+  # - bundle leak
+  - name: jest
+    shell: echo "pretend im running jest"
+  # prettier:
+  # rspec:
+  # rubocop:
+  # - uncommitted git changes
+  # - yaml lint

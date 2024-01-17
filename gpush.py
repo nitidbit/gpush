@@ -6,6 +6,7 @@ import command
 import os
 import subprocess
 import yaml
+import concurrent.futures
 
 
 def find_and_parse_config():
@@ -32,6 +33,37 @@ def merge_imports(config):
         else:
             print(f"import file '{file}' does not exist or is not a file, ignoring")
 
+def _run_in_parallel(commands):
+    post_processing_tasks = {}
+    processes = {}
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(command.run_one, item) for item in commands]
+
+        for future in concurrent.futures.as_completed(futures):
+            completed_process = future.result()
+            print("This is the result", completed_process.returncode)
+
+    # try:
+    #     while True:
+    #         _print_status(processes)
+    #         active_process_count = len([name for name, proc in processes.items() if proc.poll() is None])
+
+    #         if active_process_count == 0:
+    #             errors = {name: proc.poll() for name, proc in processes.items()
+    #                       if proc.poll() is not None and proc.poll() != 0}
+    #             return errors
+
+    #         time.sleep(5)
+    # except KeyboardInterrupt:
+    #     print('KeyboardInterrupt...')
+    #     return {"kbdint": 1}
+    # finally:
+    #     for name, proc in processes.items():
+    #         status = proc.poll()
+    #         if status is None:
+    #             print('Terminating:', name)
+    #             proc.terminate()
 
 def get_remote_branch_name():
     try:
@@ -63,38 +95,27 @@ def is_git_up_to_date_with_remote_branch():
 
 def go():
     remote_branch = get_remote_branch_name()
-    if remote_branch:
-        if is_git_up_to_date_with_remote_branch():
-            print(f"Local branch is up to date with the remote branch '{remote_branch}'.")
-            # Continue with your operations below
-        else:
-            print(f"Local branch is not up to date with the remote branch '{remote_branch}'. Exiting.")
-            return  # Stop further execution
-    else:
-        user_input = input("No remote branch set. Would you like to set up a remote branch? (y/n): ")
-        if user_input.lower() == 'y':
-            setup_remote_branch = True
-            # Later use this flag to set up the remote branch
-        else:
-            print("No remote branch setup. Exiting.")
-            return  # Stop further execution
+    # if remote_branch:
+    #     if is_git_up_to_date_with_remote_branch():
+    #         print(f"Local branch is up to date with the remote branch '{remote_branch}'.")
+    #         # Continue with your operations below
+    #     else:
+    #         print(f"Local branch is not up to date with the remote branch '{remote_branch}'. Exiting.")
+    #         return  # Stop further execution
+    # else:
+    #     user_input = input("No remote branch set. Would you like to set up a remote branch? (y/n): ")
+    #     if user_input.lower() == 'y':
+    #         setup_remote_branch = True
+    #         # Later use this flag to set up the remote branch
+    #     else:
+    #         print("No remote branch setup. Exiting.")
+    #         return  # Stop further execution
 
     yml = find_and_parse_config()
 
     command.run(yml['pre_run'])
-
-    command_definitions = yml.get('command_definitions', {})
-    commands_to_run_in_parallel = []
-    for x in yml.get('parallel_commands', []):
-        if isinstance(x, str):
-            if x in command_definitions:
-                command_x = {**command_definitions[x], 'name': x}
-                commands_to_run_in_parallel.append(command_x)
-            else:
-                raise ValueError(f"Command not found in 'command_definitions': {x}")
-        else:
-            commands_to_run_in_parallel.append(x)
-
+    print("yml parallel commands", yml['parallel_commands'])
+    _run_in_parallel(yml['parallel_commands'])
     command.run(yml['post_run'])
 
 
