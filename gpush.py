@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-import os
-
-import yaml
+import argparse
 import command
+import os
 import subprocess
+import yaml
 
 def find_and_parse_config():
     with open('gpushrc.yml') as f:
@@ -78,5 +78,23 @@ def go():
     command.run(yml['pre_run'])
     command.run(yml['post_run'])
 
+def cli_arg_parser(commands):
+    list_of_commands = "".join(("\n    {:25} - {}".format(key, ' '.join(val["args"])) for key, val in commands.items()))
+    description = 'Run tests and linters before pushing to github.'
+    epilog = 'These are the tests and linters that will be run:' + list_of_commands + '\n    rspec'
+
+    parser = argparse.ArgumentParser(
+        description=description,
+        epilog=epilog,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument('--dry-run', dest='is_dry_run', action='store_true',
+                        help="Don't actually push to github at the end--just run the tests.")
+    parser.add_argument('--root-dir', dest='root_dir',
+                        help="Specify a root directory. Defaults to ./ (current directory)")
+    return parser
+
 if __name__ == '__main__':
+    args = cli_arg_parser({}).parse_args()
+
     go()

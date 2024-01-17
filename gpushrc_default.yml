@@ -1,5 +1,0 @@
-# This file sets default values for gpush. They can be overridden by defining a
-# `gpushrc.yml` file in your project directory
-
-# Root directory to execute commands (relative to this file)
-root_dir: "./"
