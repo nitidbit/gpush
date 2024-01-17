@@ -12,7 +12,7 @@ pre_run:
 
 # import a file with command definitions (for 'run_command' under parallel commands)
 # can be a local file or a url
-# import: "filename"
+import: "./gpush_config_nitid.yml"
 
 # shell commands (could be a .sh script) to be run after the commands complete
 post_run: # run always
