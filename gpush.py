@@ -5,6 +5,7 @@ import os
 import subprocess
 import yaml
 
+
 def find_and_parse_config():
     with open('gpushrc.yml') as f:
         config = yaml.safe_load(f)
@@ -13,6 +14,7 @@ def find_and_parse_config():
 
     print('!!! find_and_parse_config() config=', repr(config))
     return config
+
 
 # import other config files, we expect a single path or a list of paths
 def merge_imports(config):
@@ -28,12 +30,15 @@ def merge_imports(config):
         else:
             print(f"import file '{file}' does not exist or is not a file, ignoring")
 
+
 def get_remote_branch_name():
     try:
-        branch_name = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], stderr=subprocess.DEVNULL, text=True).strip()
+        branch_name = subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'],
+                                              stderr=subprocess.DEVNULL, text=True).strip()
         return branch_name
     except subprocess.CalledProcessError:
-        return None # Return None if no remote branch is set
+        return None  # Return None if no remote branch is set
+
 
 def is_git_up_to_date_with_remote_branch():
     try:
@@ -48,10 +53,11 @@ def is_git_up_to_date_with_remote_branch():
         merge_base = subprocess.check_output(['git', 'merge-base', '@', '@{u}'], text=True).strip()
         remote_commit = subprocess.check_output(['git', 'rev-parse', '@{u}'], text=True).strip()
 
-        # If the merge base is the same as the remote commit, local is up to date or ahead
+        # If the merge base is the same as the remote commit, local is up-to-date or ahead
         return merge_base == remote_commit
     except subprocess.CalledProcessError:
         return False  # Return False in case of an error
+
 
 def go():
     remote_branch = get_remote_branch_name()
@@ -73,10 +79,9 @@ def go():
 
     yml = find_and_parse_config()
 
-    root_dir = yml
-
     command.run(yml['pre_run'])
     command.run(yml['post_run'])
+
 
 def cli_arg_parser(commands):
     list_of_commands = "".join(("\n    {:25} - {}".format(key, ' '.join(val["args"])) for key, val in commands.items()))
@@ -93,6 +98,7 @@ def cli_arg_parser(commands):
     parser.add_argument('--root-dir', dest='root_dir',
                         help="Specify a root directory. Defaults to ./ (current directory)")
     return parser
+
 
 if __name__ == '__main__':
     args = cli_arg_parser({}).parse_args()
