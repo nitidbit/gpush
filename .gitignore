@@ -8,3 +8,8 @@ __pycache__
 .DS_Store
 **/.envrc
 **/.env
+build/
+dist/
+*.egg-info/
+
+*.swp
