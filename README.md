@@ -2,14 +2,16 @@ gPush
 =====
 This repo contains files needed for the `gpush` script, which runs tests/linters/etc prior to git push in order to ensure better code
 
-Using gPush in your Project
+Installation
 ===========================
 
 (tbd)
 
 
-Developing gPush
+What actually happens during gPush?
 ================
+
+![Flow](https://github.com/nitidbit/gpush/blob/release/v2-hackathon/gpush_diagram.png?raw=true)
 
 Developer Setup
 ---------------
