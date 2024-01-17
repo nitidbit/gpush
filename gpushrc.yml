@@ -1,5 +1,5 @@
 # Root directory to execute commands (relative to this file)
-# root_dir: "./"
+#root_dir: "./"
 
 pre_run:
   # array of shell commands as strings
@@ -14,7 +14,10 @@ pre_run:
 
 # import a file with command definitions (for 'run_command' under parallel commands)
 # can be a local file or a url
-import: "./gpush_config_nitid.yml"
+import:
+  - "./gpush_config_nitid.yml"
+  - "./gpushrc_default.yml"
+  - "./gpush.local.yml"
 
 # shell commands (could be a .sh script) to be run after the commands complete
 post_run: # run always

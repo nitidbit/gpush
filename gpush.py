@@ -1,20 +1,32 @@
 #!/usr/bin/env python3
+import os
+
 import yaml
 import command
 import subprocess
 
 def find_and_parse_config():
-    with open('gpushrc_default.yml') as f:
+    with open('gpushrc.yml') as f:
         config = yaml.safe_load(f)
 
-    with open('gpushrc.yml') as f:
-        user_config = yaml.safe_load(f)
-        config.update(user_config)
+    merge_imports(config)
 
     print('!!! find_and_parse_config() config=', repr(config))
     return config
 
-
+# import other config files, we expect a single path or a list of paths
+def merge_imports(config):
+    # default to empty list if no import is specified
+    config['import'] = config.get('import', [])
+    # allow a single import to be specified as a string
+    if not isinstance(config['import'], (list, tuple)):
+        config['import'] = [config['import']]
+    for file in config['import']:
+        if os.path.exists(file) and os.path.isfile(file):
+            with open(file) as f:
+                config.update(yaml.safe_load(f))
+        else:
+            print(f"import file '{file}' does not exist or is not a file, ignoring")
 
 def get_remote_branch_name():
     try:

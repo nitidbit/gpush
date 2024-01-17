@@ -1,0 +1,10 @@
+my_local_number: 31415
+my_local_string: "hello world"
+my_local_bool: true
+my_local_list:
+  - "one"
+  - "two"
+  - "three"
+my_local_dict:
+    foo: "bar"
+    baz: "qux"
