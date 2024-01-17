@@ -6,9 +6,10 @@ pre_run:
   # eg download config files for eslint, prettier, etc.
   - shell: 'echo "this is a pre-run command"'
   - shell: 'echo "the FOO var is ${USER}"'
-    env:
-      FOO: "MY ENV VAR"
-      BAR: "ANOTHER ONE"
+    FOO: "MY ENV VAR"
+    BAR: "ANOTHER ONE"
+  - shell: 'echo the file "command.py" exists.'
+    if: '[ -e command.py ]'
 
 
 # import a file with command definitions (for 'run_command' under parallel commands)
