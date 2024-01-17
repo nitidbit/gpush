@@ -26,6 +26,10 @@ post_run: # run always
 #  - "name_one"
 #  - "name_two"
 
+parallel_commands:
+  name: get git status
+  shell: "git status"
+
 # # List of commands to run
 # parallel_commands:
 #   # Inherit command settings from a predefined command 'uncommitted_git_changes'
