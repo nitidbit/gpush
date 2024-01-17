@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+# import libraries in alphabetic order
 import argparse
 import command
 import os
@@ -110,10 +112,16 @@ def cli_arg_parser(commands):
                         help="Don't actually push to github at the end--just run the tests.")
     parser.add_argument('--root-dir', dest='root_dir',
                         help="Specify a root directory. Defaults to ./ (current directory)")
+    parser.add_argument('-v', '--verbose', dest='output_level', action='store_const', const=1,
+                        help='Verbose output')
+    parser.add_argument('-q', '--quiet', dest='output_level', action='store_const', const=0,
+                        help='Silence all output.')
     return parser
 
 
 if __name__ == '__main__':
     args = cli_arg_parser({}).parse_args()
+
+    # print(args)
 
     go()
