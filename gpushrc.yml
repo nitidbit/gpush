@@ -2,12 +2,13 @@
 # root_dir: "./"
 
 pre_run:
-  # array of shell commands as strings 
+  # array of shell commands as strings
   # eg download config files for eslint, prettier, etc.
   - shell: 'echo "this is a pre-run command"'
-  - shell: 'echo "the FOO var is ${FOO}"'
+  - shell: 'echo "the FOO var is ${USER}"'
     env:
       FOO: "MY ENV VAR"
+      BAR: "ANOTHER ONE"
 
 
 # import a file with command definitions (for 'run_command' under parallel commands)
@@ -18,7 +19,7 @@ import: "./gpush_config_nitid.yml"
 post_run: # run always
   - shell: echo "this is a post_run command"
 
-# post_run_success: 
+# post_run_success:
 # post_run_failure:
 
 # skip_commands:
