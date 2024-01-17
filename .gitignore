@@ -1,6 +1,7 @@
 # code editors
 .idea/
 .vscode/
+*.code-workspace
 
 # other
 .DS_Store
