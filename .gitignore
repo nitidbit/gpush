@@ -2,6 +2,7 @@
 .idea/
 .vscode/
 *.code-workspace
+__pycache__
 
 # other
 .DS_Store
