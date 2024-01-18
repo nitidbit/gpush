@@ -4,14 +4,16 @@ import argparse
 import os
 import sys
 from os.path import join, dirname, splitext, basename
+import re
 import gpush_core # noqa (suppress PEP8 import warning)
 
 HERE = dirname(__file__)
 
+
 # CONFIG FILE? + spec_ignore_dirs, STOPWORDS
-TYPE_TO_FILEEND = {
+TYPE_TO_TEST_REGEX = {
   'spec': '_spec.rb',
-  'jest': '.test.jsx' # TODO change
+  'jest': '.test.js' # TODO change
 }
 
 def get_all_test_files(spec_dir, type, keywords, spec_ignore_dirs = {}):
@@ -28,13 +30,14 @@ def get_all_test_files(spec_dir, type, keywords, spec_ignore_dirs = {}):
           continue
 
       for filename in files:
-          if not filename.endswith(TYPE_TO_FILEEND[type]):
+          if not re.search(TYPE_TO_TEST_REGEX[type], filename):
               continue
 
           potential_spec = join(base, filename)
           specs.add(potential_spec)
 
   def contains_keywords(candidate_filename):
+      #de-plurify?
       for keyword in keywords:
           if keyword in candidate_filename:
               return True
@@ -64,6 +67,10 @@ def _parse_cmd_args():
   return args
 
 
+# HOW TO RUN:
+# ./changed_rspec_files.py [directory (default ".")]
+# default gets ruby specs
+# for jest add --type jest
 if __name__ == '__main__':
   args = _parse_cmd_args()
   base_dir = os.path.realpath(args.filename)
@@ -77,6 +84,7 @@ if __name__ == '__main__':
   print('These files have been changed from github: {}'.format(', '.join(partial_filenames)))
 
   # keywords
+  # STEM THESE
   keywords = gpush_core._searchable_strings(partial_filenames, set())
   print ('Keywords: {}'.format(keywords))
 
