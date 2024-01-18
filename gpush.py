@@ -109,13 +109,19 @@ def cli_arg_parser(commands):
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument('--dry-run', dest='is_dry_run', action='store_true',
-                        help="Don't actually push to github at the end--just run the tests.")
+                        help="Don't actually push to github at the end--just run the tests (commands)")
     parser.add_argument('--root-dir', dest='root_dir',
                         help="Specify a root directory. Defaults to ./ (current directory)")
-    parser.add_argument('-v', '--verbose', dest='output_level', action='store_const', const=1,
+    parser.add_argument('-v', '--verbose', dest='output_level', action='store_const', const=1, default=1,
                         help='Verbose output')
     parser.add_argument('-q', '--quiet', dest='output_level', action='store_const', const=0,
-                        help='Silence all output.')
+                        help='Silence all output')
+    parser.add_argument('-d', '--desktop', dest='enable_desktop_notifiction', action='store_true',
+                        help='Turn on desktop notifications for this run')
+    parser.add_argument('-s', '--save-to', dest='save_file',
+                        help='Save output to a file')
+    parser.add_argument('-c', '--concurency', dest='concurrency_limit', type=int,
+                        help='Specify the max number of concurrent commands')
     return parser
 
 

@@ -57,6 +57,7 @@ commands:
 
 # Whether to save command output to a file
 save_output: true
+  save_file: "gpush.out"
 
 # Limit the number of concurrent commands
 concurrency_limit: 5
