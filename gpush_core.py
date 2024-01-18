@@ -23,14 +23,14 @@ YELLOW = "\033[33m"
 RESET = "\033[0m"
 
 FILENAME_STOP_MIN_LENGTH = 4
-CMD_FILES_CHANGED_SINCE_PUSH = "git diff --name-only origin/{} {}"
+CMD_FILES_CHANGED_SINCE_PUSH = "git diff --name-only origin/{}"
 
 SOFT_LIMIT_BUFFER = 3
 
 
 # Run a shell command, returning the 'stdout' output of that command as a string.
-def run(command):
-    result = subprocess.check_output([command], stderr=subprocess.STDOUT, shell=True)
+def run(command, **kwargs):
+    result = subprocess.check_output([command], stderr=subprocess.STDOUT, shell=True, **kwargs)
     return result
 
 
@@ -260,12 +260,12 @@ def _searchable_strings(filenames, filename_stop_words):
 # e.g. ['/Users/winstonw/bedsider-web/bedsider/app/models/clinic.rb', ...]
 @functools.cache
 def _get_changed_files(git_repo_root_dir, no_deletes=False):
-    git_result = run("git rev-parse --abbrev-ref HEAD").decode()
+    git_result = run("git rev-parse --abbrev-ref HEAD", cwd=git_repo_root_dir).decode()
     local_branch = git_result.strip()
 
     try:
-        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(local_branch, local_branch)
-        output = run(cmd)
+        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(local_branch)
+        output = run(cmd, cwd=git_repo_root_dir)
 
     except subprocess.CalledProcessError:
         # Assuming error: when we are on a local branch, diffing with origin/$BRANCH fails
@@ -275,8 +275,8 @@ Could not `git diff` against origin/{}. What branch should I diff against to det
 push? [{}] '''.format(local_branch, default)
         origin_branch = input(prompt).strip() or default
 
-        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(origin_branch, local_branch)
-        output = run(cmd)
+        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(origin_branch)
+        output = run(cmd, cwd=git_repo_root_dir)
     output = output.decode()
     files = filter(lambda fn: fn, output.split("\n"))  # filter out emtpy lines
 
