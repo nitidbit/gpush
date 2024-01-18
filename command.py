@@ -12,30 +12,38 @@ def check_type(line_intro, value, expected_type, explanation):
     if not isinstance(value, expected_type):
         raise RuntimeError(f'Problem with {line_intro}.  {repr(value)} needs to be of type {repr(expected_type)}.  {explanation}')
 
-allowed_keys = ['shell', 'env', 'if']
-def run(list_of_commands):
-    for cmd in list_of_commands:
-        check_allowed_keys(allowed_keys, cmd)
-        check_type('Command', cmd, dict, 'Commands need to be a hash with at least a "shell:" line.')
+class Command:
+    allowed_keys = ['shell', 'env', 'if']
 
-        if 'shell' not in cmd:
-            raise RuntimeError(f'Hi! you need to have a field "shell" in your command: {repr(cmd)}')
+    def __init__(self, cmd_dict):
+        check_type('Command', cmd_dict, dict, 'Commands need to be a hash with at least a "shell:" line.')
+        check_allowed_keys(Command.allowed_keys, cmd_dict)
+        self.dict = cmd_dict
 
-        if 'if' in cmd:
-            ifcommand = cmd['if']
+    def run(self):
+        if 'shell' not in self.dict:
+            raise RuntimeError(f'Hi! you need to have a field "shell" in your command: {repr(self.dict)}')
+
+        if 'if' in self.dict:
+            ifcommand = self.dict['if']
             check_type('"if" clause', ifcommand, str, 'If you have an "if:" clause, it must have a string which will be run in the shell.')
             result = subprocess.run(ifcommand, shell=True)
             if result.returncode != 0:
-                print(f'We are skipping {repr(cmd["shell"])} because if clause returned {result.returncode}. Expected 0.')
+                print(f'We are skipping {repr(self.dict["shell"])} because if clause returned {result.returncode}. Expected 0.')
                 return
 
         env = None
-        if 'env' in cmd:
-            env = cmd['env']
+        if 'env' in self.dict:
+            env = self.dict['env']
             check_type('"env" clause', env, dict, 'An optional "env:" section must have a hash of variable names and values.')
             env = dict(**env, **os.environ)
 
-        shell = cmd['shell']
+        shell = self.dict['shell']
         print('\ngpush:', shell)
 
         subprocess.run(shell, shell=True, env=env)
+
+def run(list_of_commands):
+    for cmd_dict in list_of_commands:
+        return Command(cmd_dict).run()
+
