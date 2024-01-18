@@ -5,7 +5,7 @@ def check_allowed_keys(allowed, dictionary):
     actual_keys = dictionary.keys()
     bad_keys = set(actual_keys) - set(allowed)
     if bad_keys:
-        raise RuntimeError(f'Problem with command.  {repr(dictionary)} has these unknown keys: {", ".join(bad_keys)}. Allowed keys for a command are: {", ".join(allowed_keys)}')
+        raise RuntimeError(f'Problem with command.  {repr(dictionary)} has these unknown keys: {", ".join(bad_keys)}. Allowed keys for a command are: {", ".join(allowed)}')
 
 
 def check_type(line_intro, value, expected_type, explanation):
@@ -13,12 +13,17 @@ def check_type(line_intro, value, expected_type, explanation):
         raise RuntimeError(f'Problem with {line_intro}.  {repr(value)} needs to be of type {repr(expected_type)}.  {explanation}')
 
 class Command:
-    allowed_keys = ['shell', 'env', 'if']
+    allowed_keys = ['shell', 'env', 'if', 'name']
 
     def __init__(self, cmd_dict):
-        check_type('Command', cmd_dict, dict, 'Commands need to be a hash with at least a "shell:" line.')
-        check_allowed_keys(Command.allowed_keys, cmd_dict)
         self.dict = cmd_dict
+        check_type(f'Command {self.name()}', cmd_dict, dict, 'Commands need to be a hash with at least a "shell:" line.')
+        check_allowed_keys(Command.allowed_keys, cmd_dict)
+
+    def name(self):
+        if 'name' in self.dict: return self.dict['name']
+        if 'shell' in self.dict: return self.dict['shell']
+        return repr(self.dict)
 
     def run(self):
         if 'shell' not in self.dict:
@@ -29,7 +34,7 @@ class Command:
             check_type('"if" clause', ifcommand, str, 'If you have an "if:" clause, it must have a string which will be run in the shell.')
             result = subprocess.run(ifcommand, shell=True)
             if result.returncode != 0:
-                print(f'We are skipping {repr(self.dict["shell"])} because if clause returned {result.returncode}. Expected 0.')
+                print(f'We are skipping {self.name()} because if clause returned {result.returncode}. Expected 0.')
                 return
 
         env = None
@@ -39,7 +44,7 @@ class Command:
             env = dict(**env, **os.environ)
 
         shell = self.dict['shell']
-        print('\ngpush:', shell)
+        print('\ngpush:', self.name())
 
         subprocess.run(shell, shell=True, env=env)
 
