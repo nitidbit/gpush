@@ -20,9 +20,19 @@
 
 ## Important files
 
-### gpush settings
-- *default values*: see `gpushrc_default.yml`
-- *customizable configuration*: copy `gpushrc_example.yaml` into your project and make edits
+### gpush settings `gpushrc.yml`
+
+| **config key**      | **type**           | **values**                              |
+|:--------------------|--------------------|:----------------------------------------|
+| root_dir            | string             | path to working directory               |
+| pre_run             | string or [string] |                                         |
+| post_run            | string or [string] |                                         |
+| import              | string or [string] | array of file paths or single file path |
+| shell               | string             | shell commands to execute               |
+| <NAME>              | string             | sets environment <NAME> to string       |
+| if                  | string             | conditional shell expression            |
+| command_definitions | object             | definition of a command                 |
+
 
 ### linter configurations
 - eslint (for JavaScript & TypeScript)
