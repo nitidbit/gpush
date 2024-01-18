@@ -84,6 +84,6 @@ shasum -a 256 gpush-1.0.0.tar.gz
 By following these steps, you create a stable, versioned release of your software that can be easily integrated into a Homebrew formula. Remember, the key is to ensure that the url and sha256 in your Homebrew formula match the uploaded tarball.
 
 ## Team Cheesecake (Caroline and Mike) Next Steps:
-[ ] Finish gpush changes (Nitid)
-[ ] Update archive with readme steps [here](https://github.com/nitidbit/gpush/tree/release/v2-hackathon?tab=readme-ov-file#how-to-create-a-new-release-version)
-[ ] Push changes from our forked version then submit PR to homebrew-core
+- [ ] Finish gpush changes (Nitid)
+- [ ] Update archive with readme steps [here](https://github.com/nitidbit/gpush/tree/release/v2-hackathon?tab=readme-ov-file#how-to-create-a-new-release-version)
+- [ ] Push changes from our forked version then submit PR to homebrew-core
