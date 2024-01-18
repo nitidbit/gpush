@@ -95,6 +95,7 @@ By following these steps, you create a stable, versioned release of your softwar
 
 ## Team Cheesecake (Caroline and Mike) Next Steps:
 - [ ] Finish gpush changes (Nitid)
+- [ ] Look into bottles (cheesecake)
 - [ ] Update dependency list in forked version --> https://github.com/nitidbit/homebrew-core/Formula/g/gpush.rb 
 - [ ] Update archive with readme steps [here](https://github.com/nitidbit/gpush/tree/release/v2-hackathon?tab=readme-ov-file#how-to-create-a-new-release-version)
 - [ ] Push changes from our forked version then submit PR to homebrew-core
