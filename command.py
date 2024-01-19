@@ -54,5 +54,9 @@ def run(list_of_commands):
         run_one(cmd_dict)
 
 def run_one(cmd_dict):
-    return Command(cmd_dict).run()
+    cmd = Command(cmd_dict)
+    completed_process = cmd.run()
+    if completed_process.returncode != 0:
+        raise GpushError(f'Command {repr(cmd.name())} exited with code {completed_process.returncode}')
+    return completed_process
 

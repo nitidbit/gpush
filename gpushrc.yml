@@ -6,14 +6,19 @@ pre_run:
   # eg download config files for eslint, prettier, etc.
   - name: 'sample pre-run command'
     shell: 'echo "this is a pre-run command"'
+
   - name: 'sample command using env vars'
     shell: 'echo "the FOO var is ${USER}"'
     env:
       FOO: "MY ENV VAR"
       BAR: "ANOTHER ONE"
+
   - name: 'IF clause checking test'
     shell: 'echo the file "command.py" exists.'
     if: '[ -e command.py ]'
+
+  # - name: 'This should fail and stop gpush'
+  #   shell: 'ls DOES-NOT-EXIST'
 
 
 # import a file with command definitions (for 'run_command' under parallel commands)
