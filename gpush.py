@@ -8,6 +8,7 @@ import subprocess
 import yaml
 import concurrent.futures
 from constants import GpushError, RED, RESET
+from gpush_core import notify
 
 
 def find_and_parse_config():
@@ -16,7 +17,6 @@ def find_and_parse_config():
 
     merge_imports(config)
 
-    print('!!! find_and_parse_config() config=', repr(config))
     return config
 
 
@@ -43,7 +43,7 @@ def _run_in_parallel(commands):
 
         for future in concurrent.futures.as_completed(futures):
             completed_process = future.result()
-            print("  exit code:", completed_process.returncode)
+            #  print("  exit code:", completed_process.returncode)
 
     # try:
     #     while True:
@@ -118,16 +118,26 @@ def check_remote_branch(remote_branch):
     return setup_remote_branch
 
 
-def go():
+def go(args):
     remote_branch = get_remote_branch_name()
     setup_remote_branch = check_remote_branch(remote_branch)
 
     yml = find_and_parse_config()
 
     command.run(yml['pre_run'])
-    print("yml parallel commands", yml['parallel_commands'])
+
     _run_in_parallel(yml['parallel_commands'])
+
+    if not args.is_dry_run:
+        subprocess.run(['git', 'push'])
+
     command.run(yml['post_run'])
+
+    notify(True)
+
+    DOING_GREAT = ">> 🌺 << Good job! You're doing great."
+    print(DOING_GREAT)
+
 
 
 def cli_arg_parser(commands):
@@ -142,18 +152,19 @@ def cli_arg_parser(commands):
 
     parser.add_argument('--dry-run', dest='is_dry_run', action='store_true',
                         help="Don't actually push to github at the end--just run the tests (commands)")
-    parser.add_argument('--root-dir', dest='root_dir',
-                        help="Specify a root directory. Defaults to ./ (current directory)")
-    parser.add_argument('-v', '--verbose', dest='output_level', action='store_const', const=1, default=1,
-                        help='Verbose output')
-    parser.add_argument('-q', '--quiet', dest='output_level', action='store_const', const=0,
-                        help='Silence all output')
-    parser.add_argument('-d', '--desktop', dest='enable_desktop_notifiction', action='store_true',
-                        help='Turn on desktop notifications for this run')
-    parser.add_argument('-s', '--save-to', dest='save_file',
-                        help='Save output to a file')
-    parser.add_argument('-c', '--concurency', dest='concurrency_limit', type=int,
-                        help='Specify the max number of concurrent commands')
+    #  parser.add_argument('--root-dir', dest='root_dir',
+    #                      help="Specify a root directory. Defaults to ./ (current directory)")
+    #  parser.add_argument('-v', '--verbose', dest='output_level', action='store_const', const=1, default=1,
+    #                      help='Verbose output')
+    #  parser.add_argument('-q', '--quiet', dest='output_level', action='store_const', const=0,
+    #                      help='Silence all output')
+    #  parser.add_argument('-d', '--desktop', dest='enable_desktop_notifiction', action='store_true',
+    #                      default=True,
+    #                      help='Turn on desktop notifications for this run')
+    #  parser.add_argument('-s', '--save-to', dest='save_file',
+    #                      help='Save output to a file')
+    #  parser.add_argument('-c', '--concurency', dest='concurrency_limit', type=int,
+    #                      help='Specify the max number of concurrent commands')
     return parser
 
 
@@ -163,6 +174,7 @@ if __name__ == '__main__':
 
         # print(args)
 
-        go()
+        go(args)
     except GpushError as exc:
         print(f'{RED}gpush: Stopping: {exc}{RESET}')
+        notify(False)

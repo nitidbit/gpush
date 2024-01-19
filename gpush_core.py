@@ -330,10 +330,16 @@ def _get_specs(spec_dir, keywords, spec_ignore_dirs):
 def notify(success=True, msg="Finished!"):
     afplay = which('afplay')
     if afplay is not None:
-        if "GPUSH_SOUND_SUCCESS" in os.environ and os.path.isfile(os.environ["GPUSH_SOUND_SUCCESS"]) and success:
+        if ("GPUSH_SOUND_SUCCESS" in os.environ
+            and os.path.isfile(os.environ["GPUSH_SOUND_SUCCESS"])
+            and success
+           ):
             subprocess.Popen([afplay, os.environ["GPUSH_SOUND_SUCCESS"]])
 
-        if "GPUSH_SOUND_FAIL" in os.environ and os.path.isfile(os.environ["GPUSH_SOUND_FAIL"]) and not success:
+        if ("GPUSH_SOUND_FAIL" in os.environ
+            and os.path.isfile(os.environ["GPUSH_SOUND_FAIL"])
+            and not success
+           ):
             subprocess.Popen([afplay, os.environ["GPUSH_SOUND_FAIL"]])
 
     terminal_notifier = which('terminal-notifier')

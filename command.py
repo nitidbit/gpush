@@ -45,7 +45,7 @@ class Command:
             env = dict(**env, **os.environ)
 
         shell = self.dict['shell']
-        print(f'\n{CYAN}gpush:', self.name(), RESET)
+        print(f'\n{CYAN}gpush run:', self.name(), RESET)
 
         return subprocess.run(shell, shell=True, env=env)
 
