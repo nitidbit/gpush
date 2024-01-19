@@ -130,13 +130,10 @@ def go(args):
 
     if not args.is_dry_run:
         subprocess.run(['git', 'push'])
-
-    command.run(yml['post_run'])
-
-    notify(True)
-
-    DOING_GREAT = ">> 🌺 << Good job! You're doing great."
-    print(DOING_GREAT)
+        command.run(yml['post_run'])
+        notify(True)
+        DOING_GREAT = ">> 🌺 << Good job! You're doing great."
+        print(DOING_GREAT)
 
 
 
@@ -171,10 +168,8 @@ def cli_arg_parser(commands):
 if __name__ == '__main__':
     try:
         args = cli_arg_parser({}).parse_args()
-
-        # print(args)
-
         go(args)
+
     except GpushError as exc:
         print(f'{RED}gpush: Stopping: {exc}{RESET}')
         notify(False)
