@@ -4,70 +4,28 @@ root_dir: "./"
 pre_run:
   # array of shell commands as strings
   # eg download config files for eslint, prettier, etc.
-  - name: 'Descriptive title'
+  - name: 'sample pre-run command'
     shell: 'echo "this is a pre-run command"'
-  - shell: 'echo "the FOO var is ${USER}"'
+  - name: 'sample command using env vars'
+    shell: 'echo "the FOO var is ${USER}"'
     env:
       FOO: "MY ENV VAR"
       BAR: "ANOTHER ONE"
-  - shell: 'echo the file "command.py" exists.'
+  - name: 'IF clause checking test'
+    shell: 'echo the file "command.py" exists.'
     if: '[ -e command.py ]'
-    name: 'IF clauses checker'
 
 
 # import a file with command definitions (for 'run_command' under parallel commands)
 # can be a local file or a url
 import:
-  - "./gpush_config_nitid.yml"
+  - "./gpush_config_nitid.yml" # parallel_commands are in here
   - "./gpush.local.yml"
 
 # shell commands (could be a .sh script) to be run after the commands complete
 post_run: # run always
-  - shell: echo "this is a post_run command"
-
-# post_run_success:
-# post_run_failure:
-
-# skip_commands:
-#  - "name_one"
-#  - "name_two"
-
-# parallel_commands:
-#   name: get git status
-#   shell: "git status"
-
-# # List of commands to run
-# parallel_commands:
-#   # Inherit command settings from a predefined command 'uncommitted_git_changes'
-#   - run_command: "uncommitted_git_changes"
-
-#   # Run predefined command 'jest' tests with additional options
-#   - run_command: "jest"
-#     # Environment variables for this command
-#     env:
-#       NODE_ENV: "test"
-
-#   # Define a custom script command with a description and arguments
-#   - name: "custom_script"
-#     description: "User defined custom script"
-#     shell: "./scripts/my_custom_script.sh"
-#     root_dir: "./some_subdir"
-
-#   # Define an command without inheriting from a predefined command
-#   - name: "rspec"
-#     # Command arguments to run 'rspec'
-#     shell: "bundle exec rspec $(gpush find-rspec-files --include 'spec/*.rb')"
-
-# # Notification settings for desktop alerts
-# notification:
-#   enable_desktop_notification: true
-#   success_message: "All checks passed successfully!"
-#   failure_message: "Checks failed, please review the issues."
-
-# # Run commands but do not git push
-# dry_run: false
-
-
+  - name: 'sample post-run command'
+    shell: echo "this is a post_run command"
 
 # # ======== low priority additional options =========
 

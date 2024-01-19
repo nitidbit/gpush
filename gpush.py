@@ -7,6 +7,7 @@ import os
 import subprocess
 import yaml
 import concurrent.futures
+from constants import GpushError, RED, RESET
 
 
 def find_and_parse_config():
@@ -42,7 +43,7 @@ def _run_in_parallel(commands):
 
         for future in concurrent.futures.as_completed(futures):
             completed_process = future.result()
-            print("This is the result", completed_process.returncode)
+            print("  exit code:", completed_process.returncode)
 
     # try:
     #     while True:
@@ -92,24 +93,34 @@ def is_git_up_to_date_with_remote_branch():
     except subprocess.CalledProcessError:
         return False  # Return False in case of an error
 
+def check_remote_branch(remote_branch):
+    '''
+    Is the current branch tracking a remote branch? Have we `git fetch`ed lately? If we are not
+    tracking a remote branch, should we make a remote branch?
+    '''
+    setup_remote_branch = False
+    if remote_branch:
+       if is_git_up_to_date_with_remote_branch():
+           print(f"Local branch is up to date with the remote branch '{remote_branch}'.")
+           # Continue with your operations below
+       else:
+           raise GpushError(f"Local branch is not up to date with the remote branch '{remote_branch}'. Exiting.")
+           # Stop further execution
+    else:
+       user_input = input("No remote branch set. Would you like to set up a remote branch? (y/n): ")
+       if user_input.lower() == 'y':
+           setup_remote_branch = True
+           # Later use this flag to set up the remote branch
+       else:
+           raise GpushError("No remote branch setup.")
+           # Stop further execution
+
+    return setup_remote_branch
+
 
 def go():
     remote_branch = get_remote_branch_name()
-    # if remote_branch:
-    #     if is_git_up_to_date_with_remote_branch():
-    #         print(f"Local branch is up to date with the remote branch '{remote_branch}'.")
-    #         # Continue with your operations below
-    #     else:
-    #         print(f"Local branch is not up to date with the remote branch '{remote_branch}'. Exiting.")
-    #         return  # Stop further execution
-    # else:
-    #     user_input = input("No remote branch set. Would you like to set up a remote branch? (y/n): ")
-    #     if user_input.lower() == 'y':
-    #         setup_remote_branch = True
-    #         # Later use this flag to set up the remote branch
-    #     else:
-    #         print("No remote branch setup. Exiting.")
-    #         return  # Stop further execution
+    setup_remote_branch = check_remote_branch(remote_branch)
 
     yml = find_and_parse_config()
 
@@ -147,8 +158,11 @@ def cli_arg_parser(commands):
 
 
 if __name__ == '__main__':
-    args = cli_arg_parser({}).parse_args()
+    try:
+        args = cli_arg_parser({}).parse_args()
 
-    # print(args)
+        # print(args)
 
-    go()
+        go()
+    except GpushError as exc:
+        print(f'{RED}gpush: Stopping: {exc}{RESET}')

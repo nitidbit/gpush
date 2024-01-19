@@ -1,16 +1,17 @@
 import subprocess
 import os
+from constants import GpushError, CYAN, RESET
 
 def check_allowed_keys(allowed, dictionary):
     actual_keys = dictionary.keys()
     bad_keys = set(actual_keys) - set(allowed)
     if bad_keys:
-        raise RuntimeError(f'Problem with command.  {repr(dictionary)} has these unknown keys: {", ".join(bad_keys)}. Allowed keys for a command are: {", ".join(allowed)}')
+        raise GpushError(f'Problem with command.  {repr(dictionary)} has these unknown keys: {", ".join(bad_keys)}. Allowed keys for a command are: {", ".join(allowed)}')
 
 
 def check_type(line_intro, value, expected_type, explanation):
     if not isinstance(value, expected_type):
-        raise RuntimeError(f'Problem with {line_intro}.  {repr(value)} needs to be of type {repr(expected_type)}.  {explanation}')
+        raise GpushError(f'Problem with {line_intro}.  {repr(value)} needs to be of type {repr(expected_type)}.  {explanation}')
 
 class Command:
     allowed_keys = ['shell', 'env', 'if', 'name']
@@ -27,7 +28,7 @@ class Command:
 
     def run(self):
         if 'shell' not in self.dict:
-            raise RuntimeError(f'Hi! you need to have a field "shell" in your command: {repr(self.dict)}')
+            raise GpushError(f'Hi! you need to have a field "shell" in your command: {repr(self.dict)}')
 
         if 'if' in self.dict:
             ifcommand = self.dict['if']
@@ -44,7 +45,7 @@ class Command:
             env = dict(**env, **os.environ)
 
         shell = self.dict['shell']
-        print('\ngpush:', self.name())
+        print(f'\n{CYAN}gpush:', self.name(), RESET)
 
         return subprocess.run(shell, shell=True, env=env)
 
