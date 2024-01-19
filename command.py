@@ -1,3 +1,6 @@
+"""
+Functions related to parsing and running "Commands"
+"""
 import subprocess
 import os
 from constants import GpushError, CYAN, RESET

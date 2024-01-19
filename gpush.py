@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+"""
+Entry-point for gPush, a tool for running tests, linters, and other checkers before `git push`ing.
+"""
+
 # import libraries in alphabetic order
 import argparse
 import command
