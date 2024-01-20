@@ -8,7 +8,7 @@ command_definitions:
 
   "brakeman":
     shell: "bundle exec brakeman --run-all-checks --no-pager --quiet"
-    if: "test -f Gemfile.lock"
+    if: "bundle list | grep 'brakeman'"
 
   "bundle audit":
     shell: "bundle exec bundle-audit --update"
@@ -22,18 +22,25 @@ command_definitions:
     shell: "npm audit --audit-level=high"
     if: "test -f package-lock.json"
 
-  "prettier":
-    shell: "npm run | grep -q ' prettier' && npm run prettier || npx prettier --ignore-unknown"
+  "yarn audit":
+    shell: "yarn audit"
+    if: "test -f yarn.lock"
 
   "jest":
     shell: "npm run | grep -q ' jest' && npm run jest || npx jest"
+    if: "npm list jest"
 
   "rubocop":
     shell: "bundle exec rubocop"
     if: "test -f Gemfile.lock"
 
+  "prettier":
+    shell: "npm run | grep -q ' prettier' && npm run prettier || npx prettier --ignore-unknown"
+    if: "npm list prettier"
+
   "yaml lint":
     shell: "npx yamllint **/*.(yaml|yml) --ignore-dir=.node_modules"
+    if: "npm list yamllint"
 
 
 # always run, in addition to parallel_commands in the project specific yml
