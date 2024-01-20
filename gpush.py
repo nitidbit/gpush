@@ -6,12 +6,15 @@ Entry-point for gPush, a tool for running tests, linters, and other checkers bef
 
 # import libraries in alphabetic order
 import argparse
-import command
 import os
 import subprocess
 import yaml
 import concurrent.futures
-from constants import GpushError, RED, RESET
+import time
+
+from constants import GpushError, GREEN, RED, RESET
+import command
+from command import Command
 from gpush_core import notify
 
 
@@ -38,37 +41,46 @@ def merge_imports(config):
         else:
             print(f"import file '{file}' does not exist or is not a file, ignoring")
 
-def _run_in_parallel(commands):
-    post_processing_tasks = {}
-    processes = {}
+# Print all the commands running and if they have finished or not
+def _print_status(commands_and_futures):
+    print()
+    num_running = 0
+    for command, future in commands_and_futures:
+        if future.running():
+            status_str = 'working...'
+            num_running += 1
+        else:
+            exitcode = future.result().returncode # future.result() is a CompletedProcess
+            if exitcode == 0:
+                status_str = '{}OK{}'.format(GREEN, RESET)
+            else:
+                status_str = '{}EXIT CODE {}{}'.format(RED, exitcode, RESET)
+
+        print(f'  {command.name():25} - {status_str}')
+    print()
+    return num_running
+
+def _run_in_parallel(list_of_command_dicts):
+    '''Runs all the commands in parallel.'''
+
+    commands = [Command(cmd_dict) for cmd_dict in list_of_command_dicts]
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futures = [executor.submit(command.run_one, item) for item in commands]
+        commands_and_futures = [[command, executor.submit(command.run)] for command in commands]
 
-        for future in concurrent.futures.as_completed(futures):
-            completed_process = future.result()
-            #  print("  exit code:", completed_process.returncode)
+        # wait for commands to finish, print a status summary every 5 seconds
+        try:
+            num_running = _print_status(commands_and_futures)
+            while num_running > 0:
+                time.sleep(5)
+                num_running = _print_status(commands_and_futures)
 
-    # try:
-    #     while True:
-    #         _print_status(processes)
-    #         active_process_count = len([name for name, proc in processes.items() if proc.poll() is None])
-
-    #         if active_process_count == 0:
-    #             errors = {name: proc.poll() for name, proc in processes.items()
-    #                       if proc.poll() is not None and proc.poll() != 0}
-    #             return errors
-
-    #         time.sleep(5)
-    # except KeyboardInterrupt:
-    #     print('KeyboardInterrupt...')
-    #     return {"kbdint": 1}
-    # finally:
-    #     for name, proc in processes.items():
-    #         status = proc.poll()
-    #         if status is None:
-    #             print('Terminating:', name)
-    #             proc.terminate()
+        except KeyboardInterrupt:
+           print('KeyboardInterrupt...')
+           return
+        finally:
+            pass
+            # !!! terminate any commands that might still be running
 
 def get_remote_branch_name():
     try:

@@ -21,15 +21,20 @@ class Command:
 
     def __init__(self, cmd_dict):
         self.dict = cmd_dict
+
         check_type(f'Command {self.name()}', cmd_dict, dict, 'Commands need to be a hash with at least a "shell:" line.')
         check_allowed_keys(Command.allowed_keys, cmd_dict)
 
     def name(self):
+        'returns human readable name for this command'
         if 'name' in self.dict: return self.dict['name']
         if 'shell' in self.dict: return self.dict['shell']
         return repr(self.dict)
 
     def run(self):
+        '''
+        Executes the command. It returns when the command has finished.
+        '''
         if 'shell' not in self.dict:
             raise GpushError(f'Hi! you need to have a field "shell" in your command: {repr(self.dict)}')
 

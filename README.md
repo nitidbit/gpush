@@ -4,6 +4,7 @@
 
 ## Developer Setup
 
+[Here are the stories/tickets we are working on:]( https://github.com/orgs/nitidbit/projects/3 )
 
 ### Installation
 

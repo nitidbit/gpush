@@ -39,7 +39,7 @@ command_definitions:
 # always run, in addition to parallel_commands in the project specific yml
 parallel_commands:
   - name: brakeman
-    shell: 'echo "pretend Im running bundle exec brakeman"'
+    shell: 'echo "pretend Im running bundle exec brakeman" && sleep 6 && echo "..." && sleep 6'
   # - bundle audit
   # - bundle leak
   - name: jest
