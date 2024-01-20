@@ -1,25 +1,37 @@
-# gPush
+gPush
+=====
 
-> This repo contains files needed for the `gpush` script, which runs tests/linters/etc prior to git push in order to ensure better code
+This repo contains files needed for the `gpush` script, which runs tests/linters/etc prior to git push in order to ensure better code
 
-## Developer Setup
+
+User Setup
+----------
+If you want to use gPush in your project, here are the ways to run it:
+
+(to be written)
+
+
+Developer Setup
+---------------
 
 [Here are the stories/tickets we are working on:]( https://github.com/orgs/nitidbit/projects/3 )
 
-### Installation
-
 - **Python**: Python 3 comes by default with MacOS, but you can also get it with Brew: `brew install python`
 
-- **Python packages**: 
+- **Python packages**:
   ```
   cd gpush
   pip3 install -r requirements.txt
   ```
 
 ### Run
-    ./gpush.py
+To run while developing, execute the gpush module:
+    PYTHONPATH=src python3 -m gpush
+Notes:
+  - "PYTHONPATH=src" — this adds the /src/ folder to be searched for packages
+  - "python3 -m gpush" – this says run the __main__.py module inside the gpush package
 
-## Important files
+### Important files
 
 ### gpush settings `gpushrc.yml`
 

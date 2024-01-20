@@ -3,7 +3,7 @@ Functions related to parsing and running "Commands"
 """
 import subprocess
 import os
-from constants import GpushError, CYAN, RESET
+from gpush.constants import GpushError, CYAN, RESET
 
 def check_allowed_keys(allowed, dictionary):
     actual_keys = dictionary.keys()
@@ -33,7 +33,9 @@ class Command:
 
     def run(self):
         '''
-        Executes the command. It returns when the command has finished.
+        Executes the command, returning when command has completed. If the command is
+        skipped due to an "if" clause: returns None Otherwise, returns a CompletedProcess
+        when the command has finished.
         '''
         if 'shell' not in self.dict:
             raise GpushError(f'Hi! you need to have a field "shell" in your command: {repr(self.dict)}')
@@ -44,7 +46,6 @@ class Command:
             result = subprocess.run(ifcommand, shell=True)
             if result.returncode != 0:
                 print(f'We are skipping {self.name()} because if clause returned {result.returncode}. Expected 0.')
-                return
 
         env = None
         if 'env' in self.dict:
@@ -57,13 +58,18 @@ class Command:
 
         return subprocess.run(shell, shell=True, env=env)
 
-def run(list_of_commands):
+def run_all(list_of_commands):
+    if list_of_commands is None: return
+
     for cmd_dict in list_of_commands:
         run_one(cmd_dict)
 
 def run_one(cmd_dict):
     cmd = Command(cmd_dict)
     completed_process = cmd.run()
+    if completed_process == None:
+        return # command was skipped
+
     if completed_process.returncode != 0:
         raise GpushError(f'Command {repr(cmd.name())} exited with code {completed_process.returncode}')
     return completed_process

@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-
 """
-Entry-point for gPush, a tool for running tests, linters, and other checkers before `git push`ing.
+gPush, a tool for running tests, linters, etc before `git push`ing.
 """
 
 # import libraries in alphabetic order
@@ -12,10 +10,10 @@ import yaml
 import concurrent.futures
 import time
 
-from constants import GpushError, GREEN, RED, RESET
-import command
-from command import Command
-from gpush_core import notify
+from .constants import GpushError, GREEN, RED, RESET
+from . import command
+from .command import Command
+from .gpush_core import notify
 
 
 def find_and_parse_config():
@@ -140,13 +138,13 @@ def go(args):
 
     yml = find_and_parse_config()
 
-    command.run(yml['pre_run'])
+    command.run_all(yml['pre_run'])
 
     _run_in_parallel(yml['parallel_commands'])
 
     if not args.is_dry_run:
         subprocess.run(['git', 'push'])
-        command.run(yml['post_run'])
+        command.run_all(yml['post_run'])
         notify(True)
         DOING_GREAT = ">> 🌺 << Good job! You're doing great."
         print(DOING_GREAT)
@@ -180,12 +178,3 @@ def cli_arg_parser(commands):
     #                      help='Specify the max number of concurrent commands')
     return parser
 
-
-if __name__ == '__main__':
-    try:
-        args = cli_arg_parser({}).parse_args()
-        go(args)
-
-    except GpushError as exc:
-        print(f'{RED}gpush: Stopping: {exc}{RESET}')
-        notify(False)

@@ -3,8 +3,6 @@
   repo. Repo specific configuration should be in <repo-root>/gpush.py
 """
 
-from __future__ import print_function
-
 import argparse
 import functools
 import json
@@ -29,63 +27,63 @@ SOFT_LIMIT_BUFFER = 3
 
 
 # Run a shell command, returning the 'stdout' output of that command as a string.
-def run(command, **kwargs):
-    result = subprocess.check_output([command], stderr=subprocess.STDOUT, shell=True, **kwargs)
-    return result
+#  def run(command, **kwargs):
+#      result = subprocess.check_output([command], stderr=subprocess.STDOUT, shell=True, **kwargs)
+#      return result
 
 
 # Run a bunch of commands (e.g. 'npm test', 'rubocop') in parallel, printing their status every 5 seconds
-def run_in_parallel(commands):
-    post_processing_tasks = {}
-    processes = {}
+#  def run_in_parallel(commands):
+#      post_processing_tasks = {}
+#      processes = {}
 
-    for name, kwargs in commands.items():
-        post_task = kwargs.pop('post_task', None)
+#      for name, kwargs in commands.items():
+#          post_task = kwargs.pop('post_task', None)
 
-        if post_task:
-            post_processing_tasks[name] = post_task
+#          if post_task:
+#              post_processing_tasks[name] = post_task
 
-        processes[name] = subprocess.Popen(**kwargs)
+#          processes[name] = subprocess.Popen(**kwargs)
 
-    try:
-        while True:
-            _print_status(processes)
-            active_process_count = len([name for name, proc in processes.items() if proc.poll() is None])
+#      try:
+#          while True:
+#              _print_status(processes)
+#              active_process_count = len([name for name, proc in processes.items() if proc.poll() is None])
 
-            if active_process_count == 0:
-                errors = {name: proc.poll() for name, proc in processes.items()
-                          if proc.poll() is not None and proc.poll() != 0}
-                return errors
+#              if active_process_count == 0:
+#                  errors = {name: proc.poll() for name, proc in processes.items()
+#                            if proc.poll() is not None and proc.poll() != 0}
+#                  return errors
 
-            time.sleep(5)
-    except KeyboardInterrupt:
-        print('KeyboardInterrupt...')
-        return {"kbdint": 1}
-    finally:
-        for name, proc in processes.items():
-            status = proc.poll()
-            if status is None:
-                print('Terminating:', name)
-                proc.terminate()
-            elif status == 0:
-                if name in post_processing_tasks:
-                    print("== Running post process for {} ==".format(name))
-                    post_processing_tasks[name]()
+#              time.sleep(5)
+#      except KeyboardInterrupt:
+#          print('KeyboardInterrupt...')
+#          return {"kbdint": 1}
+#      finally:
+#          for name, proc in processes.items():
+#              status = proc.poll()
+#              if status is None:
+#                  print('Terminating:', name)
+#                  proc.terminate()
+#              elif status == 0:
+#                  if name in post_processing_tasks:
+#                      print("== Running post process for {} ==".format(name))
+#                      post_processing_tasks[name]()
 
 
-def cli_arg_parser(commands):
-    list_of_commands = "".join(("\n    {:25} - {}".format(key, ' '.join(val["args"])) for key, val in commands.items()))
-    description = 'Run tests and linters before pushing to github.'
-    epilog = 'These are the tests and linters that will be run:' + list_of_commands + '\n    rspec'
+#  def cli_arg_parser(commands):
+#      list_of_commands = "".join(("\n    {:25} - {}".format(key, ' '.join(val["args"])) for key, val in commands.items()))
+#      description = 'Run tests and linters before pushing to github.'
+#      epilog = 'These are the tests and linters that will be run:' + list_of_commands + '\n    rspec'
 
-    parser = argparse.ArgumentParser(
-        description=description,
-        epilog=epilog,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+#      parser = argparse.ArgumentParser(
+#          description=description,
+#          epilog=epilog,
+#          formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument('--dry-run', dest='is_dry_run', action='store_true',
-                        help="Don't actually push to github at the end--just run the tests.")
-    return parser
+#      parser.add_argument('--dry-run', dest='is_dry_run', action='store_true',
+#                          help="Don't actually push to github at the end--just run the tests.")
+#      return parser
 
 
 #   Picking Subset of files for Stylelint
