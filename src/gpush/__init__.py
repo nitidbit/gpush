@@ -11,8 +11,8 @@ import concurrent.futures
 import time
 
 from .constants import GpushError, GREEN, RED, RESET
-from . import command
-from .command import Command
+from . import commands
+from .commands import Command
 from .gpush_core import notify
 
 
@@ -138,13 +138,13 @@ def go(args):
 
     yml = find_and_parse_config()
 
-    command.run_all(yml['pre_run'])
+    commands.run_all(yml['pre_run'])
 
     _run_in_parallel(yml['parallel_commands'])
 
     if not args.is_dry_run:
         subprocess.run(['git', 'push'])
-        command.run_all(yml['post_run'])
+        commands.run_all(yml['post_run'])
         notify(True)
         DOING_GREAT = ">> 🌺 << Good job! You're doing great."
         print(DOING_GREAT)
