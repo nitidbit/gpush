@@ -2,11 +2,11 @@ from setuptools import setup
 
 setup(
     name='gpush',
-    version='0.0.3',  
+    version='2.0.0-alpha.1',
     description='Wrapper for git push that runs tests, linters, and more before pushing',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/nitidbit/gpush',  
+    url='https://github.com/nitidbit/gpush',
     author='Nitid',
     author_email='info@nitidbit.com',
     license='MIT',  # Replace with your license
@@ -26,6 +26,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.1',  # Replace with your Python version requirement
+    python_requires='>=3.8',  # Replace with your Python version requirement
 )
 

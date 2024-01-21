@@ -8,6 +8,8 @@ User Setup
 ----------
 If you want to use gPush in your project, here are the ways to run it:
 
+    python3 -m pip install git+https://github.com/nitidbit/gpush.git@release/v2-hackathon
+
 (to be written)
 
 
