@@ -178,3 +178,11 @@ def cli_arg_parser(commands):
     #                      help='Specify the max number of concurrent commands')
     return parser
 
+def start():
+    try:
+        args = cli_arg_parser({}).parse_args()
+        go(args)
+
+    except GpushError as exc:
+        print(f'{RED}gpush: Stopping: {exc}{RESET}')
+        notify(False)

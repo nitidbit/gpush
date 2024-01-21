@@ -3,7 +3,7 @@ Functions related to parsing and running "Commands"
 """
 import subprocess
 import os
-from gpush.constants import GpushError, CYAN, RESET
+from .constants import GpushError, CYAN, RESET
 
 def check_allowed_keys(allowed, dictionary):
     actual_keys = dictionary.keys()
