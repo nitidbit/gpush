@@ -4,6 +4,7 @@ inherit_from:
 
 require:
   - rubocop-rails
+  - rubocop-rails-accessibility
 
 AllCops:
   TargetRubyVersion: 3.2.2
