@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .constants import GpushError, GREEN, RED, RESET
 from . import commands
-from .commands import Command
+from .commands import Command, Status
 from .gpush_core import notify
 
 def find_and_parse_config():
@@ -59,21 +59,27 @@ def _print_status(commands_and_futures):
     num_running = 0
     for command, future in commands_and_futures:
         if future.running():
-            status_str = 'working...'
+            #  status_str = 'working...'
             num_running += 1
+        elif future.exception():
+            print(f'gpush:  ERROR in {repr(command.name())}: {future.exception()}')
+
+        status = command.status
+        if status == Status.SUCCESS:
+            status_str = '{}OK{}'.format(GREEN, RESET)
+        elif status == Status.FAIL:
+            exitcode = command.run_completed_process.returncode
+            status_str = '{}EXIT CODE {}{}'.format(RED, exitcode, RESET)
         else:
-            exitcode = future.result().returncode # future.result() is a CompletedProcess
-            if exitcode == 0:
-                status_str = '{}OK{}'.format(GREEN, RESET)
-            else:
-                status_str = '{}EXIT CODE {}{}'.format(RED, exitcode, RESET)
+            status_str = status
 
         print(f'  {command.name():25} - {status_str}')
     print()
     return num_running
 
 def _run_in_parallel(list_of_command_dicts):
-    '''Runs all the commands in parallel.'''
+    '''Runs all the commands in parallel. Return number of errors, or 0'''
+    STATUS_TIME_SEC = 2
 
     commands = [Command(cmd_dict) for cmd_dict in list_of_command_dicts]
 
@@ -84,15 +90,18 @@ def _run_in_parallel(list_of_command_dicts):
         try:
             num_running = _print_status(commands_and_futures)
             while num_running > 0:
-                time.sleep(5)
+                time.sleep(STATUS_TIME_SEC)
                 num_running = _print_status(commands_and_futures)
 
         except KeyboardInterrupt:
             print('gpush: KeyboardInterrupt...')
-            return
+            return 1 # an error so we abort
         finally:
             pass
             # !!! terminate any commands that might still be running
+
+        errors = [0 if command.status == Status.SUCCESS else 1 for command in commands]
+        return sum(errors)
 
 def get_remote_branch_name():
     try:
@@ -154,14 +163,18 @@ def go(args):
 
     commands.run_all(yml.get('pre_run', []))
 
-    _run_in_parallel(yml.get('parallel_run', []))
+    errors = _run_in_parallel(yml.get('parallel_run', []))
 
-    if not args.is_dry_run:
+    if errors == 0 and not args.is_dry_run:
         subprocess.run(['git', 'push'])
         commands.run_all(yml.get('post_run', []))
         notify(True)
         DOING_GREAT = ">> 🌺 << Good job! You're doing great."
         print(DOING_GREAT)
+    else:
+        notify(False)
+        ABORTED = ">> ? << Aborted"
+        print(ABORTED)
 
 
 

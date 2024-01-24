@@ -16,11 +16,22 @@ def check_type(line_intro, value, expected_type, explanation):
     if not isinstance(value, expected_type):
         raise GpushError(f'Problem with {line_intro}.  {repr(value)} needs to be of type {repr(expected_type)}.  {explanation}')
 
+class Status:
+    NOT_STARTED = 'not started'
+    CHECKING = 'checking...'
+    SKIPPED = 'skipped'
+    WORKING = 'working...'
+    SUCCESS = 'OK'
+    FAIL = 'FAIL'
+
 class Command:
     allowed_keys = ['shell', 'env', 'if', 'name']
 
     def __init__(self, cmd_dict):
         self.dict = cmd_dict
+        self.status = Status.NOT_STARTED
+        self.if_completed_process = None
+        self.run_completed_process = None
 
         check_type(f'Command {self.name()}', cmd_dict, dict, 'Commands need to be a hash with at least a "shell:" line.')
         check_allowed_keys(Command.allowed_keys, cmd_dict)
@@ -33,21 +44,27 @@ class Command:
 
     def run(self):
         '''
-        Executes the command, returning when command has completed. If the command is
-        skipped due to an "if" clause: returns None Otherwise, returns a CompletedProcess
-        when the command has finished.
+        Executes the command, returning when command has completed. The command may be
+        skipped due to an "if" clause returning a error code.
+        When the command has finished, these fields are set:
+            - status
+            - if_completed_process
+            - run_completed_process
         '''
         if 'shell' not in self.dict:
             raise GpushError(f'Hi! you need to have a field "shell" in your command: {repr(self.dict)}')
 
+        self.status = Status.CHECKING
         if 'if' in self.dict:
             ifcommand = self.dict['if']
             check_type('"if" clause', ifcommand, str, 'If you have an "if:" clause, it must have a string which will be run in the shell.')
-            result = subprocess.run(ifcommand, shell=True)
-            if result.returncode != 0:
-                print(f'gpush: skipping {repr(self.name())} because if clause returned {result.returncode}. Expected 0.')
-                return result
+            self.if_completed_process = subprocess.run(ifcommand, shell=True)
+            if self.if_completed_process.returncode != 0:
+                self.status = Status.SKIPPED
+                #  print(f'gpush: skipping {repr(self.name())} because if clause returned {self.if_completed_process.returncode}. Expected 0.')
+                return
 
+        self.status = Status.WORKING
         env = None
         if 'env' in self.dict:
             env = self.dict['env']
@@ -57,7 +74,11 @@ class Command:
         shell = self.dict['shell']
         print(f'\n{CYAN}gpush run:', self.name(), RESET)
 
-        return subprocess.run(shell, shell=True, env=env)
+        self.run_completed_process = subprocess.run(shell, shell=True, env=env)
+        if self.run_completed_process.returncode == 0:
+            self.status = Status.SUCCESS
+        else:
+            self.status = Status.FAIL
 
 def run_all(list_of_commands):
     if list_of_commands is None: return
