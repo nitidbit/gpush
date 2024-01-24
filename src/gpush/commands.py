@@ -45,7 +45,8 @@ class Command:
             check_type('"if" clause', ifcommand, str, 'If you have an "if:" clause, it must have a string which will be run in the shell.')
             result = subprocess.run(ifcommand, shell=True)
             if result.returncode != 0:
-                print(f'We are skipping {self.name()} because if clause returned {result.returncode}. Expected 0.')
+                print(f'gpush: skipping {repr(self.name())} because if clause returned {result.returncode}. Expected 0.')
+                return result
 
         env = None
         if 'env' in self.dict:

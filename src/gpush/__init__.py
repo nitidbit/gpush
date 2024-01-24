@@ -9,15 +9,29 @@ import subprocess
 import yaml
 import concurrent.futures
 import time
+from pathlib import Path
 
 from .constants import GpushError, GREEN, RED, RESET
 from . import commands
 from .commands import Command
 from .gpush_core import notify
 
-
 def find_and_parse_config():
-    with open('gpushrc.yml') as f:
+    LIB_DIR = Path(__file__).parent
+
+    locations_to_try = [
+        './gpushrc.yaml',
+        './gpushrc.yml',
+        LIB_DIR / 'gpushrc_default.yaml',
+    ]
+
+    for rc_path in locations_to_try:
+        if Path(rc_path).exists():
+            break
+
+    print('gpush: using config file:', rc_path)
+
+    with open(rc_path) as f:
         config = yaml.safe_load(f)
 
     merge_imports(config)
@@ -37,7 +51,7 @@ def merge_imports(config):
             with open(file) as f:
                 config.update(yaml.safe_load(f))
         else:
-            print(f"import file '{file}' does not exist or is not a file, ignoring")
+            print(f"gpush: import file '{file}' does not exist or is not a file, ignoring")
 
 # Print all the commands running and if they have finished or not
 def _print_status(commands_and_futures):
@@ -74,8 +88,8 @@ def _run_in_parallel(list_of_command_dicts):
                 num_running = _print_status(commands_and_futures)
 
         except KeyboardInterrupt:
-           print('KeyboardInterrupt...')
-           return
+            print('gpush: KeyboardInterrupt...')
+            return
         finally:
             pass
             # !!! terminate any commands that might still be running
@@ -115,7 +129,7 @@ def check_remote_branch(remote_branch):
     setup_remote_branch = False
     if remote_branch:
        if is_git_up_to_date_with_remote_branch():
-           print(f"Local branch is up to date with the remote branch '{remote_branch}'.")
+           print(f"gpush: Local branch is up to date with the remote branch '{remote_branch}'.")
            # Continue with your operations below
        else:
            raise GpushError(f"Local branch is not up to date with the remote branch '{remote_branch}'. Exiting.")
@@ -138,13 +152,13 @@ def go(args):
 
     yml = find_and_parse_config()
 
-    commands.run_all(yml['pre_run'])
+    commands.run_all(yml.get('pre_run', []))
 
-    _run_in_parallel(yml['parallel_commands'])
+    _run_in_parallel(yml.get('parallel_run', []))
 
     if not args.is_dry_run:
         subprocess.run(['git', 'push'])
-        commands.run_all(yml['post_run'])
+        commands.run_all(yml.get('post_run', []))
         notify(True)
         DOING_GREAT = ">> 🌺 << Good job! You're doing great."
         print(DOING_GREAT)
