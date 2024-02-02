@@ -6,6 +6,7 @@ Rewrite files with linters: ESLint, Prettier, and Rubocop. Only affects files th
 have changed since you last pushed to git.
 """
 
+import argparse
 import subprocess
 import os
 from os.path import join, dirname
@@ -17,18 +18,19 @@ def run(command):
     result = subprocess.check_output([command], stderr=subprocess.STDOUT, shell=True)
     return result
 
-def get_changed_files(git_repo_root_dir, no_deletes = True):
+def get_changed_files(git_repo_root_dir, compare_branch = None, no_deletes = True):
     CMD_FILES_CHANGED = "git diff --name-only {}"
+    compare_branch = compare_branch or "@{upstream}"
 
     try:
-        cmd = CMD_FILES_CHANGED.format("@{upstream}")
+        cmd = CMD_FILES_CHANGED.format(compare_branch)
         output = run(cmd)
 
     except subprocess.CalledProcessError:
         # Assuming that error: when we are on a local branch, diffing with origin/$BRANCH fails
         DEFAULT = 'origin/main'
         prompt = '''
-Could not `git diff` against origin. What branch should I diff against? [{}] '''.format(DEFAULT)
+Could not `git diff` against `{}`. What branch should I diff against? [{}] '''.format(compare_branch, DEFAULT)
         origin_branch = input(prompt).strip() or DEFAULT
 
         cmd = CMD_FILES_CHANGED.format(origin_branch)
@@ -43,9 +45,14 @@ Could not `git diff` against origin. What branch should I diff against? [{}] '''
 
     return files
 
+def arg_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--compare', '-c', dest='compare_branch', help="specify which branch to compare against if don't want the upstream default, example after rebasing")
+    return parser.parse_args()
 
 if __name__ == '__main__':
-    changed_filenames = get_changed_files(PROJECT_ROOT_DIR)
+    args = arg_parser()
+    changed_filenames = get_changed_files(PROJECT_ROOT_DIR, args.compare_branch)
     eslint_files = [fn for fn in changed_filenames if fn.endswith(tuple(ESLINT_FILE_EXTENSIONS))]
 
     prettier_command = ['npx', 'prettier', '--write', '--plugin=@prettier/plugin-ruby'] + changed_filenames
