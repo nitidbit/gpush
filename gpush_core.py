@@ -23,7 +23,7 @@ YELLOW = "\033[33m"
 RESET = "\033[0m"
 
 FILENAME_STOP_MIN_LENGTH = 4
-CMD_FILES_CHANGED_SINCE_PUSH = "git diff --name-only origin/{} {}"
+CMD_FILES_CHANGED_SINCE_PUSH = "git diff --name-only {} {}"
 
 SOFT_LIMIT_BUFFER = 3
 
@@ -85,14 +85,16 @@ def cli_arg_parser(commands):
 
     parser.add_argument('--dry-run', dest='is_dry_run', action='store_true',
                         help="Don't actually push to github at the end--just run the tests.")
+    parser.add_argument('--compare', '-c', dest='compare_branch',
+                        help="specify which branch to compare against if don't want the upstream default, example after rebasing")
     return parser
 
 
 #   Picking Subset of files for Stylelint
 
-def scss_lint_for_changed_files(git_repo_root_dir):
+def scss_lint_for_changed_files(git_repo_root_dir, compare_branch=None):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True, compare_branch=compare_branch)
     changed_scss_files = [fn for fn in changed_filenames if fn.endswith('css')]
 
     command = ['npx', 'stylelint']
@@ -106,9 +108,9 @@ def scss_lint_for_changed_files(git_repo_root_dir):
     return result
 
 
-def eslint_for_changed_files(git_repo_root_dir):
+def eslint_for_changed_files(git_repo_root_dir, compare_branch=None):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True, compare_branch=compare_branch)
     changed_js_files = [fn for fn in changed_filenames if (fn.endswith('js') or fn.endswith('jsx'))]
 
     command = ['npx', 'eslint']
@@ -122,9 +124,9 @@ def eslint_for_changed_files(git_repo_root_dir):
     return result
 
 
-def prettier_for_changed_files(git_repo_root_dir):
+def prettier_for_changed_files(git_repo_root_dir, compare_branch=None):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True, compare_branch=compare_branch)
     # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
 
     command = ['npx', 'prettier', '--check', '--plugin=@prettier/plugin-ruby']
@@ -137,9 +139,9 @@ def prettier_for_changed_files(git_repo_root_dir):
 
     return result
 
-def rubocop_for_changed_files(git_repo_root_dir):
+def rubocop_for_changed_files(git_repo_root_dir, compare_branch=None):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True, compare_branch=compare_branch)
     # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
 
     command = ['bundle', 'exec', 'rubocop', '--force-exclusion', '--only-recognized-file-types']
@@ -194,11 +196,12 @@ def rspec_for_changed_files(
         git_repo_root_dir,  # project root directory which should be the same as the git root, e.g. "./"
         rspec_root_dir,  # directory in which to run `rspec`. E.g. 'navigate' or 'bedsider-web/bedsider'
         filename_stop_words,  # e.g. set(['for', 'csv', 'spec', 'job', 'controller', 'admin', 'helper', '']),
-        spec_ignore_dirs
+        spec_ignore_dirs,
+        compare_branch=None
 ):
     result = {}
 
-    changed_filenames = _get_changed_files(git_repo_root_dir)
+    changed_filenames = _get_changed_files(git_repo_root_dir, compare_branch=compare_branch)
     partial_filenames = [splitext(basename(filepath))[0] for filepath in changed_filenames]
     #  print 'These files have been changed from github: {}'.format(', '.join(partial_filenames))
 
@@ -259,20 +262,21 @@ def _searchable_strings(filenames, filename_stop_words):
 # Return list of files that have changed since 'origin/BRANCH'
 # e.g. ['/Users/winstonw/bedsider-web/bedsider/app/models/clinic.rb', ...]
 @functools.cache
-def _get_changed_files(git_repo_root_dir, no_deletes=False):
+def _get_changed_files(git_repo_root_dir, no_deletes=False, compare_branch=None):
     git_result = run("git rev-parse --abbrev-ref HEAD").decode()
     local_branch = git_result.strip()
+    compare_branch = compare_branch or "origin/{}".format(local_branch)
 
     try:
-        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(local_branch, local_branch)
+        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(compare_branch, local_branch)
         output = run(cmd)
 
     except subprocess.CalledProcessError:
         # Assuming error: when we are on a local branch, diffing with origin/$BRANCH fails
         default = 'main'
         prompt = '''
-Could not `git diff` against origin/{}. What branch should I diff against to determine what you are going to
-push? [{}] '''.format(local_branch, default)
+Could not `git diff` against {}. What branch should I diff against to determine what you are going to
+push? [{}] '''.format(compare_branch, default)
         origin_branch = input(prompt).strip() or default
 
         cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(origin_branch, local_branch)
