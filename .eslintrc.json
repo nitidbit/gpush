@@ -3,6 +3,7 @@
     "airbnb",
     "prettier"
   ],
+  "plugins": ["@nitid/eslint-plugin-nitid"],
   "parser": "@babel/eslint-parser",
   "env": {
     "browser": true,
@@ -32,6 +33,7 @@
     "jsx-a11y/label-has-associated-control": ["error", { "required": { "some": ["nesting", "id"] }}],
     "jsx-a11y/no-static-element-interactions": "warn",
     "jsx-a11y/tabindex-no-positive" :"warn",
+    "@nitid/nitid/jsx-export-match-filename": "warn",
     "no-console": ["error", { "allow": ["debug", "warn", "error"] }],
     // these undo decisions in the AirBnB config (see https://github.com/airbnb/javascript/issues/1271 )
     "no-restricted-syntax": [
