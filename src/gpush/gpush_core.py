@@ -3,6 +3,8 @@
   repo. Repo specific configuration should be in <repo-root>/gpush.py
 """
 
+from __future__ import print_function
+
 import argparse
 import functools
 import json
@@ -21,76 +23,78 @@ YELLOW = "\033[33m"
 RESET = "\033[0m"
 
 FILENAME_STOP_MIN_LENGTH = 4
-CMD_FILES_CHANGED_SINCE_PUSH = "git diff --name-only origin/{}"
+CMD_FILES_CHANGED_SINCE_PUSH = "git diff --name-only {} {}"
 
 SOFT_LIMIT_BUFFER = 3
 
 
 # Run a shell command, returning the 'stdout' output of that command as a string.
-#  def run(command, **kwargs):
-#      result = subprocess.check_output([command], stderr=subprocess.STDOUT, shell=True, **kwargs)
-#      return result
+def run(command):
+    result = subprocess.check_output([command], stderr=subprocess.STDOUT, shell=True)
+    return result
 
 
 # Run a bunch of commands (e.g. 'npm test', 'rubocop') in parallel, printing their status every 5 seconds
-#  def run_in_parallel(commands):
-#      post_processing_tasks = {}
-#      processes = {}
+def run_in_parallel(commands):
+    post_processing_tasks = {}
+    processes = {}
 
-#      for name, kwargs in commands.items():
-#          post_task = kwargs.pop('post_task', None)
+    for name, kwargs in commands.items():
+        post_task = kwargs.pop('post_task', None)
 
-#          if post_task:
-#              post_processing_tasks[name] = post_task
+        if post_task:
+            post_processing_tasks[name] = post_task
 
-#          processes[name] = subprocess.Popen(**kwargs)
+        processes[name] = subprocess.Popen(**kwargs)
 
-#      try:
-#          while True:
-#              _print_status(processes)
-#              active_process_count = len([name for name, proc in processes.items() if proc.poll() is None])
+    try:
+        while True:
+            _print_status(processes)
+            active_process_count = len([name for name, proc in processes.items() if proc.poll() is None])
 
-#              if active_process_count == 0:
-#                  errors = {name: proc.poll() for name, proc in processes.items()
-#                            if proc.poll() is not None and proc.poll() != 0}
-#                  return errors
+            if active_process_count == 0:
+                errors = {name: proc.poll() for name, proc in processes.items()
+                          if proc.poll() is not None and proc.poll() != 0}
+                return errors
 
-#              time.sleep(5)
-#      except KeyboardInterrupt:
-#          print('KeyboardInterrupt...')
-#          return {"kbdint": 1}
-#      finally:
-#          for name, proc in processes.items():
-#              status = proc.poll()
-#              if status is None:
-#                  print('Terminating:', name)
-#                  proc.terminate()
-#              elif status == 0:
-#                  if name in post_processing_tasks:
-#                      print("== Running post process for {} ==".format(name))
-#                      post_processing_tasks[name]()
+            time.sleep(5)
+    except KeyboardInterrupt:
+        print('KeyboardInterrupt...')
+        return {"kbdint": 1}
+    finally:
+        for name, proc in processes.items():
+            status = proc.poll()
+            if status is None:
+                print('Terminating:', name)
+                proc.terminate()
+            elif status == 0:
+                if name in post_processing_tasks:
+                    print("== Running post process for {} ==".format(name))
+                    post_processing_tasks[name]()
 
 
-#  def cli_arg_parser(commands):
-#      list_of_commands = "".join(("\n    {:25} - {}".format(key, ' '.join(val["args"])) for key, val in commands.items()))
-#      description = 'Run tests and linters before pushing to github.'
-#      epilog = 'These are the tests and linters that will be run:' + list_of_commands + '\n    rspec'
+def cli_arg_parser(commands):
+    list_of_commands = "".join(("\n    {:25} - {}".format(key, ' '.join(val["args"])) for key, val in commands.items()))
+    description = 'Run tests and linters before pushing to github.'
+    epilog = 'These are the tests and linters that will be run:' + list_of_commands + '\n    rspec'
 
-#      parser = argparse.ArgumentParser(
-#          description=description,
-#          epilog=epilog,
-#          formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=description,
+        epilog=epilog,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
 
-#      parser.add_argument('--dry-run', dest='is_dry_run', action='store_true',
-#                          help="Don't actually push to github at the end--just run the tests.")
-#      return parser
+    parser.add_argument('--dry-run', dest='is_dry_run', action='store_true',
+                        help="Don't actually push to github at the end--just run the tests.")
+    parser.add_argument('--compare', '-c', dest='compare_branch',
+                        help="specify which branch to compare against if don't want the upstream default, example after rebasing")
+    return parser
 
 
 #   Picking Subset of files for Stylelint
 
-def scss_lint_for_changed_files(git_repo_root_dir):
+def scss_lint_for_changed_files(git_repo_root_dir, compare_branch=None):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True, compare_branch=compare_branch)
     changed_scss_files = [fn for fn in changed_filenames if fn.endswith('css')]
 
     command = ['npx', 'stylelint']
@@ -104,9 +108,9 @@ def scss_lint_for_changed_files(git_repo_root_dir):
     return result
 
 
-def eslint_for_changed_files(git_repo_root_dir):
+def eslint_for_changed_files(git_repo_root_dir, compare_branch=None):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True, compare_branch=compare_branch)
     changed_js_files = [fn for fn in changed_filenames if (fn.endswith('js') or fn.endswith('jsx'))]
 
     command = ['npx', 'eslint']
@@ -120,9 +124,9 @@ def eslint_for_changed_files(git_repo_root_dir):
     return result
 
 
-def prettier_for_changed_files(git_repo_root_dir):
+def prettier_for_changed_files(git_repo_root_dir, compare_branch=None):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True, compare_branch=compare_branch)
     # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
 
     command = ['npx', 'prettier', '--check', '--plugin=@prettier/plugin-ruby']
@@ -135,9 +139,9 @@ def prettier_for_changed_files(git_repo_root_dir):
 
     return result
 
-def rubocop_for_changed_files(git_repo_root_dir):
+def rubocop_for_changed_files(git_repo_root_dir, compare_branch=None):
     result = {}
-    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True)
+    changed_filenames = _get_changed_files(git_repo_root_dir, no_deletes=True, compare_branch=compare_branch)
     # changed_prettier_files = [fn for fn in changed_filenames if (fn.endswith(tuple(prettier_extensions)))]
 
     command = ['bundle', 'exec', 'rubocop', '--force-exclusion', '--only-recognized-file-types']
@@ -192,11 +196,12 @@ def rspec_for_changed_files(
         git_repo_root_dir,  # project root directory which should be the same as the git root, e.g. "./"
         rspec_root_dir,  # directory in which to run `rspec`. E.g. 'navigate' or 'bedsider-web/bedsider'
         filename_stop_words,  # e.g. set(['for', 'csv', 'spec', 'job', 'controller', 'admin', 'helper', '']),
-        spec_ignore_dirs
+        spec_ignore_dirs,
+        compare_branch=None
 ):
     result = {}
 
-    changed_filenames = _get_changed_files(git_repo_root_dir)
+    changed_filenames = _get_changed_files(git_repo_root_dir, compare_branch=compare_branch)
     partial_filenames = [splitext(basename(filepath))[0] for filepath in changed_filenames]
     #  print 'These files have been changed from github: {}'.format(', '.join(partial_filenames))
 
@@ -257,24 +262,25 @@ def _searchable_strings(filenames, filename_stop_words):
 # Return list of files that have changed since 'origin/BRANCH'
 # e.g. ['/Users/winstonw/bedsider-web/bedsider/app/models/clinic.rb', ...]
 @functools.cache
-def _get_changed_files(git_repo_root_dir, no_deletes=False):
-    git_result = run("git rev-parse --abbrev-ref HEAD", cwd=git_repo_root_dir).decode()
+def _get_changed_files(git_repo_root_dir, no_deletes=False, compare_branch=None):
+    git_result = run("git rev-parse --abbrev-ref HEAD").decode()
     local_branch = git_result.strip()
+    compare_branch = compare_branch or "origin/{}".format(local_branch)
 
     try:
-        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(local_branch)
-        output = run(cmd, cwd=git_repo_root_dir)
+        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(compare_branch, local_branch)
+        output = run(cmd)
 
     except subprocess.CalledProcessError:
         # Assuming error: when we are on a local branch, diffing with origin/$BRANCH fails
         default = 'main'
         prompt = '''
-Could not `git diff` against origin/{}. What branch should I diff against to determine what you are going to
-push? [{}] '''.format(local_branch, default)
+Could not `git diff` against {}. What branch should I diff against to determine what you are going to
+push? [{}] '''.format(compare_branch, default)
         origin_branch = input(prompt).strip() or default
 
-        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(origin_branch)
-        output = run(cmd, cwd=git_repo_root_dir)
+        cmd = CMD_FILES_CHANGED_SINCE_PUSH.format(origin_branch, local_branch)
+        output = run(cmd)
     output = output.decode()
     files = filter(lambda fn: fn, output.split("\n"))  # filter out emtpy lines
 
@@ -328,16 +334,10 @@ def _get_specs(spec_dir, keywords, spec_ignore_dirs):
 def notify(success=True, msg="Finished!"):
     afplay = which('afplay')
     if afplay is not None:
-        if ("GPUSH_SOUND_SUCCESS" in os.environ
-            and os.path.isfile(os.environ["GPUSH_SOUND_SUCCESS"])
-            and success
-           ):
+        if "GPUSH_SOUND_SUCCESS" in os.environ and os.path.isfile(os.environ["GPUSH_SOUND_SUCCESS"]) and success:
             subprocess.Popen([afplay, os.environ["GPUSH_SOUND_SUCCESS"]])
 
-        if ("GPUSH_SOUND_FAIL" in os.environ
-            and os.path.isfile(os.environ["GPUSH_SOUND_FAIL"])
-            and not success
-           ):
+        if "GPUSH_SOUND_FAIL" in os.environ and os.path.isfile(os.environ["GPUSH_SOUND_FAIL"]) and not success:
             subprocess.Popen([afplay, os.environ["GPUSH_SOUND_FAIL"]])
 
     terminal_notifier = which('terminal-notifier')
