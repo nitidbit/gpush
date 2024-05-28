@@ -6,7 +6,8 @@
     "plugin:@typescript-eslint/recommended"
   ],
   "plugins": [
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "@nitid/eslint-plugin-nitid"
   ],
   "parser": "@typescript-eslint/parser",
   "settings": {
@@ -47,7 +48,7 @@
     "jsx-a11y/label-has-associated-control": 1,
     "jsx-a11y/no-static-element-interactions": 1,
     "jsx-a11y/tabindex-no-positive" :1,
-    "@nitid/nitid/jsx-export-match-filename": "warn",
+    "@nitid/nitid/jsx-export-match-filename": 0,
     "no-trailing-spaces": [2],
     "no-shadow": "off",
     "no-undef": [2],
