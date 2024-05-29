@@ -69,6 +69,7 @@
     "react/jsx-props-no-spreading": 0,
     "react/no-unstable-nested-components": [1, { "allowAsProps": true }],
     "react/self-closing-comp": 1,
+    "react/require-default-props": 0,
     "react/prop-types": 0
   }
 }
