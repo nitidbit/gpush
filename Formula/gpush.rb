@@ -5,7 +5,7 @@ class Gpush < Formula
       using:    :git,
       revision: "314a12e0690b6e5d3ff8a0f9bceffd6e33427407"
   license "MIT"
-  version "0.0.0"
+  version "2.0.0-alpha.3"
 
   depends_on "python@3.12"
 
@@ -17,7 +17,7 @@ class Gpush < Formula
     bin.install "src/ruby/gpush_changed_files.rb" => "gpush_changed_files"
 
     # Install the Python package using pip in user space
-    system "python3", "-m", "pip", "install", "--user", "git+https://github.com/nitidbit/gpush.git@release/v2-hackathon"
+    system "python3", "-m", "pip", "install", "--user", "git+https://github.com/nitidbit/gpush/commit/0187c07a66102602ee8efdc19c26498cadc356ea"
 
     # Create a wrapper script for the `gpush` command
     (bin/"gpush").write <<~EOS
