@@ -3,7 +3,7 @@ class Gpush < Formula
   homepage "https://github.com/nitidbit/gpush"
   url "https://github.com/nitidbit/gpush.git",
       using:    :git,
-      revision: "172ab59544837515e700208dfa451c59d33aecec"
+      revision: "314a12e0690b6e5d3ff8a0f9bceffd6e33427407"
   license "MIT"
   version "0.0.0"
 
