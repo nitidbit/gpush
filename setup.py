@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='gpush',
-    version='2.0.0-alpha.2',
+    version='2.0.0-alpha.3',
     description='Wrapper for git push that runs tests, linters, and more before pushing',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
