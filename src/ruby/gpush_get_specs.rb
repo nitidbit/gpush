@@ -7,9 +7,17 @@ require "find"
 require "fileutils"
 
 class GpushGetSpecs
+  def self.git_root_dir
+    root_dir = `git rev-parse --show-toplevel`.strip
+    if $?.success?
+      return root_dir
+    else
+      raise "Not inside a Git repository"
+    end
+  end
+
   DEFAULT_OPTIONS = {
-    root_dir: ".",
-    exclude_words: %w[and spec for csv job controller admin helper],
+    root_dir: git_root_dir,
     excludes: [],
     min_keyword_length: 3,
     output_separator: " ",
@@ -62,15 +70,16 @@ class GpushGetSpecs
   end
 
   def get_specs(keywords)
+    log("Root dir: #{@options[:root_dir]}")
     log("Spec include pattern: #{@options[:include_pattern]}")
     log "Always include pattern: #{@options[:always_include]}"
     log("")
 
     if @options[:always_include]
-      always_include_files = Dir.glob @options[:always_include]
+      always_include_files = Dir.glob File.join @options[:root_dir], @options[:always_include]
     end
 
-    files_to_match = Dir.glob @options[:include_pattern]
+    files_to_match = Dir.glob File.join @options[:root_dir], @options[:include_pattern]
     matching_files =
       files_to_match.each_with_object([]) do |path, specs|
         filename = File.basename(path, ".*").downcase # Returns "example_spec"

@@ -2,10 +2,19 @@
 # frozen_string_literal: true
 
 class GpushChangedFiles
+  def self.git_root_dir
+    root_dir = `git rev-parse --show-toplevel`.strip
+    if $?.success?
+      return root_dir
+    else
+      raise "Not inside a Git repository"
+    end
+  end
+
   DEFAULT_FALLBACK_BRANCHES = %w[main master].freeze
 
   OPTIONS = {
-    root_dir: Dir.pwd, # Default to the current directory
+    root_dir: git_root_dir,
     fallback_branches: DEFAULT_FALLBACK_BRANCHES,
     verbose: false,
     separator: " ",

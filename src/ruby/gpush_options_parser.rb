@@ -10,13 +10,20 @@ class GpushOptionsParser
   def self.parse(arguments, config_prefix:, option_definitions:, required_options:)
     options = {}
 
-    # Load options from the config file if it exists
-    if File.exist?(CONFIG_FILE)
-      config_from_file = YAML.load_file(CONFIG_FILE)
+    # Find the config file by searching from the current directory upwards
+    config_file_path = find_config_file
+
+    if config_file_path
+      # Load options from the config file if it exists
+      config_from_file = YAML.load_file(config_file_path)
       if !config_from_file.is_a?(Hash)
         raise "Invalid configuration file format. Must be a YAML hash."
       end
-      options.merge!(config_from_file)
+      if config_from_file[config_prefix]
+        options.merge! config_from_file[config_prefix].transform_keys(&:to_sym)
+      end
+    else
+      puts "Config file '#{CONFIG_FILE}' not found. Proceeding without it."
     end
 
     # Parse command-line arguments
@@ -39,5 +46,18 @@ class GpushOptionsParser
     end
 
     options
+  end
+
+  private
+
+  def self.find_config_file
+    current_dir = Dir.pwd
+    while current_dir != "/"
+      config_file = File.join(current_dir, CONFIG_FILE)
+      puts "found #{config_file}" if File.exist?(config_file)
+      return config_file if File.exist?(config_file)
+      current_dir = File.expand_path("..", current_dir)  # Move up one directory
+    end
+    # Return nil if the config file is not found
   end
 end
