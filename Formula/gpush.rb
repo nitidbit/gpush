@@ -5,7 +5,7 @@ class Gpush < Formula
       using:    :git,
       revision: "314a12e0690b6e5d3ff8a0f9bceffd6e33427407"
   license "MIT"
-  version "0.0.0"
+  version '2.0.0-alpha.3'
 
   depends_on "python@3.12"
 
