@@ -7,11 +7,17 @@ require "yaml"
 class GpushOptionsParser
   CONFIG_FILE = "gpushrc.yml"
 
-  def self.parse(arguments, option_definitions, required_options)
+  def self.parse(arguments, config_prefix:, option_definitions:, required_options:)
     options = {}
 
     # Load options from the config file if it exists
-    options.merge!(YAML.load_file(CONFIG_FILE)) if File.exist?(CONFIG_FILE)
+    if File.exist?(CONFIG_FILE)
+      config_from_file = YAML.load_file(CONFIG_FILE)
+      if !config_from_file.is_a?(Hash)
+        raise "Invalid configuration file format. Must be a YAML hash."
+      end
+      options.merge!(config_from_file)
+    end
 
     # Parse command-line arguments
     OptionParser
