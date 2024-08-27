@@ -17,11 +17,11 @@ setup(
     #  py_modules=['gpush'],  # Replace with the name of your main script
     packages=['gpush'],
     package_dir={'': 'src'},
-    entry_points={
-        'console_scripts': [
-            'gpush=gpush:main',  # Adjust 'gpush:main' to point to the correct function in your code
-        ],
-    },
+    #  entry_points={
+    #      'console_scripts': [
+    #          'gpush=gpush:start',  # Replace 'gpush:main' with your entry function
+    #      ],
+    #  },
     classifiers=[
         # Choose classifiers: https://pypi.org/classifiers/
         'Programming Language :: Python :: 3',
@@ -30,3 +30,4 @@ setup(
     ],
     python_requires='>=3.8',  # Replace with your Python version requirement
 )
+
