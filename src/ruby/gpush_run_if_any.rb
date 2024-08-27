@@ -138,7 +138,8 @@ if __FILE__ == $PROGRAM_NAME
     end
 
   required_options = %i[include_pattern]
-  options = GpushOptionsParser.parse(ARGV, option_definitions, required_options)
+  config_prefix = "run_if_any"
+  options = GpushOptionsParser.parse(ARGV, option_definitions:, required_options:, config_prefix:)
 
   finder = GpushRunnIfAny.new(options)
   result = finder.find_matching_specs
