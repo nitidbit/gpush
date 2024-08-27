@@ -8,7 +8,6 @@ class Gpush < Formula
   version "0.0.0"
 
   depends_on "python@3.12"
-  depends_on "pipx"
 
   def install
     # Logging the start of the installation process
@@ -21,20 +20,25 @@ class Gpush < Formula
     bin.install "src/ruby/gpush_options_parser.rb" => "gpush_options_parser"
     bin.install "src/ruby/gpush_changed_files.rb" => "gpush_changed_files"
 
-    # Install the Python package using pipx
-    ohai "Installing the Python package using pipx"
-    system "pipx", "install", "git+https://github.com/nitidbit/gpush.git@894b5598253639abbbce31bd25ec39ff6a5a6b0e"
+    # Install the Python package directly to the Homebrew site-packages
+    ohai "Installing the Python package using pip"
+    system "pip3", "install", "--prefix=#{prefix}", "git+https://github.com/nitidbit/gpush.git@release/v2-hackathon"
 
-    # Assuming pipx installed the gpush binary in the standard location
-    pipx_bin_path = "#{ENV['HOME']}/.local/pipx/venvs/gpush/bin/gpush"
-    if File.exist?(pipx_bin_path)
-      ohai "Found gpush binary at #{pipx_bin_path}, creating symlink in Homebrew bin directory"
-      bin.install_symlink pipx_bin_path => "gpush"
-    else
-      odie "Failed to locate gpush binary installed by pipx at #{pipx_bin_path}"
-    end
+    # Create a wrapper script to run the gpush Python command
+    (bin/"gpush").write <<~EOS
+      #!/bin/bash
+      python3 -m gpush "$@"
+    EOS
+
+    # Set execute permissions on the wrapper script
+    chmod "+x", bin/"gpush"
 
     # Confirming the installation
     ohai "gpush installation completed"
   end
+
+  # test do
+  #   # Test to ensure the command runs successfully
+  #   system "#{bin}/gpush", "--version"
+  # end
 end
