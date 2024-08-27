@@ -54,7 +54,6 @@ class GpushOptionsParser
     current_dir = Dir.pwd
     while current_dir != "/"
       config_file = File.join(current_dir, CONFIG_FILE)
-      puts "found #{config_file}" if File.exist?(config_file)
       return config_file if File.exist?(config_file)
       current_dir = File.expand_path("..", current_dir)  # Move up one directory
     end
