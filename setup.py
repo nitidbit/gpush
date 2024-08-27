@@ -1,33 +1,30 @@
 from setuptools import setup
+import os
+
+# Read the version from the __version__.py file
+version = {}
+with open(os.path.join(os.path.dirname(__file__), 'src/gpush/__version__.py')) as f:
+    exec(f.read(), version)
 
 setup(
     name='gpush',
-    version='2.0.0-alpha.3',
+    version=version['__version__'],
     description='Wrapper for git push that runs tests, linters, and more before pushing',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/nitidbit/gpush',
     author='Nitid',
     author_email='info@nitidbit.com',
-    license='MIT',  # Replace with your license
+    license='MIT',
     install_requires=[
-        # List your project's dependencies here
         'pyyaml',
     ],
-    #  py_modules=['gpush'],  # Replace with the name of your main script
     packages=['gpush'],
     package_dir={'': 'src'},
-    #  entry_points={
-    #      'console_scripts': [
-    #          'gpush=gpush:start',  # Replace 'gpush:main' with your entry function
-    #      ],
-    #  },
     classifiers=[
-        # Choose classifiers: https://pypi.org/classifiers/
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.8',  # Replace with your Python version requirement
+    python_requires='>=3.8',
 )
-
