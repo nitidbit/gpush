@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative "gpush_options_parser"
-require_relative "gpush_changed_files"
+require_relative File.join(__dir__, "gpush_options_parser")
+require_relative File.join(__dir__, "gpush_changed_files")
 require "find"
 require "fileutils"
 

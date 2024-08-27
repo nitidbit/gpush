@@ -1,12 +1,11 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative "gpush_options_parser"
-require_relative "gpush_changed_files"
+require_relative File.join(__dir__, "gpush_changed_files")
 require "find"
 require "fileutils"
 
-class GpushGetSpecs
+class GpushRunnIfAny
   DEFAULT_OPTIONS = {
     root_dir: ".",
     exclude_words: %w[and spec for csv job controller admin helper],
@@ -141,7 +140,7 @@ if __FILE__ == $PROGRAM_NAME
   required_options = %i[include_pattern]
   options = GpushOptionsParser.parse(ARGV, option_definitions, required_options)
 
-  finder = GpushGetSpecs.new(options)
+  finder = GpushRunnIfAny.new(options)
   result = finder.find_matching_specs
 
   if result[:specs]
