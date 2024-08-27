@@ -3,22 +3,32 @@ class Gpush < Formula
   homepage "https://github.com/nitidbit/gpush"
   url "https://github.com/nitidbit/gpush.git",
       using:    :git,
-      revision: "314a12e0690b6e5d3ff8a0f9bceffd6e33427407"
+      revision: "201313e40ec6415190f133feaac1f6811cc39d62"
   license "MIT"
   version '2.0.0-alpha.3'
 
   depends_on "python@3.12"
 
+  RUBY_SCRIPTS = %w[
+    gpush_get_specs.rb
+    gpush_run_if_any.rb
+    gpush_options_parser.rb
+    gpush_changed_files.rb
+  ].freeze
+
   def install
     # Logging the start of the installation process
     ohai "Starting installation of gpush"
 
-    # Install the Ruby scripts to the bin directory
-    ohai "Installing Ruby scripts to the bin directory"
-    bin.install "src/ruby/gpush_get_specs.rb" => "gpush_get_specs"
-    bin.install "src/ruby/gpush_run_if_any.rb" => "gpush_run_if_any"
-    bin.install "src/ruby/gpush_options_parser.rb" => "gpush_options_parser"
-    bin.install "src/ruby/gpush_changed_files.rb" => "gpush_changed_files"
+    # Install the Ruby scripts to the libexec directory
+    ohai "Installing Ruby scripts to the libexec directory"
+    libexec.install RUBY_SCRIPTS.map { |script| "src/ruby/#{script}" }
+
+    # Set execute permissions on the Ruby scripts and create symlinks
+    RUBY_SCRIPTS.each do |script|
+      chmod "+x", libexec/script
+      bin.install_symlink libexec/script => script.sub(".rb", "")
+    end
 
     # Install the Python package directly to the Homebrew site-packages
     ohai "Installing the Python package using pip"
