@@ -156,8 +156,9 @@ def check_remote_branch(remote_branch):
 
 
 def go(args):
-    remote_branch = get_remote_branch_name()
-    setup_remote_branch = check_remote_branch(remote_branch)
+    if not args.is_dry_run:
+        remote_branch = get_remote_branch_name()
+        check_remote_branch(remote_branch)
 
     yml = find_and_parse_config()
 
