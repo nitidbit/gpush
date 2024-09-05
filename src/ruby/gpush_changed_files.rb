@@ -36,14 +36,16 @@ class GpushChangedFiles
     branch_name = `git rev-parse --abbrev-ref HEAD`.strip
     origin_branch = "origin/#{branch_name}"
 
-    branch_exists = system("git ls-remote --heads origin #{branch_name} > /dev/null 2>&1")
 
-    if branch_exists
+    if branch_exists? branch_name
+      puts "here"
       diff_command = "git diff --name-only #{origin_branch}"
     else
       fallback_branch = @options[:fallback_branches].find do |fallback|
-        system("git ls-remote --heads origin #{fallback} > /dev/null 2>&1")
+        branch_exists? fallback
       end
+
+      puts "here2, #{fallback_branch.inspect}"
 
       if fallback_branch
         diff_command = "git diff --name-only origin/#{fallback_branch}"
@@ -75,6 +77,12 @@ class GpushChangedFiles
 
   def log(message)
     puts message if @options[:verbose]
+  end
+
+  def branch_exists?(branch_name)
+    # Use git ls-remote to check if the branch exists on origin
+    result = `git ls-remote --heads origin #{branch_name}`.strip
+    !result.empty?
   end
 end
 
