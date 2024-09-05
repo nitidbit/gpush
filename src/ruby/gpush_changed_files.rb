@@ -45,8 +45,6 @@ class GpushChangedFiles
         branch_exists? fallback
       end
 
-      puts "here2, #{fallback_branch.inspect}"
-
       if fallback_branch
         diff_command = "git diff --name-only origin/#{fallback_branch}"
         log("Branch not found on origin. Falling back to origin/#{fallback_branch}.")
