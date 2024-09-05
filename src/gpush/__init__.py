@@ -165,18 +165,20 @@ def go(args):
 
     errors = _run_in_parallel(yml.get('parallel_run', []))
 
-    if errors == 0 and not args.is_dry_run:
+    if errors != 0 
+        notify(False)
+        ABORTED = "《 Errors detected 》 Exiting gpush."
+        print(ABORTED)
+    elif args.is_dry_run:
+        notify(False)
+        DRY_RUN = "《 Dry run completed 》 No errors detected."
+        print(DRY_RUN)
+    else:
         subprocess.run(['git', 'push'])
         commands.run_all(yml.get('post_run', []))
         notify(True)
-        DOING_GREAT = ">> 🌺 << Good job! You're doing great."
+        DOING_GREAT = "《 🌺 》 Good job! You're doing great."
         print(DOING_GREAT)
-    else:
-        notify(False)
-        ABORTED = ">> ? << Aborted"
-        print(ABORTED)
-
-
 
 def cli_arg_parser(commands):
     list_of_commands = "".join(("\n    {:25} - {}".format(key, ' '.join(val["args"])) for key, val in commands.items()))
