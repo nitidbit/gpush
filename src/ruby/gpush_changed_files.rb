@@ -38,7 +38,6 @@ class GpushChangedFiles
 
 
     if branch_exists? branch_name
-      puts "here"
       diff_command = "git diff --name-only #{origin_branch}"
     else
       fallback_branch = @options[:fallback_branches].find do |fallback|
