@@ -92,7 +92,6 @@ def run_one(cmd_dict):
     if completed_process == None:
         return # command was skipped
 
-    if completed_process.returncode != 0:
+    if cmd.run_completed_process and cmd.run_completed_process.returncode != 0:
         raise GpushError(f'Command {repr(cmd.name())} exited with code {completed_process.returncode}')
     return completed_process
-
