@@ -1,43 +1,32 @@
 class Gpush < Formula
   desc "Utilities for running linters and tests locally before pushing to a remote git repository"
   homepage "https://github.com/nitidbit/gpush"
-  url "https://github.com/nitidbit/gpush.git",
-      using:    :git,
-      revision: "174c27a73d2184c043b32484e5b4ad6fcef205bb"
   license "MIT"
-  version '2.0.0-alpha.3'
+  version "2.0.0-alpha.4"
 
-  depends_on "python@3.12"
-
-  RUBY_SCRIPTS = %w[
-    gpush_get_specs.rb
-    gpush_run_if_any.rb
-    gpush_options_parser.rb
-    gpush_changed_files.rb
-  ].freeze
+  # Use local path as the source for the formula
+  url "file://#{Pathname.new(File.expand_path(__dir__)).parent}/src/ruby"
 
   def install
+    source_path = Pathname.new(File.expand_path(__dir__)).parent/"src/ruby"
+
     # Logging the start of the installation process
     ohai "Starting installation of gpush"
 
-    # Install the Ruby scripts to the libexec directory
-    ohai "Installing Ruby scripts to the libexec directory"
-    libexec.install RUBY_SCRIPTS.map { |script| "src/ruby/#{script}" }
+    # Ensure libexec directory exists
+    libexec.mkpath
 
-    # Set execute permissions on the Ruby scripts and create symlinks
-    RUBY_SCRIPTS.each do |script|
-      chmod "+x", libexec/script
-      bin.install_symlink libexec/script => script.sub(".rb", "")
+    # Copy Ruby scripts to the libexec directory
+    ohai "Copying Ruby scripts to the libexec directory"
+    Dir[source_path/"*.rb"].each do |script|
+      cp script, libexec
+      chmod "+x", libexec/"#{File.basename(script)}"
     end
 
-    # Install the Python package directly to the Homebrew site-packages
-    ohai "Installing the Python package using pip"
-    system "pip3", "install", "--prefix=#{prefix}", "git+https://github.com/nitidbit/gpush.git@release/v2-hackathon"
-
-    # Create a wrapper script to run the gpush Python command
+    # Create a wrapper script to run the gpush Ruby command
     (bin/"gpush").write <<~EOS
       #!/bin/bash
-      python3 -m gpush "$@"
+      exec ruby -e 'load "#{libexec}/gpush.rb", *ARGV'
     EOS
 
     # Set execute permissions on the wrapper script
@@ -47,8 +36,8 @@ class Gpush < Formula
     ohai "gpush installation completed"
   end
 
-  # test do
-  #   # Test to ensure the command runs successfully
-  #   system "#{bin}/gpush", "--version"
-  # end
+  test do
+    # Test to ensure the command runs successfully
+    system "#{bin}/gpush", "--version"
+  end
 end
