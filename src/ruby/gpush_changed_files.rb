@@ -36,16 +36,14 @@ class GpushChangedFiles
     branch_name = `git rev-parse --abbrev-ref HEAD`.strip
     origin_branch = "origin/#{branch_name}"
 
-
-    if branch_exists? branch_name
-      diff_command = "git diff --name-only #{origin_branch}"
+    # Determine which branch to use for the diff
+    if branch_exists?(branch_name)
+      diff_cmd = diff_command(branch_name, @options[:pattern])
     else
-      fallback_branch = @options[:fallback_branches].find do |fallback|
-        branch_exists? fallback
-      end
+      fallback_branch = @options[:fallback_branches].find { |fallback| branch_exists?(fallback) }
 
       if fallback_branch
-        diff_command = "git diff --name-only origin/#{fallback_branch}"
+        diff_cmd = diff_command(fallback_branch, @options[:pattern])
         log("Branch not found on origin. Falling back to origin/#{fallback_branch}.")
       else
         puts "Branch not found on origin and no fallback branches available."
@@ -53,14 +51,37 @@ class GpushChangedFiles
       end
     end
 
-    # Add pattern to git diff if provided
-    diff_command += " -- '#{@options[:pattern]}'" if @options[:pattern]
-
-    Dir.chdir(@options[:root_dir]) { `#{diff_command}`.split("\n") }
+    # Run the diff command and capture the output
+    Dir.chdir(@options[:root_dir]) do
+      result = `#{diff_cmd}`.split("\n")
+      if $?.success?
+        return result
+      else
+        puts "Error executing git diff command."
+        exit 1
+      end
+    end
   end
 
   def format_changed_files(files = git_changed_files)
     files.join(@options[:separator])
+  end
+
+  def diff_command(branch, patterns = nil)
+    # Start with the base diff command
+    command = "git diff --name-status origin/#{branch}"
+
+    # If patterns are provided, append them immediately after the branch reference
+    if patterns
+      pattern_list = patterns.split(' ')
+      # No need to escape the patterns; pass them directly
+      command += " -- #{pattern_list.join(' ')}"
+    end
+
+    # Continue with grep and awk to filter out deleted files
+    command += " | grep -v '^D' | awk '{print $2}'"
+
+    command
   end
 
   private
@@ -93,7 +114,7 @@ if __FILE__ == $PROGRAM_NAME
       opts.on('--fallback-branches x,y,z', Array, 'Specify fallback branches') { |v| options[:fallback_branches] = v }
       opts.on('--verbose', 'Enable verbose output') { options[:verbose] = true }
       opts.on('--separator SEPARATOR', 'Specify separator') { |v| options[:separator] = v }
-      opts.on('--pattern PATTERN', 'Filter files by pattern (e.g., *.rb)') { |v| options[:pattern] = v }
+      opts.on('--pattern PATTERN', 'Filter files by pattern (e.g., *.rb *.js)') { |v| options[:pattern] = v }
     end,
     required_options: [] # No required options
   )
