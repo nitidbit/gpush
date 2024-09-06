@@ -166,7 +166,7 @@ def go(args):
 
     errors = _run_in_parallel(yml.get('parallel_run', []))
 
-    if errors != 0 
+    if errors != 0:
         notify(False)
         ABORTED = "《 Errors detected 》 Exiting gpush."
         print(ABORTED)
