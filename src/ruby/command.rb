@@ -115,11 +115,11 @@ class Command
     spinner_thread.kill  # Stop the spinner thread
 
     # Final output after all threads are done
-    puts "\n" + '-' * 50  # Separator for clarity
+    puts ""
     commands.each do |cmd|
-      puts "#{COLORS[:bold]}Output for: #{cmd['name'] || cmd['shell']}#{COLORS[:reset]}"
+      puts "#{COLORS[:bold]}========== Output for: #{cmd['name'] || cmd['shell']} ==========#{COLORS[:reset]}"
       puts cmd[:output]  # Print the buffered output
-      puts '-' * 50
+      puts "\n"
     end
 
     # Print overall summary
