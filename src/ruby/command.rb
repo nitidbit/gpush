@@ -12,16 +12,19 @@ class Command
   }.freeze
 
   SPINNER = ['|', '/', '-', '\\'].freeze
+  SEPARATOR = "------------------------------------------------------".freeze
 
-  def initialize(command_dict)
+  def initialize(command_dict, index, spinner_status)
     @shell = command_dict['shell'] || raise(GpushError, 'Command must have a "shell" field.')
     @name = command_dict['name'] || @shell
+    @index = index
+    @spinner_status = spinner_status
     @status = 'not started'
-    @output = ""
+    @output = []
   end
 
   def run
-    puts "\n#{COLORS[:bold]}Running: #{@name}#{COLORS[:reset]}"
+    exit_status = nil
     @status = 'working'
     spinner_thread = start_spinner
 
@@ -29,7 +32,7 @@ class Command
       PTY.spawn(@shell) do |stdout, _stdin, pid|
         begin
           stdout.each do |line|
-            handle_output(line)
+            @output << line  # Collect command output, buffer it for printing at the end
           end
         rescue Errno::EIO
           # End of input
@@ -37,60 +40,62 @@ class Command
 
         # Wait for the child process to exit and capture its status
         _, exit_status = Process.wait2(pid)
+      end
 
-        # Check if the command exited successfully
-        if exit_status.success?
-          @status = 'success'
-          pass_fail(@name, true)
-        else
-          @status = 'fail'
-          pass_fail(@name, false)
-        end
+      if exit_status&.success?
+        @status = 'success'
+      else
+        @status = 'fail'
       end
     rescue PTY::ChildExited
       @status = 'fail'
-      pass_fail(@name, false)
     ensure
       @spinner_running = false
       spinner_thread.join  # Ensure spinner stops before ending
     end
+
+    # Update spinner status to pass/fail status and stop printing
+    @spinner_status[@index] = @status == 'success' ? '[PASS]' : '[FAIL]'
+
+    [@output.join, @status]  # Return output and status for later use
   end
 
   private
-
-  def pass_fail(name, passed)
-    puts "\n#{name}: #{COLORS[passed ? :green : :red]}[#{passed ? 'PASS' : 'FAIL'}]#{COLORS[:reset]}"
-  end
-
-  def handle_output(line)
-    @output << line
-    print line # Print the output to the terminal immediately to retain color
-  end
 
   def start_spinner
     @spinner_running = true
     Thread.new do
       i = 0
       while @spinner_running
-        print "\r#{SPINNER[i]}"
+        @spinner_status[@index] = SPINNER[i]  # Update spinner status
         i = (i + 1) % SPINNER.size
-        sleep 0.1
+        print_summary_line
+        sleep 0.3  # Reduced spinner refresh rate
       end
-      print "\r"  # Clear spinner
+      # Ensure final status is printed after spinner stops
+      print_summary_line
     end
   end
 
-  # Class method to run commands in parallel
+  def print_summary_line
+    print "\r#{name}: #{@spinner_status[@index]}"
+  end
+
+  # Class method to run commands in parallel and show summary
   def self.run_in_parallel(commands)
-    threads = commands.map do |cmd_dict|
+    errors = 0
+    spinner_status = Array.new(commands.size, ' ')  # Initialize spinner status for each command
+
+    threads = commands.map.with_index do |cmd_dict, index|
       Thread.new do
-        command = Command.new(cmd_dict)
+        command = Command.new(cmd_dict, index, spinner_status)
         begin
-          command.run
-          cmd_dict[:status] = 'success' if command.status == 'success'
-          cmd_dict[:status] = 'fail' if command.status == 'fail'
+          output, status = command.run  # Capture the output and status
+          cmd_dict[:status] = status == 'success' ? 'success' : 'fail'
+          cmd_dict[:output] = output  # Store output for later use
         rescue GpushError
           cmd_dict[:status] = 'fail'  # Store failure in the hash if an error occurs
+          errors += 1
         end
       end
     end
@@ -98,7 +103,15 @@ class Command
     # Wait for all threads to complete
     threads.each(&:join)
 
-    # Print summary
+    # Print buffered output for all commands once they're done
+    puts SEPARATOR
+    commands.each do |cmd|
+      puts "#{COLORS[:bold]}Output for: #{cmd['name'] || cmd['shell']}#{COLORS[:reset]}"
+      puts cmd[:output]  # Print the buffered output
+      puts SEPARATOR
+    end
+
+    # Print overall summary
     puts "\n#{COLORS[:bold]}Summary#{COLORS[:reset]}"
     commands.each do |cmd|
       status_color = cmd[:status] == 'success' ? COLORS[:green] : COLORS[:red]  # Green for success, red for fail
@@ -106,7 +119,6 @@ class Command
     end
     puts ""
 
-    errors = commands.count { |cmd| cmd[:status] != 'success' }
     errors
   end
 end
