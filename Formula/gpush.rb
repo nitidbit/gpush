@@ -26,7 +26,7 @@ class Gpush < Formula
     # Create a wrapper script to run the gpush Ruby command
     (bin/"gpush").write <<~EOS
       #!/bin/bash
-      exec ruby -e 'load "#{libexec}/gpush.rb", *ARGV'
+      exec ruby "#{libexec}/gpush.rb" "$@"
     EOS
 
     # Set execute permissions on the wrapper script

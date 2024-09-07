@@ -16,9 +16,8 @@ module GitHelper
   end
 
   def self.remote_branch_name
-    `git rev-parse --abbrev-ref --symbolic-full-name @{u}`.strip
-  rescue
-    nil  # Return nil if no upstream branch is set
+    result = `git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null`.strip
+    result.empty? ? nil : result
   end
 
   def self.check_remote_branch

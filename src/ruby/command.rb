@@ -26,7 +26,7 @@ class Command
     spinner_thread = start_spinner
 
     begin
-      PTY.spawn(@shell) do |stdout, _stdin, _pid|
+      PTY.spawn(@shell) do |stdout, _stdin, pid|
         begin
           stdout.each do |line|
             handle_output(line)
@@ -34,9 +34,19 @@ class Command
         rescue Errno::EIO
           # End of input
         end
+
+        # Wait for the child process to exit and capture its status
+        _, exit_status = Process.wait2(pid)
+
+        # Check if the command exited successfully
+        if exit_status.success?
+          @status = 'success'
+          pass_fail(@name, true)
+        else
+          @status = 'fail'
+          pass_fail(@name, false)
+        end
       end
-      @status = 'success'
-      pass_fail(@name, true)
     rescue PTY::ChildExited
       @status = 'fail'
       pass_fail(@name, false)
@@ -49,7 +59,7 @@ class Command
   private
 
   def pass_fail(name, passed)
-    puts "\n#{name}: #{COLORS[passed ? :green : red]}[#{passed ? 'PASS' : 'FAIL'}]#{COLORS[:reset]}"
+    puts "\n#{name}: #{COLORS[passed ? :green : :red]}[#{passed ? 'PASS' : 'FAIL'}]#{COLORS[:reset]}"
   end
 
   def handle_output(line)
@@ -77,7 +87,8 @@ class Command
         command = Command.new(cmd_dict)
         begin
           command.run
-          cmd_dict[:status] = 'success'  # Store status in the hash
+          cmd_dict[:status] = 'success' if command.status == 'success'
+          cmd_dict[:status] = 'fail' if command.status == 'fail'
         rescue GpushError
           cmd_dict[:status] = 'fail'  # Store failure in the hash if an error occurs
         end
