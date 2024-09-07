@@ -117,6 +117,7 @@ class Command
     # Final output after all threads are done
     puts ""
     commands.each do |cmd|
+      next if cmd[:status] == 'success'
       puts "#{COLORS[:bold]}========== Output for: #{cmd['name'] || cmd['shell']} ==========#{COLORS[:reset]}"
       puts cmd[:output]  # Print the buffered output
       puts "\n"
