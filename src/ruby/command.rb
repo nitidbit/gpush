@@ -8,6 +8,7 @@ class Command
     green: "\e[32m",
     red: "\e[31m",
     white: "\e[37m",
+    bold: "\e[1m",
     reset: "\e[0m"
   }.freeze
 
@@ -28,12 +29,11 @@ class Command
     spinner_thread = start_spinner
 
     begin
-      # Use PTY for real-time command output (e.g., Prettier)
+      # Use PTY for real-time command output, capturing both stdout and stderr
       PTY.spawn(@shell) do |stdout, _stdin, pid|
         begin
           stdout.each do |line|
-            @output << line  # Collect command output for summary
-            print line       # Print each line in real-time (important for Prettier)
+            @output << line  # Collect command output into @output
           end
         rescue Errno::EIO
           # End of input
@@ -119,7 +119,7 @@ class Command
     commands.each do |cmd|
       next if cmd[:status] == 'success'
       puts "#{COLORS[:bold]}========== Output for: #{cmd['name'] || cmd['shell']} ==========#{COLORS[:reset]}"
-      puts cmd[:output]  # Print the buffered output
+      puts cmd[:output]  # Print the buffered output for failed commands
       puts "\n"
     end
 
