@@ -120,6 +120,7 @@ class Command
       next if cmd[:status] == 'success'
       puts "#{COLORS[:bold]}========== Output for: #{cmd['name'] || cmd['shell']} ==========#{COLORS[:reset]}"
       puts cmd[:output]  # Print the buffered output for failed commands
+      puts "-" * 30
       puts "\n"
     end
 
