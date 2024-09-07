@@ -11,9 +11,10 @@ class Command
     reset: "\e[0m"
   }.freeze
 
-  def initialize(command_dict, working_directory)
+  SPINNER = ['|', '/', '-', '\\'].freeze
+
+  def initialize(command_dict)
     @shell = command_dict['shell'] || raise(GpushError, 'Command must have a "shell" field.')
-    @shell = "cd \"#{working_directory}\" && #{@shell}" # Use the captured working directory
     @name = command_dict['name'] || @shell
     @status = 'not started'
     @output = ""
@@ -22,6 +23,7 @@ class Command
   def run
     puts "\n#{COLORS[:bold]}Running: #{@name}#{COLORS[:reset]}"
     @status = 'working'
+    spinner_thread = start_spinner
 
     begin
       PTY.spawn(@shell) do |stdout, _stdin, _pid|
@@ -34,17 +36,20 @@ class Command
         end
       end
       @status = 'success'
-       pass_fail(@name, true)
+      pass_fail(@name, true)
     rescue PTY::ChildExited
       @status = 'fail'
       pass_fail(@name, false)
+    ensure
+      @spinner_running = false
+      spinner_thread.join  # Ensure spinner stops before ending
     end
   end
 
   private
 
   def pass_fail(name, passed)
-    puts "\n#{name}: #{COLORS[passed ? :green : red]}[#{passed ? 'PASS' : 'FAIL'}]#{COLORS[:reset]}"  # Green color for pass
+    puts "\n#{name}: #{COLORS[passed ? :green : red]}[#{passed ? 'PASS' : 'FAIL'}]#{COLORS[:reset]}"
   end
 
   def handle_output(line)
@@ -52,11 +57,24 @@ class Command
     print line # Print the output to the terminal immediately to retain color
   end
 
+  def start_spinner
+    @spinner_running = true
+    Thread.new do
+      i = 0
+      while @spinner_running
+        print "\r#{SPINNER[i]}"
+        i = (i + 1) % SPINNER.size
+        sleep 0.1
+      end
+      print "\r"  # Clear spinner
+    end
+  end
+
   # Class method to run commands in parallel
-  def self.run_in_parallel(commands, working_directory)
+  def self.run_in_parallel(commands)
     threads = commands.map do |cmd_dict|
       Thread.new do
-        command = Command.new(cmd_dict, working_directory)
+        command = Command.new(cmd_dict)
         begin
           command.run
           cmd_dict[:status] = 'success'  # Store status in the hash

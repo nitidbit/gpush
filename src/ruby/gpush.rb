@@ -2,6 +2,8 @@
 require 'yaml'
 require 'optparse'
 require_relative 'command' # Import the external command runner
+require_relative 'gpush_error' # Import the custom error handling
+require_relative 'git_helper'
 
 def parse_config
   config_paths = ['./gpushrc.yml', './gpushrc.yaml', File.join(File.dirname(__FILE__), 'gpushrc_default.yml')]
@@ -17,9 +19,11 @@ def parse_config
 end
 
 def go(dry_run: false)
-  # Capture the working directory from where the script was run
-  working_directory = Dir.pwd
-  puts "Working directory: #{working_directory}"
+  if !GitHelper.remote_branch_name
+    will_set_up_remote_branch = GitHelper.check_remote_branch
+  elsif !GitHelper.up_to_date_with_remote_branch?
+    raise GpushError, 'Local branch is not up to date with the remote branch. Exiting.'
+  end
 
   config = parse_config
 
@@ -29,12 +33,12 @@ def go(dry_run: false)
 
   # Run pre-run commands
   pre_run_commands.each do |cmd_dict|
-    command = Command.new(cmd_dict, working_directory)  # Pass the working directory
+    command = Command.new(cmd_dict)  # Pass the working directory
     command.run unless dry_run
   end
 
   # Run parallel run commands
-  errors = Command.run_in_parallel(parallel_run_commands, working_directory)  # Pass the working directory
+  errors = Command.run_in_parallel(parallel_run_commands)  # Pass the working directory
 
   if errors > 0
     puts "《 Errors detected 》 Exiting gpush."
@@ -47,7 +51,7 @@ def go(dry_run: false)
     # Perform git push if not dry-run
     system("git push")
     post_run_commands.each do |cmd_dict|
-      command = Command.new(cmd_dict, working_directory)  # Pass the working directory
+      command = Command.new(cmd_dict)  # Pass the working directory
       command.run
     end
     puts "《 🌺 》 Good job! You're doing great."
