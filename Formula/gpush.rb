@@ -4,6 +4,13 @@ class Gpush < Formula
   license "MIT"
   version "2.0.0-alpha.4"
 
+  EXECUTABLES = [
+    "gpush_changed_files.rb",
+    "gpush_get_specs.rb",
+    "gpush_run_if_any.rb",
+    "gpush.rb",
+  ]
+
   # Use local path as the source for the formula
   url "file://#{Pathname.new(File.expand_path(__dir__)).parent}/src/ruby"
 
@@ -16,21 +23,25 @@ class Gpush < Formula
     # Ensure libexec directory exists
     libexec.mkpath
 
-    # Copy Ruby scripts to the libexec directory
-    ohai "Copying Ruby scripts to the libexec directory"
-    Dir[source_path/"*.rb"].each do |script|
-      cp script, libexec
-      chmod "+x", libexec/"#{File.basename(script)}"
+    # Copy all Ruby scripts (*.rb) to the libexec directory
+    ohai "Copying all Ruby scripts to the libexec directory"
+    Dir.glob(source_path/"*.rb").each do |file|
+      cp file, libexec
     end
 
-    # Create a wrapper script to run the gpush Ruby command
-    (bin/"gpush").write <<~EOS
-      #!/bin/bash
-      exec ruby "#{libexec}/gpush.rb" "$@"
-    EOS
+    # Set execute permissions on the command files only
+    ohai "Making command files executable"
+    EXECUTABLES.each do |file|
+      chmod "+x", libexec/file
 
-    # Set execute permissions on the wrapper script
-    chmod "+x", bin/"gpush"
+      # Create wrapper scripts for each command file
+      bin_name = File.basename(file, ".rb") # Get the name without the .rb extension
+      (bin/bin_name).write <<~EOS
+        #!/bin/bash
+        exec ruby "#{libexec}/#{file}" "$@"
+      EOS
+      chmod "+x", bin/bin_name
+    end
 
     # Confirming the installation
     ohai "gpush installation completed"

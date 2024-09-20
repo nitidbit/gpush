@@ -39,7 +39,7 @@ def go(dry_run: false)
   # Run pre-run commands
   pre_run_commands.each do |cmd_dict|
     command = Command.new(cmd_dict)  # Assuming Command class takes a hash or dict
-    command.run unless dry_run
+    command.run_without_spinner
   end
 
   # Run parallel run commands
@@ -64,7 +64,7 @@ def go(dry_run: false)
     # Run post-run commands
     post_run_commands.each do |cmd_dict|
       command = Command.new(cmd_dict)
-      command.run
+      command.run_without_spinner
     end
     puts "《 🌺 》 Good job! You're doing great."
   end

@@ -14,7 +14,7 @@ class Command
 
   SPINNER = ['|', '/', '-', '\\'].freeze
 
-  def initialize(command_dict, index, spinner_status)
+  def initialize(command_dict, index = 0, spinner_status = 'working')
     @shell = command_dict['shell'] || raise(GpushError, 'Command must have a "shell" field.')
     @name = command_dict['name'] || @shell
     @index = index
@@ -57,6 +57,33 @@ class Command
 
     # Update spinner status to pass/fail status
     @spinner_status[@index] = @status
+
+    [@output.join, @status]  # Return output and status for later use
+  end
+
+  def run_without_spinner
+    exit_status = nil
+    @status = 'working'
+
+    begin
+      # Use PTY for real-time command output, capturing both stdout and stderr
+      PTY.spawn(@shell) do |stdout, _stdin, pid|
+        begin
+          stdout.each do |line|
+            @output << line  # Collect command output into @output
+          end
+        rescue Errno::EIO
+          # End of input
+        end
+
+        # Wait for the child process to exit and capture its status
+        _, exit_status = Process.wait2(pid)
+      end
+
+      @status = exit_status&.success? ? 'success' : 'fail'
+    rescue PTY::ChildExited
+      @status = 'fail'
+    end
 
     [@output.join, @status]  # Return output and status for later use
   end
