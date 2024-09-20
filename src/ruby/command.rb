@@ -1,4 +1,5 @@
 require 'pty'
+require 'io/console'
 require_relative 'gpush_error' # Import the custom error handling
 
 class Command
@@ -168,11 +169,38 @@ class Command
     errors  # Return the error count
   end
 
-  def self.print_single_line_spinner(spinner_index, commands, spinner_status)
-    # Start with the spinner character
-    line = SPINNER[spinner_index]
+  def self.terminal_width
+    width = IO.console.winsize[1] rescue nil
+    width ||= `tput cols`.to_i rescue 80
+    width > 0 ? width : 80  # Default to 80 if no valid width is found
+  end
 
-    # Append each command name with its status color
+  def self.truncate_command_name(command, max_length)
+    return command if command.length <= max_length
+    "#{command[0...max_length - 3]}..."  # Truncate and add ellipsis
+  end
+
+  def self.print_single_line_spinner(spinner_index, commands, spinner_status)
+    # Get terminal width
+    max_width = terminal_width
+
+    # Start with the spinner character (no color)
+    line = "[#{SPINNER[spinner_index]}] "
+
+    spinner_width = 4  # Width of the spinner and surrounding brackets
+    end_width = 2  # Width of the end brackets
+    available_width = max_width - spinner_width - commands.size - end_width  # Leave space for separators and padding
+
+    command_names = commands.map { |cmd| cmd['name'] || cmd['shell'] }
+    over_width = command_names.map(&:size).sum - available_width
+    if over_width > 0
+      command_names.map! { |name| truncate_command_name(name, available_width / commands.size ) }
+    elsif over_width < 0 - command_names.size * 2
+      command_names.map! { |name| " #{name} " }
+    end
+
+    # command_max_length = available_width / commands.size - 3  # Leave space for separators and padding
+
     commands.each_with_index do |cmd, index|
       status = spinner_status[index]
       color = case status
@@ -183,11 +211,19 @@ class Command
               else
                 COLORS[:white]  # Still running
               end
-      line += " | #{color}#{cmd['name'] || cmd['shell']}#{COLORS[:reset]}"
+
+      # Truncate each individual command if it exceeds the maximum allowed length
+      command_name = command_names[index]
+      # truncated_command = truncate_command_name(command_name, command_max_length)
+      command_display = "#{color}#{command_name}#{COLORS[:reset]}"
+
+      line += "♦#{command_display}"
     end
 
     # Print the single-line spinner and command status
+    line += "|"
     print "\r#{line}"
+    STDOUT.flush  # Ensure real-time display of the spinner
   end
 
   # Store the commands being run so they can be accessed by the spinner
