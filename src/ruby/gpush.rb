@@ -19,15 +19,41 @@ def parse_config
   raise GpushError, 'No configuration file found or configuration is empty!'
 end
 
+def check_up_to_date_with_origin
+  if GitHelper.up_to_date_with_remote_branch?
+    puts 'Your branch is up to date with origin. Run tests anyway? (yes/no)'
+    response = gets.chomp.downcase
+    return response == 'yes'
+  end
+  true
+end
+
 def go(dry_run: false)
   will_set_up_remote_branch = false  # Initialize the flag
 
   # Check if a remote branch is set up and up to date
   if !dry_run && !GitHelper.remote_branch_name
     will_set_up_remote_branch = GitHelper.check_remote_branch
-  elsif !dry_run && !GitHelper.up_to_date_with_remote_branch?
-    puts 'Local branch is not up to date with the remote branch. Exiting.'
-    return
+  elsif !dry_run
+    unless GitHelper.up_to_date_or_ahead_of_remote_branch?
+      puts 'Local branch is not up to date with the remote branch. Exiting.'
+      return
+    end
+
+    # Ask user if they want to run tests if up to date
+    if GitHelper.at_same_commit_as_remote_branch?
+      print 'Your branch is up to date with origin (nothing to push). Run tests anyway? (y/n) '
+      response = gets.chomp.downcase
+      if response != 'y'
+        puts 'Quitting.'
+        return
+      else
+        dry_run = true
+      end
+    end
+
+    # Switch to dry-run mode if user agrees
+    dry_run = true
   end
 
   config = parse_config
@@ -51,7 +77,7 @@ def go(dry_run: false)
   end
 
   if dry_run
-    puts "《 Dry run completed 》 No errors detected."
+    puts "《 Dry run completed 》"
   else
     # Perform git push based on whether we are setting up a remote branch or just pushing
     if will_set_up_remote_branch

@@ -141,6 +141,8 @@ class Command
     # Wait for all threads to complete
     threads.each(&:join)
     spinner_thread.kill  # Stop the spinner thread
+    # Final spinner print with completed statuses
+    print_single_line_spinner(0, commands, spinner_status, show_spinner: false)  # Show all tests in their final state
 
     # Final output after all threads are done
     puts ""
@@ -180,16 +182,15 @@ class Command
     "#{command[0...max_length - 3]}..."  # Truncate and add ellipsis
   end
 
-  def self.print_single_line_spinner(spinner_index, commands, spinner_status)
+  def self.print_single_line_spinner(spinner_index, commands, spinner_status, show_spinner: true)
     # Get terminal width
     max_width = terminal_width
 
     # Start with the spinner character (no color)
-    line = "[#{SPINNER[spinner_index]}] "
+    line = show_spinner ? "[#{SPINNER[spinner_index]}] " : "[⚑] "
 
     spinner_width = 4  # Width of the spinner and surrounding brackets
-    end_width = 2  # Width of the end brackets
-    available_width = max_width - spinner_width - commands.size - end_width  # Leave space for separators and padding
+    available_width = max_width - spinner_width - commands.size  # Leave space for separators and padding
 
     command_names = commands.map { |cmd| cmd['name'] || cmd['shell'] }
     over_width = command_names.map(&:size).sum - available_width
@@ -217,11 +218,10 @@ class Command
       # truncated_command = truncate_command_name(command_name, command_max_length)
       command_display = "#{color}#{command_name}#{COLORS[:reset]}"
 
-      line += "♦#{command_display}"
+      line += "#{index == 0 ? '' : '♦'}#{command_display}"
     end
 
     # Print the single-line spinner and command status
-    line += "|"
     print "\r#{line}"
     STDOUT.flush  # Ensure real-time display of the spinner
   end

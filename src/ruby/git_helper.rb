@@ -1,5 +1,13 @@
 module GitHelper
-  def self.up_to_date_with_remote_branch?
+  def self.at_same_commit_as_remote_branch?
+    system 'git fetch'
+    return false unless remote_branch_name
+    remote_commit = `git rev-parse @{u}`.strip
+    local_commit = `git rev-parse @`.strip
+    remote_commit == local_commit
+  end
+
+  def self.up_to_date_or_ahead_of_remote_branch?
     system 'git fetch'
 
     # Check if there's an upstream branch set
@@ -24,7 +32,7 @@ module GitHelper
     setup_remote_branch = false
 
     if remote_branch_name
-      if up_to_date_with_remote_branch?
+      if up_to_date_or_ahead_of_remote_branch?
         puts "gpush: Local branch is up to date with the remote branch '#{remote_branch_name}'."
         # Continue with your operations below
       else
