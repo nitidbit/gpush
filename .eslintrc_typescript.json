@@ -91,5 +91,18 @@
     "react/no-unstable-nested-components": [1, { "allowAsProps": true }],
     "react/self-closing-comp": 1,
     "react/prop-types": 0
-  }
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.test.js",
+        "**/*.test.jsx",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
+      "rules": {
+        "@typescript-eslint/no-empty-function": "off"
+      }
+    }
+  ]
 }
