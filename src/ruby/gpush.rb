@@ -51,9 +51,6 @@ def go(dry_run: false)
         dry_run = true
       end
     end
-
-    # Switch to dry-run mode if user agrees
-    dry_run = true
   end
 
   config = parse_config

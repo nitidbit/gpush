@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 require 'pty'
 require 'io/console'
 require_relative 'gpush_error' # Import the custom error handling
@@ -200,8 +201,6 @@ class Command
       command_names.map! { |name| " #{name} " }
     end
 
-    # command_max_length = available_width / commands.size - 3  # Leave space for separators and padding
-
     commands.each_with_index do |cmd, index|
       status = spinner_status[index]
       color = case status
@@ -213,9 +212,7 @@ class Command
                 COLORS[:white]  # Still running
               end
 
-      # Truncate each individual command if it exceeds the maximum allowed length
       command_name = command_names[index]
-      # truncated_command = truncate_command_name(command_name, command_max_length)
       command_display = "#{color}#{command_name}#{COLORS[:reset]}"
 
       line += "#{index == 0 ? '' : '♦'}#{command_display}"
