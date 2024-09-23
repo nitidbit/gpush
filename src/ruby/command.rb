@@ -4,7 +4,8 @@ require 'io/console'
 require_relative 'gpush_error' # Import the custom error handling
 
 class Command
-  attr_reader :name, :shell, :status
+  attr_reader :name, :shell, :output
+  attr_accessor :status
 
   COLORS = {
     green: "\e[32m",
@@ -16,11 +17,10 @@ class Command
 
   SPINNER = ['|', '/', '-', '\\'].freeze
 
-  def initialize(command_dict, index: 0, spinner_status: 'working', verbose: false)
+  def initialize(command_dict, index: 0, verbose: false)
     @shell = command_dict['shell'] || raise(GpushError, 'Command must have a "shell" field.')
     @name = command_dict['name'] || @shell
     @index = index
-    @spinner_status = spinner_status
     @status = 'not started'
     @output = []
   end
@@ -53,9 +53,13 @@ class Command
       spinner_thread.join  # Ensure spinner stops before ending
     end
 
-    @spinner_status[@index] = @status
-
     [@output.join, @status]  # Return output and status for later use
+  end
+
+  def spinner
+    return "✓" if status === 'success'
+    return "✗" if status === 'fail'
+    SPINNER[output.length % SPINNER.size]
   end
 
   private
@@ -65,43 +69,53 @@ class Command
     Thread.new do
       i = 0
       while @spinner_running
-        @spinner_status[@index] = 'working'
-        self.class.print_single_line_spinner(i, Command.all_commands, @spinner_status)
+        self.class.print_single_line_spinner(Command.all_commands)
         i = (i + 1) % SPINNER.size
         sleep 0.3
       end
-      self.class.print_single_line_spinner(i, Command.all_commands, @spinner_status)  # Ensure final status is printed after spinner stops
+      self.class.print_single_line_spinner(Command.all_commands)  # Ensure final status is printed after spinner stops
     end
   end
 
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(commands, verbose: false)
-    @all_commands = commands
     errors = 0  # Start error counter
-    spinner_status = Array.new(commands.size, 'working')  # Initialize spinner status for each command
+    @all_commands = commands.map.with_index { |cmd, index| new(cmd, index:, verbose:) }
 
-    threads = commands.map.with_index do |cmd_dict, index|
+    threads = @all_commands.map.with_index do |command, index|
       Thread.new do
-        command = Command.new(cmd_dict, index:, spinner_status:, verbose:)
         begin
           output, status = command.run(verbose:)  # Capture the output and status
-          cmd_dict[:status] = status == 'success' ? 'success' : 'fail'
-          cmd_dict[:output] = output  # Store output for later use
 
           # If command failed, increment the error counter
           errors += 1 if status == 'fail'
         rescue GpushError
-          cmd_dict[:status] = 'fail'
+          command.status = 'fail'
           errors += 1  # Increment errors if an exception occurs
         end
       end
+    end
+
+        # Store the existing handler for SIGINT (if any)
+    default_int_handler = Signal.trap("INT") do
+      puts "\nCtrl-C detected, attempting to stop gracefully..."
+      @all_commands.each do |command|
+        puts "========== Output for: #{command.name} =========="
+        puts command.output
+        puts "\n"
+      end
+
+      # If there was a previous handler, call it (this is equivalent to calling `super` in a signal trap)
+      default_int_handler.call if default_int_handler.respond_to?(:call)
+
+      exit 1  # Exit the program after handling the signal
     end
 
     # Spinner summary box with a single line spinner
     spinner_thread = Thread.new do
       i = 0
       while threads.any?(&:alive?)
-        print_single_line_spinner(i, commands, spinner_status)
+        print_single_line_spinner(@all_commands)
         i = (i + 1) % SPINNER.size
         sleep 0.3  # Limit the summary box refresh rate
       end
@@ -111,23 +125,22 @@ class Command
     threads.each(&:join)
     spinner_thread.kill  # Stop the spinner thread
     # Final spinner print with completed statuses
-    print_single_line_spinner(0, commands, spinner_status, show_spinner: false)  # Show all tests in their final state
+    print_single_line_spinner(@all_commands)  # Show all tests in their final state
 
     # Final output after all threads are done
     puts ""
-    commands.each do |cmd|
-      next if cmd[:status] == 'success'
-      puts "#{COLORS[:bold]}========== Output for: #{cmd['name'] || cmd['shell']} ==========#{COLORS[:reset]}"
-      puts cmd[:output] unless verbose  # Print the buffered output for failed commands. Skip if verbose because they will be printed in real-time
-      puts "-" * 30
-      puts "\n"
+    @all_commands.each do |command|
+      next if command.status == 'success' || verbose  # Skip if verbose because outputs will be printed in real-time
+      puts "#{COLORS[:bold]}========== Output for: #{command.name} ==========#{COLORS[:reset]}"
+      puts command.output  # Print the buffered output for failed commands.
+      puts "\n\n"
     end
 
     # Print overall summary
     puts "\n#{COLORS[:bold]}Summary#{COLORS[:reset]}"
-    commands.each do |cmd|
-      status_color = cmd[:status] == 'success' ? COLORS[:green] : COLORS[:red]  # Green for success, red for fail
-      puts "#{cmd['name'] || cmd['shell']}: #{status_color}#{cmd[:status].upcase}#{COLORS[:reset]}"
+    @all_commands.each do |cmd|
+      status_color = cmd.status == 'success' ? COLORS[:green] : COLORS[:red]  # Green for success, red for fail
+      puts "#{cmd.name}: #{status_color}#{cmd.status.upcase}#{COLORS[:reset]}"
     end
 
     # Report any errors encountered
@@ -148,30 +161,18 @@ class Command
 
   def self.truncate_command_name(command, max_length)
     return command if command.length <= max_length
-    "#{command[0...max_length - 3]}..."  # Truncate and add ellipsis
+    "#{command[0...max_length - 4]}... "  # Truncate and add ellipsis
   end
 
-  def self.print_single_line_spinner(spinner_index, commands, spinner_status, show_spinner: true)
-    # Get terminal width
-    max_width = terminal_width
+  def self.print_single_line_spinner(commands)
+    command_names = commands.map { |command| "[#{command.spinner}]#{command.name}  " }
+    command_names.map! { |name| name[0..-2] } if over_width?(command_names)
+    command_names.map! { |name| "#{name.gsub(/\s/,'')} " } if over_width?(command_names)
+    command_names.map! { |name| name[1] + name[3..-1] } if over_width?(command_names) # remove the [] brackets
+    command_names.map! { |cmd| truncate_command_name(cmd, terminal_width / command_names.size) } if over_width?(command_names)
 
-    # Start with the spinner character (no color)
-    line = show_spinner ? "[#{SPINNER[spinner_index]}] " : "[⚑] "
-
-    spinner_width = 4  # Width of the spinner and surrounding brackets
-    available_width = max_width - spinner_width - commands.size  # Leave space for separators and padding
-
-    command_names = commands.map { |cmd| cmd['name'] || cmd['shell'] }
-    over_width = command_names.map(&:size).sum - available_width
-    if over_width > 0
-      command_names.map! { |name| truncate_command_name(name, available_width / commands.size ) }
-    elsif over_width < 0 - command_names.size * 2
-      command_names.map! { |name| " #{name} " }
-    end
-
-    commands.each_with_index do |cmd, index|
-      status = spinner_status[index]
-      color = case status
+    line = commands.map.with_index do |cmd, index|
+      color = case cmd.status
               when 'success'
                 COLORS[:green]
               when 'fail'
@@ -182,13 +183,16 @@ class Command
 
       command_name = command_names[index]
       command_display = "#{color}#{command_name}#{COLORS[:reset]}"
-
-      line += "#{index == 0 ? '' : '♦'}#{command_display}"
-    end
+    end.join
 
     # Print the single-line spinner and command status
+    print "\r#{' ' * terminal_width}"  # Clear the line
     print "\r#{line}"
     STDOUT.flush  # Ensure real-time display of the spinner
+  end
+
+  def self.over_width?(command_names)
+    command_names.map(&:size).sum > terminal_width
   end
 
   # Store the commands being run(verbose: false) so they can be accessed by the spinner
