@@ -16,7 +16,7 @@ class Command
 
   SPINNER = ['|', '/', '-', '\\'].freeze
 
-  def initialize(command_dict, index = 0, spinner_status = 'working')
+  def initialize(command_dict, index: 0, spinner_status: 'working', verbose: false)
     @shell = command_dict['shell'] || raise(GpushError, 'Command must have a "shell" field.')
     @name = command_dict['name'] || @shell
     @index = index
@@ -25,7 +25,7 @@ class Command
     @output = []
   end
 
-  def run
+  def run(verbose: false)
     exit_status = nil
     @status = 'working'
     spinner_thread = start_spinner
@@ -33,49 +33,12 @@ class Command
     begin
       # Use PTY for real-time command output, capturing both stdout and stderr
       PTY.spawn(@shell) do |stdout, _stdin, pid|
-        begin
-          stdout.each do |line|
+        stdout.each do |line|
+          if verbose
+            puts line  # Print directly if verbose is true
+          else
             @output << line  # Collect command output into @output
           end
-        rescue Errno::EIO
-          # End of input
-        end
-
-        # Wait for the child process to exit and capture its status
-        _, exit_status = Process.wait2(pid)
-      end
-
-      if exit_status&.success?
-        @status = 'success'
-      else
-        @status = 'fail'
-      end
-    rescue PTY::ChildExited
-      @status = 'fail'
-    ensure
-      @spinner_running = false
-      spinner_thread.join  # Ensure spinner stops before ending
-    end
-
-    # Update spinner status to pass/fail status
-    @spinner_status[@index] = @status
-
-    [@output.join, @status]  # Return output and status for later use
-  end
-
-  def run_without_spinner
-    exit_status = nil
-    @status = 'working'
-
-    begin
-      # Use PTY for real-time command output, capturing both stdout and stderr
-      PTY.spawn(@shell) do |stdout, _stdin, pid|
-        begin
-          stdout.each do |line|
-            @output << line  # Collect command output into @output
-          end
-        rescue Errno::EIO
-          # End of input
         end
 
         # Wait for the child process to exit and capture its status
@@ -85,7 +48,12 @@ class Command
       @status = exit_status&.success? ? 'success' : 'fail'
     rescue PTY::ChildExited
       @status = 'fail'
+    ensure
+      @spinner_running = false
+      spinner_thread.join  # Ensure spinner stops before ending
     end
+
+    @spinner_status[@index] = @status
 
     [@output.join, @status]  # Return output and status for later use
   end
@@ -107,16 +75,16 @@ class Command
   end
 
   # Class method to run commands in parallel and show summary
-  def self.run_in_parallel(commands)
+  def self.run_in_parallel(commands, verbose: false)
     @all_commands = commands
     errors = 0  # Start error counter
     spinner_status = Array.new(commands.size, 'working')  # Initialize spinner status for each command
 
     threads = commands.map.with_index do |cmd_dict, index|
       Thread.new do
-        command = Command.new(cmd_dict, index, spinner_status)
+        command = Command.new(cmd_dict, index:, spinner_status:, verbose:)
         begin
-          output, status = command.run  # Capture the output and status
+          output, status = command.run(verbose:)  # Capture the output and status
           cmd_dict[:status] = status == 'success' ? 'success' : 'fail'
           cmd_dict[:output] = output  # Store output for later use
 
@@ -150,7 +118,7 @@ class Command
     commands.each do |cmd|
       next if cmd[:status] == 'success'
       puts "#{COLORS[:bold]}========== Output for: #{cmd['name'] || cmd['shell']} ==========#{COLORS[:reset]}"
-      puts cmd[:output]  # Print the buffered output for failed commands
+      puts cmd[:output] unless verbose  # Print the buffered output for failed commands. Skip if verbose because they will be printed in real-time
       puts "-" * 30
       puts "\n"
     end
@@ -223,7 +191,7 @@ class Command
     STDOUT.flush  # Ensure real-time display of the spinner
   end
 
-  # Store the commands being run so they can be accessed by the spinner
+  # Store the commands being run(verbose: false) so they can be accessed by the spinner
   def self.all_commands
     @all_commands
   end

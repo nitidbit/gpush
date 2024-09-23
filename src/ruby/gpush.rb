@@ -28,7 +28,7 @@ def check_up_to_date_with_origin
   true
 end
 
-def go(dry_run: false)
+def go(dry_run: false, verbose: false)
   will_set_up_remote_branch = false  # Initialize the flag
 
   # Check if a remote branch is set up and up to date
@@ -60,13 +60,20 @@ def go(dry_run: false)
   post_run_commands = config['post_run'] || []
 
   # Run pre-run commands
-  pre_run_commands.each do |cmd_dict|
-    command = Command.new(cmd_dict)  # Assuming Command class takes a hash or dict
-    command.run_without_spinner
+  if pre_run_commands.any?
+    print "Running pre-run commands..."
+    puts "\n\n" if verbose
+    pre_run_commands.each do |cmd_dict|
+      command = verbose ? cmd_dict['shell'] : "#{cmd_dict['shell']} > /dev/null 2>&1"
+      system(command)
+    end
+    puts "\n\n" if verbose
+    print "#{verbose ? 'pre-run commands' : ''} DONE"
+    puts "\n\n"
   end
 
   # Run parallel run commands
-  errors = Command.run_in_parallel(parallel_run_commands)  # Assuming this method handles error checking
+  errors = Command.run_in_parallel(parallel_run_commands, verbose:)  # Assuming this method handles error checking
 
   if errors > 0
     puts "《 Errors detected 》 Exiting gpush."
@@ -86,7 +93,7 @@ def go(dry_run: false)
 
     # Run post-run commands
     post_run_commands.each do |cmd_dict|
-      command = Command.new(cmd_dict)
+      command = Command.new(cmd_dict, verbose:)
       command.run_without_spinner
     end
     puts "《 🌺 》 Good job! You're doing great."
@@ -100,7 +107,11 @@ OptionParser.new do |opts|
   opts.on('--dry-run', 'Simulate the commands without executing') do
     $options[:dry_run] = true
   end
+
+  opts.on('-v', '--verbose', 'prints command output while running') do
+    $options[:verbose] = true
+  end
 end.parse!
 
 # Execute gpush workflow
-go(dry_run: $options[:dry_run])
+go(dry_run: $options[:dry_run], verbose: $options[:verbose])
