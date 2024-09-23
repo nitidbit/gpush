@@ -73,7 +73,7 @@ def go(dry_run: false, verbose: false)
   end
 
   # Run parallel run commands
-  errors = Command.run_in_parallel(parallel_run_commands, verbose:)  # Assuming this method handles error checking
+  errors = Command.run_in_parallel(parallel_run_commands, verbose: verbose)
 
   if errors > 0
     puts "《 Errors detected 》 Exiting gpush."

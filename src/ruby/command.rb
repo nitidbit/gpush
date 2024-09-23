@@ -4,7 +4,7 @@ require 'io/console'
 require_relative 'gpush_error' # Import the custom error handling
 
 class Command
-  attr_reader :name, :shell, :output
+  attr_reader :name, :shell, :output, :verbose
   attr_accessor :status
 
   COLORS = {
@@ -23,12 +23,12 @@ class Command
     @index = index
     @status = 'not started'
     @output = []
+    @verbose = verbose
   end
 
-  def run(verbose: false)
+  def run
     exit_status = nil
     @status = 'working'
-    spinner_thread = start_spinner
 
     begin
       # Use PTY for real-time command output, capturing both stdout and stderr
@@ -50,7 +50,6 @@ class Command
       @status = 'fail'
     ensure
       @spinner_running = false
-      spinner_thread.join  # Ensure spinner stops before ending
     end
 
     [@output.join, @status]  # Return output and status for later use
@@ -59,33 +58,21 @@ class Command
   def spinner
     return "✓" if status === 'success'
     return "✗" if status === 'fail'
+    return "…" if verbose
     SPINNER[output.length % SPINNER.size]
   end
 
   private
 
-  def start_spinner
-    @spinner_running = true
-    Thread.new do
-      i = 0
-      while @spinner_running
-        self.class.print_single_line_spinner(Command.all_commands)
-        i = (i + 1) % SPINNER.size
-        sleep 0.3
-      end
-      self.class.print_single_line_spinner(Command.all_commands)  # Ensure final status is printed after spinner stops
-    end
-  end
-
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(commands, verbose: false)
     errors = 0  # Start error counter
-    @all_commands = commands.map.with_index { |cmd, index| new(cmd, index:, verbose:) }
+    all_commands = commands.map.with_index { |cmd, index| new(cmd, index:, verbose:) }
 
-    threads = @all_commands.map.with_index do |command, index|
+    threads = all_commands.map.with_index do |command, index|
       Thread.new do
         begin
-          output, status = command.run(verbose:)  # Capture the output and status
+          output, status = command.run  # Capture the output and status
 
           # If command failed, increment the error counter
           errors += 1 if status == 'fail'
@@ -99,7 +86,7 @@ class Command
         # Store the existing handler for SIGINT (if any)
     default_int_handler = Signal.trap("INT") do
       puts "\nCtrl-C detected, attempting to stop gracefully..."
-      @all_commands.each do |command|
+      all_commands.each do |command|
         puts "========== Output for: #{command.name} =========="
         puts command.output
         puts "\n"
@@ -113,10 +100,16 @@ class Command
 
     # Spinner summary box with a single line spinner
     spinner_thread = Thread.new do
-      i = 0
+      old_status = nil
       while threads.any?(&:alive?)
-        print_single_line_spinner(@all_commands)
-        i = (i + 1) % SPINNER.size
+        # this check prevents printing the spinner if the status hasn't changed, matters for verbose mode
+        new_status = all_commands.map(&:status)
+        if old_status != new_status
+          puts "" if verbose
+          print_single_line_spinner(all_commands)
+          puts "\n\n" if verbose
+          old_status = new_status
+        end
         sleep 0.3  # Limit the summary box refresh rate
       end
     end
@@ -124,12 +117,13 @@ class Command
     # Wait for all threads to complete
     threads.each(&:join)
     spinner_thread.kill  # Stop the spinner thread
+
     # Final spinner print with completed statuses
-    print_single_line_spinner(@all_commands)  # Show all tests in their final state
+    print_single_line_spinner(all_commands) unless verbose
 
     # Final output after all threads are done
     puts ""
-    @all_commands.each do |command|
+    all_commands.each do |command|
       next if command.status == 'success' || verbose  # Skip if verbose because outputs will be printed in real-time
       puts "#{COLORS[:bold]}========== Output for: #{command.name} ==========#{COLORS[:reset]}"
       puts command.output  # Print the buffered output for failed commands.
@@ -138,7 +132,7 @@ class Command
 
     # Print overall summary
     puts "\n#{COLORS[:bold]}Summary#{COLORS[:reset]}"
-    @all_commands.each do |cmd|
+    all_commands.each do |cmd|
       status_color = cmd.status == 'success' ? COLORS[:green] : COLORS[:red]  # Green for success, red for fail
       puts "#{cmd.name}: #{status_color}#{cmd.status.upcase}#{COLORS[:reset]}"
     end
@@ -164,14 +158,14 @@ class Command
     "#{command[0...max_length - 4]}... "  # Truncate and add ellipsis
   end
 
-  def self.print_single_line_spinner(commands)
-    command_names = commands.map { |command| "[#{command.spinner}]#{command.name}  " }
+  def self.print_single_line_spinner(all_commands)
+    command_names = all_commands.map { |command| "[#{command.spinner}]#{command.name}  " }
     command_names.map! { |name| name[0..-2] } if over_width?(command_names)
     command_names.map! { |name| "#{name.gsub(/\s/,'')} " } if over_width?(command_names)
     command_names.map! { |name| name[1] + name[3..-1] } if over_width?(command_names) # remove the [] brackets
     command_names.map! { |cmd| truncate_command_name(cmd, terminal_width / command_names.size) } if over_width?(command_names)
 
-    line = commands.map.with_index do |cmd, index|
+    line = all_commands.map.with_index do |cmd, index|
       color = case cmd.status
               when 'success'
                 COLORS[:green]
@@ -193,10 +187,5 @@ class Command
 
   def self.over_width?(command_names)
     command_names.map(&:size).sum > terminal_width
-  end
-
-  # Store the commands being run(verbose: false) so they can be accessed by the spinner
-  def self.all_commands
-    @all_commands
   end
 end
