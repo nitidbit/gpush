@@ -22,10 +22,9 @@ class Command
 
   SPINNER = ['|', '/', '-', '\\'].freeze
 
-  def initialize(command_dict, index: 0, verbose: false)
+  def initialize(command_dict, verbose: false)
     @shell = command_dict['shell'] || raise(GpushError, 'Command must have a "shell" field.')
     @name = command_dict['name'] || @shell
-    @index = index
     @status = 'not started'
     @output = []
     @verbose = verbose
@@ -40,7 +39,7 @@ class Command
       PTY.spawn(@shell) do |stdout, _stdin, pid|
         stdout.each do |line|
           if verbose
-            puts "#{COLORS[:yellow]}#{name}:#{COLORS[:reset]} #{line}"  # Print directly if verbose is true
+            puts "#{COLORS[:reset]}#{COLORS[:yellow]}#{name}:#{COLORS[:reset]} #{line}"  # Print directly if verbose is true
           else
             @output << line  # Collect command output into @output
           end
@@ -70,11 +69,11 @@ class Command
   private
 
   # Class method to run commands in parallel and show summary
-  def self.run_in_parallel(commands, verbose: false)
+  def self.run_in_parallel(command_defs, verbose: false)
     errors = 0  # Start error counter
-    all_commands = commands.map.with_index { |cmd, index| new(cmd, index:, verbose:) }
+    all_commands = command_defs.map { |cmd| new(cmd, verbose:) }
 
-    threads = all_commands.map.with_index do |command, index|
+    threads = all_commands.map do |command|
       Thread.new do
         begin
           output, status = command.run  # Capture the output and status
