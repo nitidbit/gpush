@@ -11,6 +11,11 @@ class Command
     green: "\e[32m",
     red: "\e[31m",
     white: "\e[37m",
+    blue: "\e[34m",
+    yellow: "\e[33m",
+    magenta: "\e[35m",
+    cyan: "\e[36m",
+    black: "\e[30m",
     bold: "\e[1m",
     reset: "\e[0m"
   }.freeze
@@ -35,7 +40,7 @@ class Command
       PTY.spawn(@shell) do |stdout, _stdin, pid|
         stdout.each do |line|
           if verbose
-            puts line  # Print directly if verbose is true
+            puts "#{COLORS[:yellow]}#{name}:#{COLORS[:reset]} #{line}"  # Print directly if verbose is true
           else
             @output << line  # Collect command output into @output
           end
@@ -103,12 +108,12 @@ class Command
       old_status = nil
       while threads.any?(&:alive?)
         # this check prevents printing the spinner if the status hasn't changed, matters for verbose mode
-        new_status = all_commands.map(&:status)
-        if old_status != new_status
+        new_status = all_commands.map(&:status) if verbose
+        if old_status != new_status || !verbose # if not verbose mode, update spinner every 0.3 seconds
           puts "" if verbose
           print_single_line_spinner(all_commands)
           puts "\n\n" if verbose
-          old_status = new_status
+          old_status = new_status if verbose
         end
         sleep 0.3  # Limit the summary box refresh rate
       end
