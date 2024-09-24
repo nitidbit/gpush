@@ -36,9 +36,13 @@ end
 
 def simple_run_command(cmd, verbose:)
   raise GpushError, 'Command must have a "shell" field.' unless cmd['shell']
+  passed_if = cmd['if'] ? system(parse_cmd(cmd['if'], verbose:)) : true
+  return unless passed_if
 
-  return unless cmd['if'].nil? || system(parse_cmd(cmd['if'], verbose:))
-  system parse_cmd cmd['shell'], verbose:
+  command_success = system(parse_cmd(cmd['if'], verbose:))
+  raise GpushError, "Command failed: #{cmd['shell']}" unless command_success
+
+  true
 end
 
 def simple_run_commands_with_output(commands, title:, verbose:)
