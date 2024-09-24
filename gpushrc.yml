@@ -1,25 +1,21 @@
-# Root directory to execute commands (relative to this file)
-root_dir: "./"
-
 pre_run:
   # array of shell commands as strings
   # eg download config files for eslint, prettier, etc.
-  - name: 'sample pre-run command'
+  - name: "sample pre-run command"
     shell: 'echo "this is a pre-run command"'
 
-  - name: 'sample command using env vars'
+  - name: "sample command using env vars"
     shell: 'echo "the FOO var is ${USER}"'
     env:
       FOO: "MY ENV VAR"
       BAR: "ANOTHER ONE"
 
-  - name: 'IF clause checking test'
+  - name: "IF clause checking test"
     shell: 'echo the file "command.py" exists.'
-    if: '[ -e command.py ]'
+    if: "[ -e command.py ]"
 
   # - name: 'This should fail and stop gpush'
   #   shell: 'ls DOES-NOT-EXIST'
-
 
 # import a file with command definitions (for 'run_command' under parallel commands)
 # can be a local file or a url
@@ -29,9 +25,8 @@ import:
 
 # shell commands (could be a .sh script) to be run after the commands complete
 post_run: # run always
-  - name: 'sample post-run command'
+  - name: "sample post-run command"
     shell: echo "this is a post_run command"
-
 # # ======== low priority additional options =========
 
 # # Whether to save command output to a file
