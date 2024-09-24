@@ -157,5 +157,6 @@ if __FILE__ == $PROGRAM_NAME
   if result[:specs]
     output = finder.format_specs_for_output(result[:specs])
     puts output unless output.empty?
+    exit output.empty? ? 1 : 0
   end
 end
