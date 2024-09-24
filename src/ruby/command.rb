@@ -69,8 +69,24 @@ class Command
   def spinner
     return "✓" if status === 'success'
     return "✗" if status === 'fail'
+    return "⏭" if status === 'skipped'
     return "…" if verbose
     SPINNER[output.length % SPINNER.size]
+  end
+
+  def color
+    case status
+    when 'success'
+      COLORS[:green]
+    when 'fail'
+      COLORS[:red]
+    when 'skipped'
+      COLORS[:yellow]
+    when 'working'
+      COLORS[:white]  # Still running
+    else
+      raise "unexpected status: #{status}"
+    end
   end
 
   private
@@ -144,8 +160,7 @@ class Command
     # Print overall summary
     puts "\n#{COLORS[:bold]}Summary#{COLORS[:reset]}"
     all_commands.each do |cmd|
-      status_color = cmd.status == 'success' ? COLORS[:green] : COLORS[:red]  # Green for success, red for fail
-      puts "#{cmd.name}: #{status_color}#{cmd.status.upcase}#{COLORS[:reset]}"
+      puts "#{cmd.name}: #{cmd.color}#{cmd.status.upcase}#{COLORS[:reset]}"
     end
 
     # Report any errors encountered
@@ -177,17 +192,8 @@ class Command
     command_names.map! { |cmd| truncate_command_name(cmd, terminal_width / command_names.size) } if over_width?(command_names)
 
     line = all_commands.map.with_index do |cmd, index|
-      color = case cmd.status
-              when 'success'
-                COLORS[:green]
-              when 'fail'
-                COLORS[:red]
-              else
-                COLORS[:white]  # Still running
-              end
-
       command_name = command_names[index]
-      command_display = "#{color}#{command_name}#{COLORS[:reset]}"
+      "#{cmd.color}#{command_name}#{COLORS[:reset]}"
     end.join
 
     # Print the single-line spinner and command status
