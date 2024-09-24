@@ -47,7 +47,7 @@ class GpushChangedFiles
         log("Branch not found on origin. Falling back to origin/#{fallback_branch}.")
       else
         puts "Branch not found on origin and no fallback branches available."
-        exit 1
+        exit 2
       end
     end
 
@@ -58,7 +58,7 @@ class GpushChangedFiles
         return result
       else
         puts "Error executing git diff command."
-        exit 1
+        exit 3
       end
     end
   end
@@ -89,7 +89,7 @@ class GpushChangedFiles
   def validate_options
     unless @options[:root_dir]
       puts "Error: root_dir is required."
-      exit 1
+      exit 4
     end
   end
 
@@ -126,4 +126,5 @@ if __FILE__ == $PROGRAM_NAME
   changed_files = changed_files_finder.git_changed_files
   output = changed_files_finder.format_changed_files(changed_files)
   puts output if changed_files.any?
+  exit changed_files.any? ? 0 : 1
 end

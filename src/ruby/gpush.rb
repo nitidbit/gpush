@@ -28,6 +28,28 @@ def check_up_to_date_with_origin
   true
 end
 
+def parse_cmd(str, verbose:)
+  verbose ? str : "#{str} > /dev/null 2>&1"
+end
+
+def simple_run_command(cmd, verbose:)
+  raise GpushError, 'Command must have a "shell" field.' unless cmd['shell']
+
+  return unless cmd['if'].nil? || system(parse_cmd(command['if'], verbose:))
+  system parse_cmd cmd['shell'], verbose:
+end
+
+def simple_run_commands_with_output(commands, title:, verbose:)
+  return if commands.empty?
+
+  print "Running #{title}..."
+  puts "\n\n" if verbose
+  commands.each { |cmd_dict| simple_run_command(cmd_dict, verbose:) }
+  puts "\n\n" if verbose
+  print "#{verbose ? title : ''} DONE"
+  puts "\n\n"
+end
+
 def go(dry_run: false, verbose: false)
   will_set_up_remote_branch = false  # Initialize the flag
 
@@ -60,17 +82,7 @@ def go(dry_run: false, verbose: false)
   post_run_commands = config['post_run'] || []
 
   # Run pre-run commands
-  if pre_run_commands.any?
-    print "Running pre-run commands..."
-    puts "\n\n" if verbose
-    pre_run_commands.each do |cmd_dict|
-      command = verbose ? cmd_dict['shell'] : "#{cmd_dict['shell']} > /dev/null 2>&1"
-      system(command)
-    end
-    puts "\n\n" if verbose
-    print "#{verbose ? 'pre-run commands' : ''} DONE"
-    puts "\n\n"
-  end
+  simple_run_commands_with_output(pre_run_commands, title: 'pre-run commands', verbose: verbose)
 
   # Run parallel run commands
   errors = Command.run_in_parallel(parallel_run_commands, verbose: verbose)
@@ -92,10 +104,8 @@ def go(dry_run: false, verbose: false)
     end
 
     # Run post-run commands
-    post_run_commands.each do |cmd_dict|
-      command = Command.new(cmd_dict, verbose:)
-      command.run_without_spinner
-    end
+    simple_run_commands_with_output(post_run_commands, title: 'post-run commands', verbose: verbose)
+
     puts "《 🌺 》 Good job! You're doing great."
   end
 end

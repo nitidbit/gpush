@@ -24,6 +24,7 @@ class Command
 
   def initialize(command_dict, verbose: false)
     @shell = command_dict['shell'] || raise(GpushError, 'Command must have a "shell" field.')
+    @run_if = verbose ? command_dict['if'] : "#{command_dict['if']} > /dev/null 2>&1"
     @name = command_dict['name'] || @shell
     @status = 'not started'
     @output = []
@@ -33,6 +34,12 @@ class Command
   def run
     exit_status = nil
     @status = 'working'
+
+    # Check if the command should be run based on the 'if' condition
+    if @run_if && !system(@run_if)
+      @status = 'skipped'
+      return ['', @status]
+    end
 
     begin
       # Use PTY for real-time command output, capturing both stdout and stderr
