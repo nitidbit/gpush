@@ -82,7 +82,7 @@ class Command
       COLORS[:red]
     when 'skipped'
       COLORS[:yellow]
-    when 'working'
+    when 'not started', 'working'
       COLORS[:white]  # Still running
     else
       raise "unexpected status: #{status}"
