@@ -6,17 +6,19 @@ require_relative 'gpush_error' # Import the custom error handling
 require_relative 'git_helper'  # Import Git helper methods
 
 def parse_config
-  config_paths = ['./gpushrc.yml', './gpushrc.yaml', File.join(File.dirname(__FILE__), 'gpushrc_default.yml')]
+  config_paths = ['./gpushrc.yml', './gpushrc.yaml']
+  config_file = config_paths.find { |path| File.exist?(path) }
 
-  config_paths.each do |path|
-    if File.exist?(path)
-      puts "Using config file: #{path}"
-      config = YAML.load_file(path)
-      return config unless config.nil? || config.empty?
-    end
+  if config_file
+    puts "Using config file: #{config_file}"
+    config = YAML.load_file(config_file)
+    return config unless config.empty?
+    raise GpushError, 'Configuration file is empty!'
   end
 
-  raise GpushError, 'No configuration file found or configuration is empty!'
+  puts "No configuration file found. Looking for #{config_paths.join(', ')}"
+  puts "Using default configuration."
+  return YAML.load_file File.join(File.dirname(__FILE__), 'gpushrc_default.yml')
 end
 
 def check_up_to_date_with_origin
@@ -35,7 +37,7 @@ end
 def simple_run_command(cmd, verbose:)
   raise GpushError, 'Command must have a "shell" field.' unless cmd['shell']
 
-  return unless cmd['if'].nil? || system(parse_cmd(command['if'], verbose:))
+  return unless cmd['if'].nil? || system(parse_cmd(cmd['if'], verbose:))
   system parse_cmd cmd['shell'], verbose:
 end
 
@@ -51,6 +53,8 @@ def simple_run_commands_with_output(commands, title:, verbose:)
 end
 
 def go(dry_run: false, verbose: false)
+  puts "Starting dry run" if dry_run
+
   will_set_up_remote_branch = false  # Initialize the flag
 
   # Check if a remote branch is set up and up to date
@@ -80,17 +84,24 @@ def go(dry_run: false, verbose: false)
   pre_run_commands = config['pre_run'] || []
   parallel_run_commands = config['parallel_run'] || []
   post_run_commands = config['post_run'] || []
+  post_run_success_commands = config['post_run_success'] || []
+  post_run_failure_commands = config['post_run_failure'] || []
 
   # Run pre-run commands
   simple_run_commands_with_output(pre_run_commands, title: 'pre-run commands', verbose: verbose)
 
   # Run parallel run commands
-  errors = Command.run_in_parallel(parallel_run_commands, verbose: verbose)
+  success = Command.run_in_parallel(parallel_run_commands, verbose: verbose)
 
-  if errors > 0
+  simple_run_commands_with_output(post_run_commands, title: 'post-run commands', verbose: verbose)
+
+  if !success
+    simple_run_commands_with_output(post_run_failure_commands, title: 'post-run failure commands', verbose: verbose)
     puts "Exiting gpush."
     return
   end
+
+  simple_run_commands_with_output(post_run_success_commands, title: 'post-run success commands', verbose: verbose)
 
   if dry_run
     puts "《 Dry run completed 》"
@@ -102,9 +113,6 @@ def go(dry_run: false, verbose: false)
     else
       system("git push") unless dry_run
     end
-
-    # Run post-run commands
-    simple_run_commands_with_output(post_run_commands, title: 'post-run commands', verbose: verbose)
 
     puts "《 🌺 》 Good job! You're doing great."
   end

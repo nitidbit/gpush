@@ -11,6 +11,10 @@ class Gpush < Formula
     "gpush.rb",
   ]
 
+  OTHER_FILES = [
+    "../../gpushrc_default.yml"
+  ]
+
   # Use local path as the source for the formula
   url "file://#{Pathname.new(File.expand_path(__dir__)).parent}/src/ruby"
 
@@ -27,6 +31,10 @@ class Gpush < Formula
     ohai "Copying all Ruby scripts to the libexec directory"
     Dir.glob(source_path/"*.rb").each do |file|
       cp file, libexec
+    end
+
+    OTHER_FILES.each do |file|
+      cp File.join(source_path, file), libexec
     end
 
     # Set execute permissions on the command files only

@@ -4,8 +4,14 @@ require 'io/console'
 require_relative 'gpush_error' # Import the custom error handling
 
 class Command
-  attr_reader :name, :shell, :output, :verbose
-  attr_accessor :status
+  attr_reader :name, :shell, :output, :verbose, :status
+
+  STATUS = %w[not\ started working success fail skipped].freeze
+
+  def set_status(new_status)
+    raise GpushError, "Invalid status: #{new_status}" unless STATUS.include?(new_status)
+    @status = new_status
+  end
 
   COLORS = {
     green: "\e[32m",
@@ -26,18 +32,18 @@ class Command
     @shell = command_dict['shell'] || raise(GpushError, 'Command must have a "shell" field.')
     @run_if = verbose ? command_dict['if'] : "#{command_dict['if']} > /dev/null 2>&1"
     @name = command_dict['name'] || @shell
-    @status = 'not started'
+    set_status 'not started'
     @output = []
     @verbose = verbose
   end
 
   def run
     exit_status = nil
-    @status = 'working'
+    set_status 'working'
 
     # Check if the command should be run based on the 'if' condition
     if @run_if && !system(@run_if)
-      @status = 'skipped'
+      set_status 'skipped'
       return ['', @status]
     end
 
@@ -56,9 +62,9 @@ class Command
         _, exit_status = Process.wait2(pid)
       end
 
-      @status = exit_status&.success? ? 'success' : 'fail'
+      set_status exit_status&.success? ? 'success' : 'fail'
     rescue PTY::ChildExited
-      @status = 'fail'
+      set_status 'fail'
     ensure
       @spinner_running = false
     end
@@ -67,9 +73,9 @@ class Command
   end
 
   def spinner
-    return "✓" if status === 'success'
-    return "✗" if status === 'fail'
-    return "⏭" if status === 'skipped'
+    return "✓" if success?
+    return "✗" if fail?
+    return "⏭" if skipped?
     return "…" if verbose
     SPINNER[output.length % SPINNER.size]
   end
@@ -89,23 +95,23 @@ class Command
     end
   end
 
+  def success? = @status == 'success'
+  def skipped? = @status == 'skipped'
+  def fail? = @status == 'fail'
+  def working? = @status == 'working'
+
   private
 
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(command_defs, verbose: false)
-    errors = 0  # Start error counter
     all_commands = command_defs.map { |cmd| new(cmd, verbose:) }
 
     threads = all_commands.map do |command|
       Thread.new do
         begin
-          output, status = command.run  # Capture the output and status
-
-          # If command failed, increment the error counter
-          errors += 1 if status == 'fail'
+          command.run  # Capture the output and status
         rescue GpushError
-          command.status = 'fail'
-          errors += 1  # Increment errors if an exception occurs
+          command.set_status 'fail'
         end
       end
     end
@@ -151,7 +157,7 @@ class Command
     # Final output after all threads are done
     puts ""
     all_commands.each do |command|
-      next if command.status == 'success' || verbose  # Skip if verbose because outputs will be printed in real-time
+      next if command.skipped? || command.success? || verbose  # Skip if verbose because outputs will be printed in real-time
       puts "#{COLORS[:bold]}========== Output for: #{command.name} ==========#{COLORS[:reset]}"
       puts command.output  # Print the buffered output for failed commands.
       puts "\n\n"
@@ -164,13 +170,17 @@ class Command
     end
 
     # Report any errors encountered
-    if errors > 0
-      puts "\n#{COLORS[:red]}《 Errors detected 》#{COLORS[:reset]}"
-    else
-      puts "\n#{COLORS[:green]}《 No errors detected 》#{COLORS[:reset]}"
+    unless all_commands.all? { |cmd| cmd.skipped? || cmd.success? || cmd.fail? }
+      raise "Unexpected status found in commands #{all_commands.map(&:status)}"
     end
 
-    errors  # Return the error count
+    if all_commands.any?(&:fail?)
+      puts "\n#{COLORS[:red]}《 Errors detected 》#{COLORS[:reset]}"
+      return false
+    end
+
+    puts "\n#{COLORS[:green]}《 No errors detected 》#{COLORS[:reset]}"
+    true
   end
 
   def self.terminal_width
