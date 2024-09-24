@@ -1,36 +1,49 @@
 pre_run:
-  # array of shell commands as strings
-  # eg download config files for eslint, prettier, etc.
-  - name: "sample pre-run command"
-    shell: 'echo "this is a pre-run command"'
+  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json' -O
+  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/nitid-lint-plugins/.stylelintrc.js' -O
+  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.rubocop.yml' -O
+  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.eslintrc.json' -O
+  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/lint.py' -O
 
-  - name: "sample command using env vars"
-    shell: 'echo "the FOO var is ${USER}"'
-    env:
-      FOO: "MY ENV VAR"
-      BAR: "ANOTHER ONE"
+parallel_run:
+  - name: Bundle Audit
+    shell: bundle exec bundle-audit --update
+    if: bundle list
 
-  - name: "IF clause checking test"
-    shell: 'echo the file "command.py" exists.'
-    if: "[ -e command.py ]"
+  - name: jest
+    shell: npm run test
+    if: "[ -f 'package.json' ] || { echo 'File does not exist.'; exit 1; }"
 
-  # - name: 'This should fail and stop gpush'
-  #   shell: 'ls DOES-NOT-EXIST'
+  - name: npm audit
+    shell: npm audit --audit-level=high
+    if: bundle list
 
-# import a file with command definitions (for 'run_command' under parallel commands)
-# can be a local file or a url
-import:
-  - "./gpush_config_nitid.yml" # parallel_commands are in here
-  - "./gpush.local.yml"
+  - name: prettier
+    shell: npx prettier --check --ignore-unknown $(gpush_changed_files)
+    if: gpush_changed_files
 
-# shell commands (could be a .sh script) to be run after the commands complete
-post_run: # run always
-  - name: "sample post-run command"
-    shell: echo "this is a post_run command"
-# # ======== low priority additional options =========
+  - name: Yaml Lint
+    shell: 'npx yaml-lint "**/*.{yaml,yml}" --ignore-dir .node_modules'
 
-# # Whether to save command output to a file
-# save_output: true
+  - name: Uncommitted git changes
+    shell: "git status --porcelain | grep '.' > /dev/null && exit 1 || exit 0"
 
-# # Limit the number of concurrent commands
-# concurrency_limit: 5
+  - name: eslint
+    shell: npx eslint $(gpush_changed_files --pattern "**/*.{js,jsx,ts,tsx}"})
+    if: gpush_changed_files --pattern "**/*.{js,jsx,ts,tsx}"}
+
+  - name: rspec
+    shell: bundle exec rspec $(gpush_get_specs)
+    if: gpush_get_specs
+
+  - name: style lint
+    shell: npx stylelint $(gpush_changed_files --pattern "**/*.{css,scss}"})
+    if: gpush_changed_files --pattern "**/*.{css,scss}"}
+
+  - name: rubocop
+    shell: bundle exec rubocop $(gpush_get_specs)
+    if: gpush_get_specs
+
+  - name: brakeman
+    shell: "bundle exec brakeman --run-all-checks --no-pager -w2" # -w2 to only report high and medium confidence warnings (ignore weak)
+    if: bundle list
