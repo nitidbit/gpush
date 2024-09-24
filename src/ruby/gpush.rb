@@ -23,9 +23,9 @@ end
 
 def check_up_to_date_with_origin
   if GitHelper.up_to_date_with_remote_branch?
-    puts 'Your branch is up to date with origin. Run tests anyway? (yes/no)'
+    puts 'Your branch is up to date with origin. Run tests anyway? (Y/n)'
     response = gets.chomp.downcase
-    return response == 'yes'
+    return response.empty? || response[0].downcase == 'y'
   end
   true
 end
@@ -63,7 +63,20 @@ def go(dry_run: false, verbose: false)
 
   # Check if a remote branch is set up and up to date
   if !dry_run && !GitHelper.remote_branch_name
-    will_set_up_remote_branch = GitHelper.check_remote_branch
+    will_set_up_remote_branch = GitHelper.user_wants_to_set_up_remote_branch?
+  elsif !dry_run && GitHelper.behind_remote_branch?
+    puts "Cannot push to remote branch"
+    output = `git status | grep 'branch'`
+    output = `git status | grep 'HEAD'` if output.empty?
+    output = `git status` if output.empty?
+    puts output
+    if GitHelper.ask_yes_no('Run tests anyway?', default: true)
+      puts "Entering dry run mode"
+      dry_run = true
+    else
+      puts "Exiting gpush"
+      return
+    end
   elsif !dry_run
     unless GitHelper.up_to_date_or_ahead_of_remote_branch?
       puts 'Local branch is not up to date with the remote branch. Exiting.'
@@ -72,13 +85,13 @@ def go(dry_run: false, verbose: false)
 
     # Ask user if they want to run tests if up to date
     if GitHelper.at_same_commit_as_remote_branch?
-      print 'Your branch is up to date with origin (nothing to push). Run tests anyway? (y/n) '
-      response = gets.chomp.downcase
-      if response != 'y'
+      question = 'Your branch is up to date with origin (nothing to push). Run tests anyway?'
+      if GitHelper.ask_yes_no(question, default: true)
+        puts "Entering dry run mode"
+        dry_run = true
+      else
         puts 'Quitting.'
         return
-      else
-        dry_run = true
       end
     end
   end

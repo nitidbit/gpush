@@ -28,30 +28,47 @@ module GitHelper
     result.empty? ? nil : result
   end
 
-  def self.check_remote_branch
-    setup_remote_branch = false
+  def self.behind_remote_branch?
+    !up_to_date_or_ahead_of_remote_branch?
+  end
 
-    if remote_branch_name
-      if up_to_date_or_ahead_of_remote_branch?
-        puts "gpush: Local branch is up to date with the remote branch '#{remote_branch_name}'."
-        # Continue with your operations below
-      else
-        raise 'GpushError: Local branch is not up to date with the remote branch. Exiting.'
-        # Stop further execution
-      end
-    else
-      print 'No remote branch set. Create branch on origin if tests pass? (y/n): '
-      user_input = gets.chomp.downcase
+  def self.ask_yes_no(question, default = false)
+    require 'io/console'  # Required to handle special key inputs like ESC
 
-      if user_input == 'y'
-        setup_remote_branch = true
-        # Later use this flag to set up the remote branch
+    print "#{question} (#{default == true ? 'Y' : 'y'}/#{default == false ? 'N' : 'n'}): "
+    input = ""
+
+    while input.empty?
+      char = STDIN.getch
+      case char
+      when "\r"  # Enter key
+        return default  # Return the default value if Enter is pressed
+      when "\e"  # ESC key
+        puts "ESC detected."
+        return false  # Return false if ESC is pressed
+      when "y", "Y"
+        puts "y"
+        return true
+      when "n", "N"
+        puts "n"
+        return false
       else
-        raise 'GpushError: No remote branch setup.'
-        # Stop further execution
+        print "\rInvalid input. Please enter 'y' or 'n': "
       end
     end
+  end
 
-    setup_remote_branch
+  def self.user_wants_to_set_up_remote_branch?
+    return false if remote_branch_name
+
+    question = 'No remote branch set. Create branch on origin if tests pass?'
+
+    if ask_yes_no(question)
+      return true
+      # Later use this flag to set up the remote branch
+    else
+      raise 'GpushError: No remote branch setup.'
+        # Stop further execution
+    end
   end
 end
