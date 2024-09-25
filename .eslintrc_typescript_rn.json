@@ -48,7 +48,7 @@
     "jsx-a11y/label-has-associated-control": 1,
     "jsx-a11y/no-static-element-interactions": 1,
     "jsx-a11y/tabindex-no-positive" :1,
-    "@nitid/nitid/jsx-export-match-filename": "warn",
+    "@nitid/nitid/jsx-export-match-filename": 0,
     "no-trailing-spaces": [2],
     "no-shadow": "off",
     "no-undef": [2],
@@ -69,6 +69,7 @@
     "react/jsx-props-no-spreading": 0,
     "react/no-unstable-nested-components": [1, { "allowAsProps": true }],
     "react/self-closing-comp": 1,
+    "react/require-default-props": 0,
     "react/prop-types": 0
   }
 }

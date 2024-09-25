@@ -1,8 +1,16 @@
 # code editors
 .idea/
 .vscode/
+*.code-workspace
+__pycache__
 
 # other
 .DS_Store
 **/.envrc
 **/.env
+build/
+dist/
+*.egg-info/
+
+*.swp
+**/__pycache__
