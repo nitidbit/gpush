@@ -1,3 +1,4 @@
+require_relative 'gpush_error' # Import the custom error handling
 module GitHelper
   def self.at_same_commit_as_remote_branch?
     system 'git fetch'
@@ -5,6 +6,11 @@ module GitHelper
     remote_commit = `git rev-parse @{u}`.strip
     local_commit = `git rev-parse @`.strip
     remote_commit == local_commit
+  end
+
+  def self.detached_head?
+    branch = `git rev-parse --abbrev-ref HEAD`.strip
+    branch == "HEAD"
   end
 
   def self.up_to_date_or_ahead_of_remote_branch?
@@ -32,19 +38,27 @@ module GitHelper
     !up_to_date_or_ahead_of_remote_branch?
   end
 
-  def self.ask_yes_no(question, default = false)
+  def self.ask_yes_no(question, default: nil)
     require 'io/console'  # Required to handle special key inputs like ESC
 
     print "#{question} (#{default == true ? 'Y' : 'y'}/#{default == false ? 'N' : 'n'}): "
+
     input = ""
 
     while input.empty?
       char = STDIN.getch
+
+      # Check if Ctrl-C is pressed and raise Interrupt
+      if char == "\u0003"
+        raise Interrupt  # Allow Ctrl-C to behave as normal without interference
+      end
+
       case char
       when "\r"  # Enter key
-        return default  # Return the default value if Enter is pressed
+        puts "default is #{default}"
+        return default if !default.nil?  # Return the default value if Enter is pressed
       when "\e"  # ESC key
-        puts "ESC detected."
+        puts ""
         return false  # Return false if ESC is pressed
       when "y", "Y"
         puts "y"
@@ -52,8 +66,6 @@ module GitHelper
       when "n", "N"
         puts "n"
         return false
-      else
-        print "\rInvalid input. Please enter 'y' or 'n': "
       end
     end
   end
@@ -67,7 +79,7 @@ module GitHelper
       return true
       # Later use this flag to set up the remote branch
     else
-      raise 'GpushError: No remote branch setup.'
+      raise GpushError, 'No remote branch setup.'
         # Stop further execution
     end
   end

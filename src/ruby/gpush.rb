@@ -5,6 +5,8 @@ require_relative 'command'     # Import the external command runner
 require_relative 'gpush_error' # Import the custom error handling
 require_relative 'git_helper'  # Import Git helper methods
 
+EXITING_MESSAGE = "\nExiting gpush."
+
 def parse_config
   config_paths = ['./gpushrc.yml', './gpushrc.yaml']
   config_file = config_paths.find { |path| File.exist?(path) }
@@ -62,7 +64,16 @@ def go(dry_run: false, verbose: false)
   will_set_up_remote_branch = false  # Initialize the flag
 
   # Check if a remote branch is set up and up to date
-  if !dry_run && !GitHelper.remote_branch_name
+  if GitHelper.detached_head?
+    puts "Cannot push from a detached HEAD"
+    if GitHelper.ask_yes_no('Run tests anyway?', default: true)
+      puts "Entering dry run mode"
+      dry_run = true
+    else
+      puts EXITING_MESSAGE
+      return
+    end
+  elsif !dry_run && !GitHelper.remote_branch_name
     will_set_up_remote_branch = GitHelper.user_wants_to_set_up_remote_branch?
   elsif !dry_run && GitHelper.behind_remote_branch?
     puts "Cannot push to remote branch"
@@ -74,7 +85,7 @@ def go(dry_run: false, verbose: false)
       puts "Entering dry run mode"
       dry_run = true
     else
-      puts "Exiting gpush"
+      puts EXITING_MESSAGE
       return
     end
   elsif !dry_run
@@ -90,7 +101,7 @@ def go(dry_run: false, verbose: false)
         puts "Entering dry run mode"
         dry_run = true
       else
-        puts 'Quitting.'
+        puts EXITING_MESSAGE
         return
       end
     end
@@ -131,13 +142,14 @@ def go(dry_run: false, verbose: false)
       system("git push") unless dry_run
     end
 
-    puts "《 🌺 》 Good job! You're doing great."
+    puts "《 #{config['success_emoji'] || '🌺'} 》 Good job! You're doing great."
   end
 
 rescue GpushError => error
   puts "\n\n"
   puts "Gpush encountered an error:"
   puts error.message
+  puts EXITING_MESSAGE
 end
 
 $options = {}
