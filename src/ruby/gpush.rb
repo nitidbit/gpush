@@ -5,6 +5,7 @@ require_relative 'command'     # Import the external command runner
 require_relative 'gpush_error' # Import the custom error handling
 require_relative 'git_helper'  # Import Git helper methods
 
+VERSION="2.0.1"
 EXITING_MESSAGE = "\nExiting gpush."
 
 def parse_config
@@ -162,6 +163,11 @@ OptionParser.new do |opts|
 
   opts.on('-v', '--verbose', 'prints command output while running') do
     $options[:verbose] = true
+  end
+
+  opts.on_tail("--version", "Show version") do
+    puts "gpush #{VERSION}"
+    exit
   end
 end.parse!
 
