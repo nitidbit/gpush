@@ -9,8 +9,12 @@ module GitHelper
   end
 
   def self.detached_head?
-    branch = `git rev-parse --abbrev-ref HEAD`.strip
-    branch == "HEAD"
+    `git rev-parse --abbrev-ref HEAD`.strip == "HEAD"
+  end
+
+  def self.not_a_git_repository?
+    system('git rev-parse --is-inside-work-tree > /dev/null 2>&1')
+    !$?.success?
   end
 
   def self.up_to_date_or_ahead_of_remote_branch?

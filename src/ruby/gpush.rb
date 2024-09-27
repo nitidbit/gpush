@@ -65,7 +65,10 @@ def go(dry_run: false, verbose: false)
   will_set_up_remote_branch = false  # Initialize the flag
 
   # Check if a remote branch is set up and up to date
-  if GitHelper.detached_head?
+  if GitHelper.not_a_git_repository?
+    puts "Not inside a Git repository. Exiting."
+    return
+  elsif GitHelper.detached_head?
     puts "Cannot push from a detached HEAD"
     if GitHelper.ask_yes_no('Run tests anyway?', default: true)
       puts "Entering dry run mode"
