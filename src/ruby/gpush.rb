@@ -39,10 +39,10 @@ end
 
 def simple_run_command(cmd, title:, verbose:)
   raise GpushError, 'Command must have a "shell" field.' unless cmd['shell']
-  passed_if = cmd['if'] ? system(parse_cmd(cmd['if'], verbose:)) : true
+  passed_if = cmd['if'] ? system(parse_cmd(cmd['if'], verbose: verbose)) : true
   return unless passed_if
 
-  command_success = system(parse_cmd(cmd['shell'], verbose:))
+  command_success = system(parse_cmd(cmd['shell'], verbose: verbose))
   raise GpushError, "#{title} command failed: #{cmd['shell']}" unless command_success
 
   true
@@ -53,7 +53,7 @@ def simple_run_commands_with_output(commands, title:, verbose:)
 
   print "Running #{title}..."
   puts "\n\n" if verbose
-  commands.each { |cmd_dict| simple_run_command(cmd_dict, title:, verbose:) }
+  commands.each { |cmd_dict| simple_run_command(cmd_dict, title: title, verbose: verbose) }
   puts "\n\n" if verbose
   print "#{verbose ? title : ''} DONE"
   puts "\n\n"
