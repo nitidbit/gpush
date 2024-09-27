@@ -30,21 +30,23 @@ class GpushChangedFiles
     @options[:root_dir] ||= self.class.git_root_dir
 
     validate_options
+    log("Starting GpushChangedFiles with options:")
+    log(@options.map { |k, v| "  #{k}: #{v}" }.join("\n"))
+    log("")
   end
 
   def git_changed_files
     branch_name = `git rev-parse --abbrev-ref HEAD`.strip
-    origin_branch = "origin/#{branch_name}"
 
     # Determine which branch to use for the diff
-    if branch_exists?(branch_name)
+    if branch_exists_on_origin?(branch_name)
       diff_cmd = diff_command(branch_name, @options[:pattern])
     else
-      fallback_branch = @options[:fallback_branches].find { |fallback| branch_exists?(fallback) }
+      fallback_branch = @options[:fallback_branches].find { |fallback| branch_exists_on_origin?(fallback) }
 
       if fallback_branch
+        log("Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}.")
         diff_cmd = diff_command(fallback_branch, @options[:pattern])
-        log("Branch not found on origin. Falling back to origin/#{fallback_branch}.")
       else
         puts "Branch not found on origin and no fallback branches available."
         exit 2
@@ -69,6 +71,7 @@ class GpushChangedFiles
 
   def diff_command(branch, patterns = nil)
     # Start with the base diff command
+    log("Checking diff for branch: origin/#{branch}")
     command = "git diff --name-status origin/#{branch}"
 
     # If patterns are provided, append them immediately after the branch reference
@@ -97,7 +100,7 @@ class GpushChangedFiles
     puts message if @options[:verbose]
   end
 
-  def branch_exists?(branch_name)
+  def branch_exists_on_origin?(branch_name)
     # Use git ls-remote to check if the branch exists on origin
     result = `git ls-remote --heads origin #{branch_name}`.strip
     !result.empty?
