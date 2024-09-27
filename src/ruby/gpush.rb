@@ -5,7 +5,7 @@ require_relative 'command'     # Import the external command runner
 require_relative 'gpush_error' # Import the custom error handling
 require_relative 'git_helper'  # Import Git helper methods
 
-VERSION="2.0.1"
+VERSION = File.read(File.expand_path('../../../VERSION', __FILE__)).strip
 EXITING_MESSAGE = "\nExiting gpush."
 
 def parse_config
