@@ -2,7 +2,7 @@ class Gpush < Formula
   desc "Utilities for running linters and tests locally before pushing to a remote git repository"
   homepage "https://github.com/nitidbit/gpush"
   license "MIT"
-  version File.read(File.expand_path('../../VERSION', __FILE__)).strip
+  version "local-development"
 
   EXECUTABLES = [
     "gpush_changed_files.rb",
