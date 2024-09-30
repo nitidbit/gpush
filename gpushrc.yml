@@ -16,7 +16,6 @@ parallel_run:
   - name: Uncommitted git changes
     shell: git diff --name-only --exit-code
 
-  # https://github.com/rasshofer/yaml-lint
   - name: Check yaml files
     shell: |
       ruby -ryaml -e 'Dir.glob("**/*.{yml,yaml}").each { |file| raise "problem with: #{file}" unless YAML.load_file(file).is_a?(Hash) }'
