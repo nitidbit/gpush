@@ -29,7 +29,11 @@ class GpushGetSpecs
   end
 
   def find_matching_specs
-    changed_files = GpushChangedFiles.new(root_dir: @options[:root_dir])
+    changed_files =
+      GpushChangedFiles.new(
+        root_dir: @options[:root_dir],
+        include_deleted_files: true,
+      )
     changed_filenames = changed_files.git_changed_files
 
     log("Changed files:\n    #{changed_filenames.join("\n    ")}")

@@ -6,12 +6,13 @@ require_relative File.join(__dir__, "gpush_options_parser")
 class GpushChangedFiles
   DEFAULT_FALLBACK_BRANCHES = %w[main master].freeze
 
-  OPTIONS = {
+  DEFAULT_OPTIONS = {
     root_dir: nil,
     fallback_branches: DEFAULT_FALLBACK_BRANCHES,
     verbose: false,
     separator: " ",
     pattern: nil,
+    include_deleted_files: false,
   }.freeze
 
   def self.git_root_dir
@@ -24,7 +25,7 @@ class GpushChangedFiles
   end
 
   def initialize(options = {})
-    @options = OPTIONS.merge(options)
+    @options = DEFAULT_OPTIONS.merge(options)
 
     # Use git_root_dir as a fallback if root_dir is not set
     @options[:root_dir] ||= self.class.git_root_dir
@@ -48,9 +49,7 @@ class GpushChangedFiles
         end
 
       if fallback_branch
-        log(
-          "Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}.",
-        )
+        log "Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}."
         diff_cmd = diff_command(fallback_branch, @options[:pattern])
       else
         puts "Branch not found on origin and no fallback branches available."
@@ -62,7 +61,10 @@ class GpushChangedFiles
     Dir.chdir(@options[:root_dir]) do
       result = `#{diff_cmd}`.split("\n")
       if $?.success?
-        return result
+        # Filter out deleted files if the option is not set
+        return result if @options[:include_deleted_files]
+
+        result.select { |fn| File.exist? File.join(@options[:root_dir], fn) }
       else
         puts "Error executing git diff command."
         exit 3
@@ -77,7 +79,7 @@ class GpushChangedFiles
   def diff_command(branch, patterns = nil)
     # Start with the base diff command
     log("Checking diff for branch: origin/#{branch}")
-    command = "git diff --name-status origin/#{branch}"
+    command = "git diff --name-only origin/#{branch}"
 
     # If patterns are provided, append them immediately after the branch reference
     if patterns
@@ -85,9 +87,6 @@ class GpushChangedFiles
       # No need to escape the patterns; pass them directly
       command += " -- #{pattern_list.join(" ")}"
     end
-
-    # Continue with grep and awk to filter out deleted files
-    command += " | grep -v '^D' | awk '{print $2}'"
 
     command
   end
@@ -138,6 +137,9 @@ if __FILE__ == $PROGRAM_NAME
             "--pattern PATTERN",
             "Filter files by pattern (e.g., *.rb *.js)",
           ) { |v| options[:pattern] = v }
+          opts.on("--include-deleted-files", "Include deleted files") do
+            options[:include_deleted_files] = true
+          end
         end,
       required_options: [], # No required options
     )
