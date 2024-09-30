@@ -21,7 +21,7 @@ class GpushOptionsParser
     if config_file_path
       # Load options from the config file if it exists
       config_from_file = YAML.load_file(config_file_path)
-      if !config_from_file.is_a?(Hash)
+      unless config_from_file.is_a?(Hash)
         raise "Invalid configuration file format. Must be a YAML hash."
       end
       if config_from_file[config_prefix]
@@ -53,7 +53,6 @@ class GpushOptionsParser
     options
   end
 
-  private
 
   def self.find_config_file
     current_dir = Dir.pwd

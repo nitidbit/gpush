@@ -61,7 +61,7 @@ module GitHelper
       case char
       when "\r" # Enter key
         puts "default is #{default}"
-        return default if !default.nil? # Return the default value if Enter is pressed
+        return default unless default.nil? # Return the default value if Enter is pressed
       when "\e" # ESC key
         puts ""
         return false # Return false if ESC is pressed
@@ -80,12 +80,12 @@ module GitHelper
 
     question = "No remote branch set. Create branch on origin if tests pass?"
 
-    if ask_yes_no(question)
-      return true
+    return true if ask_yes_no(question)
+      
       # Later use this flag to set up the remote branch
-    else
+    
       raise GpushError, "No remote branch setup."
       # Stop further execution
-    end
+    
   end
 end

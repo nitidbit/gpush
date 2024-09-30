@@ -9,11 +9,11 @@ require "fileutils"
 class GpushGetSpecs
   def self.git_root_dir
     root_dir = `git rev-parse --show-toplevel`.strip
-    if $?.success?
-      return root_dir
-    else
+    return root_dir if $?.success?
+      
+    
       raise "Not inside a Git repository"
-    end
+    
   end
 
   DEFAULT_OPTIONS = {
@@ -158,9 +158,9 @@ if __FILE__ == $PROGRAM_NAME
   options =
     GpushOptionsParser.parse(
       ARGV,
-      config_prefix: config_prefix,
-      option_definitions: option_definitions,
-      required_options: required_options,
+      config_prefix:,
+      option_definitions:,
+      required_options:,
     )
 
   finder = GpushGetSpecs.new(options)

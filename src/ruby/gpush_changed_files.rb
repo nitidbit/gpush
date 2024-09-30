@@ -17,11 +17,11 @@ class GpushChangedFiles
 
   def self.git_root_dir
     root_dir = `git rev-parse --show-toplevel`.strip
-    if $?.success?
-      return root_dir
-    else
+    return root_dir if $?.success?
+      
+    
       raise "Not inside a Git repository"
-    end
+    
   end
 
   def initialize(options = {})
@@ -94,10 +94,10 @@ class GpushChangedFiles
   private
 
   def validate_options
-    unless @options[:root_dir]
+    return if @options[:root_dir]
       puts "Error: root_dir is required."
       exit 4
-    end
+    
   end
 
   def log(message)

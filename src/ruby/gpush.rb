@@ -21,7 +21,7 @@ def parse_config
 
   puts "No configuration file found. Looking for #{config_paths.join(", ")}"
   puts "Using default configuration."
-  return YAML.load_file File.join(File.dirname(__FILE__), "gpushrc_default.yml")
+  YAML.load_file File.join(File.dirname(__FILE__), "gpushrc_default.yml")
 end
 
 def check_up_to_date_with_origin
@@ -39,10 +39,10 @@ end
 
 def simple_run_command(cmd, title:, verbose:)
   raise GpushError, 'Command must have a "shell" field.' unless cmd["shell"]
-  passed_if = cmd["if"] ? system(parse_cmd(cmd["if"], verbose: verbose)) : true
+  passed_if = cmd["if"] ? system(parse_cmd(cmd["if"], verbose:)) : true
   return unless passed_if
 
-  command_success = system(parse_cmd(cmd["shell"], verbose: verbose))
+  command_success = system(parse_cmd(cmd["shell"], verbose:))
   unless command_success
     raise GpushError, "#{title} command failed: #{cmd["shell"]}"
   end
@@ -56,7 +56,7 @@ def simple_run_commands_with_output(commands, title:, verbose:)
   print "Running #{title}..."
   puts "\n\n" if verbose
   commands.each do |cmd_dict|
-    simple_run_command(cmd_dict, title: title, verbose: verbose)
+    simple_run_command(cmd_dict, title:, verbose:)
   end
   puts "\n\n" if verbose
   print "#{verbose ? title : ""} DONE"
@@ -128,23 +128,23 @@ def go(dry_run: false, verbose: false)
   simple_run_commands_with_output(
     pre_run_commands,
     title: "pre-run",
-    verbose: verbose,
+    verbose:,
   )
 
   # Run parallel run commands
-  success = Command.run_in_parallel(parallel_run_commands, verbose: verbose)
+  success = Command.run_in_parallel(parallel_run_commands, verbose:)
 
   simple_run_commands_with_output(
     post_run_commands,
     title: "post-run",
-    verbose: verbose,
+    verbose:,
   )
 
-  if !success
+  unless success
     simple_run_commands_with_output(
       post_run_failure_commands,
       title: "post-run failure",
-      verbose: verbose,
+      verbose:,
     )
     puts "Exiting gpush."
     return
@@ -153,7 +153,7 @@ def go(dry_run: false, verbose: false)
   simple_run_commands_with_output(
     post_run_success_commands,
     title: "post-run success",
-    verbose: verbose,
+    verbose:,
   )
 
   if dry_run
@@ -169,10 +169,10 @@ def go(dry_run: false, verbose: false)
 
     puts "《 #{config["success_emoji"] || "🌺"} 》 Good job! You're doing great."
   end
-rescue GpushError => error
+rescue GpushError => e
   puts "\n\n"
   puts "Gpush encountered an error:"
-  puts error.message
+  puts e.message
   puts EXITING_MESSAGE
 end
 

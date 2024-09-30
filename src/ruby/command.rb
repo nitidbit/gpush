@@ -105,7 +105,6 @@ class Command
   def fail? = @status == "fail"
   def working? = @status == "working"
 
-  private
 
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(command_defs, verbose: false)
@@ -114,11 +113,11 @@ class Command
     threads =
       all_commands.map do |command|
         Thread.new do
-          begin
+          
             command.run # Capture the output and status
           rescue GpushError
             command.set_status "fail"
-          end
+          
         end
       end
 
