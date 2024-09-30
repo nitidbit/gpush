@@ -2,10 +2,6 @@ inherit_from:
   - .rubocop_todo.yml
   - node_modules/@prettier/plugin-ruby/rubocop.yml
 
-require:
-  - rubocop-rails
-  - rubocop-rails-accessibility
-
 AllCops:
   TargetRubyVersion: 3.2.2
   UseCache: true
@@ -56,15 +52,6 @@ Naming/PredicateName:
 
 # we have too many db fields like address_1 and population_women_13_to_44
 Naming/VariableNumber:
-  Enabled: false
-
-Rails/OutputSafety:
-  Enabled: false
-
-Rails/I18nLazyLookup:
-  Enabled: false
-
-Rails/HasAndBelongsToMany:
   Enabled: false
 
 # Trade off between obvious class searching and tons of indentation. leaving it as is.
