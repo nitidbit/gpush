@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'English'
 require_relative File.join(__dir__, "gpush_options_parser")
 
 class GpushChangedFiles
@@ -17,7 +18,7 @@ class GpushChangedFiles
 
   def self.git_root_dir
     root_dir = `git rev-parse --show-toplevel`.strip
-    return root_dir if $?.success?
+    return root_dir if $CHILD_STATUS.success?
       
     
       raise "Not inside a Git repository"
@@ -60,7 +61,7 @@ class GpushChangedFiles
     # Run the diff command and capture the output
     Dir.chdir(@options[:root_dir]) do
       result = `#{diff_cmd}`.split("\n")
-      if $?.success?
+      if $CHILD_STATUS.success?
         # Filter out deleted files if the option is not set
         return result if @options[:include_deleted_files]
 
@@ -83,7 +84,7 @@ class GpushChangedFiles
 
     # If patterns are provided, append them immediately after the branch reference
     if patterns
-      pattern_list = patterns.split(" ")
+      pattern_list = patterns.split
       # No need to escape the patterns; pass them directly
       command += " -- #{pattern_list.join(" ")}"
     end

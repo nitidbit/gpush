@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'English'
 require_relative File.join(__dir__, "gpush_options_parser")
 require_relative File.join(__dir__, "gpush_changed_files")
 require "find"
@@ -9,7 +10,7 @@ require "fileutils"
 class GpushGetSpecs
   def self.git_root_dir
     root_dir = `git rev-parse --show-toplevel`.strip
-    return root_dir if $?.success?
+    return root_dir if $CHILD_STATUS.success?
       
     
       raise "Not inside a Git repository"

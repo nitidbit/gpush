@@ -105,7 +105,6 @@ class Command
   def fail? = @status == "fail"
   def working? = @status == "working"
 
-
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(command_defs, verbose: false)
     all_commands = command_defs.map { |cmd| new(cmd, verbose:) }
@@ -113,11 +112,9 @@ class Command
     threads =
       all_commands.map do |command|
         Thread.new do
-          
-            command.run # Capture the output and status
-          rescue GpushError
-            command.set_status "fail"
-          
+          command.run # Capture the output and status
+        rescue GpushError
+          command.set_status "fail"
         end
       end
 
@@ -219,8 +216,9 @@ class Command
       command_names.map! { |name| "#{name.gsub(/\s/, "")} " }
     end
     if over_width?(command_names)
-      command_names.map! { |name| name[1] + name[3..-1] }
-    end # remove the [] brackets
+      # remove the [] brackets
+      command_names.map! { |name| name[1] + name[3..] }
+    end
     if over_width?(command_names)
       command_names.map! do |cmd|
         truncate_command_name(cmd, terminal_width / command_names.size)
@@ -239,7 +237,7 @@ class Command
     # Print the single-line spinner and command status
     print "\r#{" " * terminal_width}" # Clear the line
     print "\r#{line}"
-    STDOUT.flush # Ensure real-time display of the spinner
+    $stdout.flush # Ensure real-time display of the spinner
   end
 
   def self.over_width?(command_names)

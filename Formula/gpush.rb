@@ -9,11 +9,11 @@ class Gpush < Formula
     "gpush_get_specs.rb",
     "gpush_run_if_any.rb",
     "gpush.rb",
-  ]
+  ].freeze
 
   OTHER_FILES = [
     "../../gpushrc_default.yml"
-  ]
+  ].freeze
 
   # Use local path as the source for the formula
   url "file://#{Pathname.new(File.expand_path(__dir__)).parent}/src/ruby"

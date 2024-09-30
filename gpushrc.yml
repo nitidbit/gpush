@@ -9,7 +9,7 @@ parallel_run:
     shell: npx prettier --check --ignore-unknown 'src/**/*'
 
   - name: rubocop
-    shell: rubocop
+    shell: bundle exec rubocop
 
   - name: Uncommitted git changes
     shell: git diff --name-only --exit-code

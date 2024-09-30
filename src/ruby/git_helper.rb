@@ -1,3 +1,4 @@
+require 'English'
 require_relative "gpush_error" # Import the custom error handling
 module GitHelper
   def self.at_same_commit_as_remote_branch?
@@ -14,7 +15,7 @@ module GitHelper
 
   def self.not_a_git_repository?
     system("git rev-parse --is-inside-work-tree > /dev/null 2>&1")
-    !$?.success?
+    !$CHILD_STATUS.success?
   end
 
   def self.up_to_date_or_ahead_of_remote_branch?
@@ -51,7 +52,7 @@ module GitHelper
     input = ""
 
     while input.empty?
-      char = STDIN.getch
+      char = $stdin.getch
 
       # Check if Ctrl-C is pressed and raise Interrupt
       if char == "\u0003"
