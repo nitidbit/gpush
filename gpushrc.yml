@@ -1,0 +1,20 @@
+get_specs:
+  include_pattern: spec/**/*spec.rb
+
+pre_run:
+  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json' -O
+
+parallel_run:
+  - name: prettier
+    shell: npx prettier --check --ignore-unknown 'src/**/*'
+
+  - name: rubocop
+    shell: rubocop
+
+  - name: Uncommitted git changes
+    shell: git diff --name-only --exit-code
+
+  # https://github.com/rasshofer/yaml-lint
+  - name: Check yaml files
+    shell: |
+      ruby -ryaml -e 'Dir.glob("**/*.{yml,yaml}").each { |file| raise "problem with: #{file}" unless YAML.load_file(file).is_a?(Hash) }'
