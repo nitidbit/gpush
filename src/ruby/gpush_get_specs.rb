@@ -76,10 +76,12 @@ class GpushGetSpecs
     log("")
 
     if @options[:always_include]
-      always_include_files = Dir.glob File.join @options[:root_dir], @options[:always_include]
+      always_include_files =
+        Dir.glob File.join @options[:root_dir], @options[:always_include]
     end
 
-    files_to_match = Dir.glob File.join @options[:root_dir], @options[:include_pattern]
+    files_to_match =
+      Dir.glob File.join @options[:root_dir], @options[:include_pattern]
     matching_files =
       files_to_match.each_with_object([]) do |path, specs|
         filename = File.basename(path, ".*").downcase # Returns "example_spec"
@@ -149,12 +151,13 @@ if __FILE__ == $PROGRAM_NAME
 
   required_options = %i[include_pattern]
   config_prefix = "get_specs"
-  options = GpushOptionsParser.parse(
-    ARGV,
-    config_prefix: config_prefix,
-    option_definitions: option_definitions,
-    required_options: required_options,
-  )
+  options =
+    GpushOptionsParser.parse(
+      ARGV,
+      config_prefix: config_prefix,
+      option_definitions: option_definitions,
+      required_options: required_options,
+    )
 
   finder = GpushGetSpecs.new(options)
   result = finder.find_matching_specs

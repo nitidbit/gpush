@@ -11,7 +11,7 @@ class GpushChangedFiles
     fallback_branches: DEFAULT_FALLBACK_BRANCHES,
     verbose: false,
     separator: " ",
-    pattern: nil
+    pattern: nil,
   }.freeze
 
   def self.git_root_dir
@@ -42,10 +42,15 @@ class GpushChangedFiles
     if branch_exists_on_origin?(branch_name)
       diff_cmd = diff_command(branch_name, @options[:pattern])
     else
-      fallback_branch = @options[:fallback_branches].find { |fallback| branch_exists_on_origin?(fallback) }
+      fallback_branch =
+        @options[:fallback_branches].find do |fallback|
+          branch_exists_on_origin?(fallback)
+        end
 
       if fallback_branch
-        log("Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}.")
+        log(
+          "Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}.",
+        )
         diff_cmd = diff_command(fallback_branch, @options[:pattern])
       else
         puts "Branch not found on origin and no fallback branches available."
@@ -76,9 +81,9 @@ class GpushChangedFiles
 
     # If patterns are provided, append them immediately after the branch reference
     if patterns
-      pattern_list = patterns.split(' ')
+      pattern_list = patterns.split(" ")
       # No need to escape the patterns; pass them directly
-      command += " -- #{pattern_list.join(' ')}"
+      command += " -- #{pattern_list.join(" ")}"
     end
 
     # Continue with grep and awk to filter out deleted files
@@ -109,18 +114,33 @@ end
 
 if __FILE__ == $PROGRAM_NAME
   # Use GpushOptionsParser to parse command-line arguments
-  options = GpushOptionsParser.parse(
-    ARGV,
-    config_prefix: "gpush_changed_files",
-    option_definitions: lambda do |opts, options|
-      opts.on('--root-dir ROOT_DIR', 'Specify root directory') { |v| options[:root_dir] = v }
-      opts.on('--fallback-branches x,y,z', Array, 'Specify fallback branches') { |v| options[:fallback_branches] = v }
-      opts.on('--verbose', 'Enable verbose output') { options[:verbose] = true }
-      opts.on('--separator SEPARATOR', 'Specify separator') { |v| options[:separator] = v }
-      opts.on('--pattern PATTERN', 'Filter files by pattern (e.g., *.rb *.js)') { |v| options[:pattern] = v }
-    end,
-    required_options: [] # No required options
-  )
+  options =
+    GpushOptionsParser.parse(
+      ARGV,
+      config_prefix: "gpush_changed_files",
+      option_definitions:
+        lambda do |opts, options|
+          opts.on("--root-dir ROOT_DIR", "Specify root directory") do |v|
+            options[:root_dir] = v
+          end
+          opts.on(
+            "--fallback-branches x,y,z",
+            Array,
+            "Specify fallback branches",
+          ) { |v| options[:fallback_branches] = v }
+          opts.on("--verbose", "Enable verbose output") do
+            options[:verbose] = true
+          end
+          opts.on("--separator SEPARATOR", "Specify separator") do |v|
+            options[:separator] = v
+          end
+          opts.on(
+            "--pattern PATTERN",
+            "Filter files by pattern (e.g., *.rb *.js)",
+          ) { |v| options[:pattern] = v }
+        end,
+      required_options: [], # No required options
+    )
 
   # Create the GpushChangedFiles instance with the parsed options
   changed_files_finder = GpushChangedFiles.new(options)
