@@ -1,1 +1,2 @@
-class GpushError < StandardError; end
+class GpushError < StandardError
+end

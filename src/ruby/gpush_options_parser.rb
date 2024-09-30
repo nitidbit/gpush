@@ -5,9 +5,14 @@ require "optparse"
 require "yaml"
 
 class GpushOptionsParser
-  CONFIG_FILE = ["gpushrc.yml", "gpushrc.yaml"].freeze
+  CONFIG_FILE = %w[gpushrc.yml gpushrc.yaml].freeze
 
-  def self.parse(arguments, config_prefix:, option_definitions:, required_options:)
+  def self.parse(
+    arguments,
+    config_prefix:,
+    option_definitions:,
+    required_options:
+  )
     options = {}
 
     # Find the config file by searching from the current directory upwards
@@ -57,7 +62,7 @@ class GpushOptionsParser
         config_file = File.join(current_dir, config_filename)
         return config_file if File.exist?(config_file)
       end
-      current_dir = File.expand_path("..", current_dir)  # Move up one directory
+      current_dir = File.expand_path("..", current_dir) # Move up one directory
     end
     # Return nil if the config file is not found
   end
