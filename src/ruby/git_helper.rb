@@ -1,4 +1,4 @@
-require 'English'
+require "English"
 require_relative "gpush_error" # Import the custom error handling
 module GitHelper
   def self.at_same_commit_as_remote_branch?
@@ -82,11 +82,10 @@ module GitHelper
     question = "No remote branch set. Create branch on origin if tests pass?"
 
     return true if ask_yes_no(question)
-      
-      # Later use this flag to set up the remote branch
-    
-      raise GpushError, "No remote branch setup."
-      # Stop further execution
-    
+
+    # Later use this flag to set up the remote branch
+
+    raise GpushError, "No remote branch setup."
+    # Stop further execution
   end
 end

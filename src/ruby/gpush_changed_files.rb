@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require 'English'
+require "English"
 require_relative File.join(__dir__, "gpush_options_parser")
 
 class GpushChangedFiles
@@ -19,10 +19,8 @@ class GpushChangedFiles
   def self.git_root_dir
     root_dir = `git rev-parse --show-toplevel`.strip
     return root_dir if $CHILD_STATUS.success?
-      
-    
-      raise "Not inside a Git repository"
-    
+
+    raise "Not inside a Git repository"
   end
 
   def initialize(options = {})
@@ -96,9 +94,8 @@ class GpushChangedFiles
 
   def validate_options
     return if @options[:root_dir]
-      puts "Error: root_dir is required."
-      exit 4
-    
+    puts "Error: root_dir is required."
+    exit 4
   end
 
   def log(message)

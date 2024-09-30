@@ -55,9 +55,7 @@ def simple_run_commands_with_output(commands, title:, verbose:)
 
   print "Running #{title}..."
   puts "\n\n" if verbose
-  commands.each do |cmd_dict|
-    simple_run_command(cmd_dict, title:, verbose:)
-  end
+  commands.each { |cmd_dict| simple_run_command(cmd_dict, title:, verbose:) }
   puts "\n\n" if verbose
   print "#{verbose ? title : ""} DONE"
   puts "\n\n"
@@ -125,11 +123,7 @@ def go(dry_run: false, verbose: false)
   post_run_failure_commands = config["post_run_failure"] || []
 
   # Run pre-run commands
-  simple_run_commands_with_output(
-    pre_run_commands,
-    title: "pre-run",
-    verbose:,
-  )
+  simple_run_commands_with_output(pre_run_commands, title: "pre-run", verbose:)
 
   # Run parallel run commands
   success = Command.run_in_parallel(parallel_run_commands, verbose:)

@@ -53,7 +53,6 @@ class GpushOptionsParser
     options
   end
 
-
   def self.find_config_file
     current_dir = Dir.pwd
     while current_dir != "/"
