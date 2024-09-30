@@ -1,3 +1,5 @@
+success_emoji: "💐"
+
 get_specs:
   include_pattern: spec/**/*spec.rb
 
