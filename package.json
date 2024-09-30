@@ -1,0 +1,9 @@
+{
+  "name": "gpush",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@prettier/plugin-ruby": "^4.0.4"
+  }
+}
