@@ -54,7 +54,7 @@ class Command
 
     begin
       # Use PTY for real-time command output, capturing both stdout and stderr
-      PTY.spawn(@shell) do |stdout, _stdin, pid|
+      PTY.spawn(shell) do |stdout, _stdin, pid|
         stdout.each do |line|
           if verbose
             puts "#{COLORS[:reset]}#{COLORS[:yellow]}#{name}:#{COLORS[:reset]} #{line}" # Print directly if verbose is true
@@ -71,16 +71,15 @@ class Command
     rescue PTY::ChildExited
       set_status "fail"
     ensure
-      @spinner_running = false
       print_output if fail? && !verbose # Print output if command failed and not in verbose mode
     end
-
-    [@output.join, @status] # Return output and status for later use
   end
 
   def print_output
-    puts "#{COLORS[:bold]}========== Output for: #{name} ==========#{COLORS[:reset]}"
-    puts @output
+    puts "\n\n"
+    message = "Output for" + (fail? ? " failed test" : "") + ": #{name}"
+    puts "#{COLORS[:bold]}========== #{message} ==========#{COLORS[:reset]}"
+    puts output
     puts "\n\n"
   end
 
