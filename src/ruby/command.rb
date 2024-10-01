@@ -4,7 +4,7 @@ require "io/console"
 require_relative "gpush_error" # Import the custom error handling
 
 class Command
-  attr_reader :name, :shell, :output, :verbose, :status
+  attr_reader :name, :shell, :output, :verbose, :status, :prefix_output
 
   STATUS = %w[not\ started working success fail skipped].freeze
 
@@ -30,7 +30,7 @@ class Command
 
   SPINNER = ["|", "/", "-", '\\'].freeze
 
-  def initialize(command_dict, verbose: false)
+  def initialize(command_dict, verbose: false, prefix_output: true)
     @shell =
       command_dict["shell"] ||
         raise(GpushError, 'Command must have a "shell" field.')
@@ -40,6 +40,7 @@ class Command
     set_status "not started"
     @output = []
     @verbose = verbose
+    @prefix_output = prefix_output
   end
 
   def run
@@ -57,7 +58,11 @@ class Command
       PTY.spawn(shell) do |stdout, _stdin, pid|
         stdout.each do |line|
           if verbose
-            puts "#{COLORS[:reset]}#{COLORS[:yellow]}#{name}:#{COLORS[:reset]} #{line}" # Print directly if verbose is true
+            if prefix_output
+              puts "#{COLORS[:reset]}#{COLORS[:yellow]}#{name}:#{COLORS[:reset]} #{line}" # Print directly if verbose is true
+            else
+              puts line
+            end
           else
             @output << line # Collect command output into @output
           end
@@ -81,6 +86,10 @@ class Command
     puts "#{COLORS[:bold]}========== #{message} ==========#{COLORS[:reset]}"
     puts output
     puts "\n\n"
+  end
+
+  def final_summary
+    "#{COLORS[:reset]}#{name}: #{color}#{status.upcase}#{COLORS[:reset]}"
   end
 
   def spinner
@@ -173,9 +182,7 @@ class Command
 
     # Print overall summary
     puts "\n#{COLORS[:bold]}Summary#{COLORS[:reset]}"
-    all_commands.each do |cmd|
-      puts "#{cmd.name}: #{cmd.color}#{cmd.status.upcase}#{COLORS[:reset]}"
-    end
+    all_commands.each { |cmd| puts cmd.final_summary }
 
     # Report any errors encountered
     unless all_commands.all? { |cmd| cmd.skipped? || cmd.success? || cmd.fail? }

@@ -170,17 +170,31 @@ rescue GpushError => e
   puts EXITING_MESSAGE
 end
 
-# Check for unexpected arguments after options parsing
-unless ARGV.empty?
-  puts "Unexpected argument(s): #{ARGV.join(" ")}"
-  puts "Run 'gpush --help' for usage information."
-  exit 1
+def run_one_command_and_exit(command_input)
+  cmd_dict =
+    parse_config["parallel_run"].find do |cmd|
+      (cmd["name"] || cmd["shell"]).strip.gsub(/\s/, "").downcase ==
+        command_input.gsub(/\s/, "").downcase
+    end
+  if cmd_dict
+    command = Command.new(cmd_dict, verbose: true, prefix_output: false)
+    message = "Running command: #{command.name}"
+    puts "#{Command::COLORS[:bold]}========== #{message} ==========#{Command::COLORS[:reset]}"
+    command.run
+    puts ""
+    puts command.final_summary
+    exit command.success? ? 0 : 1
+  else
+    puts "Command not found: #{command_input}"
+    puts "gpush run looks for a command in the parallel_run section of the config file."
+    exit 1
+  end
 end
 
 options = {}
 options_parser =
   OptionParser.new do |opts|
-    # opts.banner = "Usage: gpush [options]"
+    opts.banner = "Usage: gpush [options] OR gpush run COMMAND\nOPTIONS:"
 
     opts.on("--dry-run", "Simulate the commands without executing") do
       options[:dry_run] = true
@@ -207,5 +221,28 @@ rescue OptionParser::InvalidOption => e
   puts "Run 'gpush --help' for usage information."
   exit
 end
+
+# Check for unexpected arguments after options parsing
+unless ARGV.empty?
+  if ARGV[0] == "run"
+    if options.any?
+      puts "Unexpected option(s): #{options.keys.join(", ")}"
+      puts "gpush run does not accept any options."
+      puts "Run 'gpush --help' for usage information."
+      exit 1
+    end
+    if ARGV.length == 1
+      puts "Enter a command to run (e.g., gpush run test_name)"
+      exit 1
+    else
+      run_one_command_and_exit(ARGV[1..].join(" "))
+    end
+  else
+    puts "Unexpected argument(s): #{ARGV.join(" ")}"
+    puts "Run 'gpush --help' for usage information."
+    exit 1
+  end
+end
+
 # Execute gpush workflow
 go(dry_run: options[:dry_run], verbose: options[:verbose])
