@@ -161,17 +161,17 @@ class Command
     end
   end
 
-  def status_method_names
+  def self.status_method_names
     STATUS.map { |st| :"#{st.gsub(" ", "_")}?" }
   end
 
   def method_missing(method_name, *args, &)
-    return super unless status_method_names.include?(method_name)
+    return super unless self.class.status_method_names.include?(method_name)
     @status == method_name.to_s.chomp("?").gsub("_", " ")
   end
 
   def respond_to_missing?(method_name, include_private = false)
-    status_method_names.include?(method_name) || super
+    self.class.status_method_names.include?(method_name) || super
   end
 
   # Class method to run commands in parallel and show summary
