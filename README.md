@@ -99,10 +99,9 @@ git push origin v1.0.0
 5. Test the Formula locally to ensure it downloads and installs correctly.
 6. Commit and push the new formula to the homebrew-gpush repo
 
-## Team Cheesecake (Caroline and Mike) Next Steps:
+## Homebrew Core Submission Next Steps:
 
-- [ ] Finish gpush changes (Nitid)
-- [ ] Look into bottles (cheesecake)
-- [ ] Update dependency list in forked version --> https://github.com/nitidbit/homebrew-core/Formula/g/gpush.rb
-- [ ] Update archive with readme steps [here](https://github.com/nitidbit/gpush/tree/release/v2-hackathon?tab=readme-ov-file#how-to-create-a-new-release-version)
-- [ ] Push changes from our forked version then submit PR to homebrew-core
+Increase notability by upping GitHub stars, watchers, and forks
+- [ ] Continue improvements and adding features, encourage users to watch the repository for updates
+- [ ] Write documentation to make it easy for people to use
+- [ ] Share project on forums/social media/blog posts to increase visibility
