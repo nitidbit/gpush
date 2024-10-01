@@ -4,22 +4,15 @@ class Gpush < Formula
   license "MIT"
   version "local-development"
 
-  EXECUTABLES = [
-    "gpush_changed_files.rb",
-    "gpush_get_specs.rb",
-    "gpush_run_if_any.rb",
-    "gpush.rb",
-  ].freeze
+  EXECUTABLES = %w[gpush_changed_files.rb gpush_get_specs.rb gpush.rb].freeze
 
-  OTHER_FILES = [
-    "../../gpushrc_default.yml"
-  ].freeze
+  OTHER_FILES = ["../../gpushrc_default.yml"].freeze
 
   # Use local path as the source for the formula
   url "file://#{Pathname.new(File.expand_path(__dir__)).parent}/src/ruby"
 
   def install
-    source_path = Pathname.new(File.expand_path(__dir__)).parent/"src/ruby"
+    source_path = Pathname.new(File.expand_path(__dir__)).parent / "src/ruby"
 
     # Logging the start of the installation process
     ohai "Starting installation of gpush"
@@ -29,26 +22,22 @@ class Gpush < Formula
 
     # Copy all Ruby scripts (*.rb) to the libexec directory
     ohai "Copying all Ruby scripts to the libexec directory"
-    Dir.glob(source_path/"*.rb").each do |file|
-      cp file, libexec
-    end
+    Dir.glob(source_path / "*.rb").each { |file| cp file, libexec }
 
-    OTHER_FILES.each do |file|
-      cp File.join(source_path, file), libexec
-    end
+    OTHER_FILES.each { |file| cp File.join(source_path, file), libexec }
 
     # Set execute permissions on the command files only
     ohai "Making command files executable"
     EXECUTABLES.each do |file|
-      chmod "+x", libexec/file
+      chmod "+x", libexec / file
 
       # Create wrapper scripts for each command file
       bin_name = File.basename(file, ".rb") # Get the name without the .rb extension
-      (bin/bin_name).write <<~EOS
+      (bin / bin_name).write <<~EOS
         #!/bin/bash
         exec ruby "#{libexec}/#{file}" "$@"
       EOS
-      chmod "+x", bin/bin_name
+      chmod "+x", bin / bin_name
     end
 
     # Confirming the installation
