@@ -161,13 +161,18 @@ class Command
     end
   end
 
-  def success? = @status == "success"
-  def skipped? = @status == "skipped"
-  def fail? = @status == "fail"
-  def working? = @status == "working"
-  def interrupted? = @status == "interrupted"
-  def interrupting? = @status == "interrupting"
-  def not_started? = @status == "not started"
+  def status_method_names
+    STATUS.map { |st| "#{st.gsub(" ", "_")}?".to_sym }
+  end
+
+  def method_missing(method_name, *args, &block)
+    return super unless status_method_names.include?(method_name)
+    @status == method_name.to_s.chomp("?").gsub("_", " ")
+  end
+
+  def respond_to_missing?(method_name, include_private = false)
+    status_method_names.include?(method_name) || super
+  end
 
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(command_defs, verbose: false)
