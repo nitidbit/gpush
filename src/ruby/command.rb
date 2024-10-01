@@ -7,7 +7,7 @@ require_relative "gpush_error" # Import the custom error handling
 class Command
   attr_reader :name, :shell, :output, :verbose, :status, :prefix_output
 
-  STATUS = %w[not\ started working success fail skipped].freeze
+  STATUS = %w[not\ started working success fail skipped interrupted].freeze
   ENV_ERROR_MESSAGE = "The 'env' field must be a hash of key-value pairs".freeze
 
   def set_status(new_status)
@@ -78,6 +78,11 @@ class Command
     begin
       # Use PTY for real-time command output, capturing both stdout and stderr
       PTY.spawn(shell) do |thread_stdout, _stdin, pid|
+        Signal.trap("USR1") do
+          puts "#{name} received an interrupt"
+          Process.kill("INT", pid)  # Send SIGINT to the child process for graceful handling
+          set_status "interrupted"
+        end
         thread_stdout.each do |line|
           verbose ? puts(with_prefix(line)) : @output << line
         end
@@ -86,7 +91,7 @@ class Command
         _, exit_status = Process.wait2(pid)
       end
 
-      set_status exit_status&.success? ? "success" : "fail"
+      set_status exit_status&.success? ? "success" : "fail" unless interrupted?
     rescue PTY::ChildExited
       set_status "fail"
     ensure
@@ -122,6 +127,8 @@ class Command
       COLORS[:red]
     when "skipped"
       COLORS[:yellow]
+    when "interrupted"
+      COLORS[:cyan]
     when "not started", "working"
       COLORS[:white] # Still running
     else
@@ -133,6 +140,7 @@ class Command
   def skipped? = @status == "skipped"
   def fail? = @status == "fail"
   def working? = @status == "working"
+  def interrupted? = @status == "interrupted"
 
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(command_defs, verbose: false)
@@ -149,18 +157,14 @@ class Command
       end
 
     # Store the existing handler for SIGINT (if any)
+
     default_int_handler =
       Signal.trap("INT") do
         puts "\nCtrl-C detected, attempting to stop gracefully..."
-        all_commands.each do |command|
-          next if command.fail? # Skip because outputs will be printed at time of failure
-          command.print_output
-        end
-
+        threads.each { signal_queue << :usr1 }  # Notify all threads of the signal
         # If there was a previous handler, call it (this is equivalent to calling `super` in a signal trap)
-        default_int_handler.call if default_int_handler.respond_to?(:call)
 
-        exit 1 # Exit the program after handling the signal
+        # default_int_handler.call if default_int_handler.respond_to?(:call)
       end
 
     # Spinner summary box with a single line spinner
@@ -199,12 +203,15 @@ class Command
     all_commands.each { |cmd| puts cmd.final_summary }
 
     # Report any errors encountered
-    unless all_commands.all? { |cmd| cmd.skipped? || cmd.success? || cmd.fail? }
-      raise "Unexpected status found in commands #{all_commands.map(&:status)}"
+    unless all_commands.all? { |cmd| cmd.skipped? || cmd.success? || cmd.fail? || cmd.interrupted? }
+      raise GpushError, "Unexpected status found in commands #{all_commands.map(&:status)}"
     end
 
     if all_commands.any?(&:fail?)
       puts "\n#{COLORS[:red]}《 Errors detected 》#{COLORS[:reset]}"
+      return false
+    elsif all_command.any?(&:interrupted?)
+      puts "\n#{COLORS[:cyan]}《 Interruption detected 》#{COLORS[:reset]}"
       return false
     end
 
