@@ -1,12 +1,14 @@
 #!/usr/bin/env ruby
 require "pty"
 require "io/console"
+require "open3"
 require_relative "gpush_error" # Import the custom error handling
 
 class Command
   attr_reader :name, :shell, :output, :verbose, :status, :prefix_output
 
   STATUS = %w[not\ started working success fail skipped].freeze
+  ENV_ERROR_MESSAGE = "The 'env' field must be a hash of key-value pairs".freeze
 
   def set_status(new_status)
     unless STATUS.include?(new_status)
@@ -31,16 +33,24 @@ class Command
   SPINNER = ["|", "/", "-", '\\'].freeze
 
   def initialize(command_dict, verbose: false, prefix_output: true)
-    @shell =
-      command_dict["shell"] ||
-        raise(GpushError, 'Command must have a "shell" field.')
-    @run_if =
-      verbose ? command_dict["if"] : "#{command_dict["if"]} > /dev/null 2>&1"
-    @name = command_dict["name"] || @shell
-    set_status "not started"
-    @output = []
+    if command_dict["env"]
+      raise GpushError, ENV_ERROR_MESSAGE unless command_dict["env"].is_a?(Hash)
+      env_prefix = command_dict["env"]&.map { |k, v| "#{k}=#{v}" }&.join(" ")
+    end
     @verbose = verbose
+    @output = []
     @prefix_output = prefix_output
+    @name = command_dict["name"] || command_dict["shell"]
+    raise GpushError, 'must have a "shell" field.' unless command_dict["shell"]
+    @shell = [env_prefix, command_dict["shell"]].compact.join(" ")
+    @run_if =
+      command_dict["if"] && [env_prefix, command_dict["if"]].compact.join(" ")
+
+    set_status "not started"
+  end
+
+  def with_prefix(line, prefix: name)
+    "#{COLORS[:reset]}#{COLORS[:yellow]}#{prefix}:#{COLORS[:reset]} #{line}"
   end
 
   def run
@@ -48,24 +58,28 @@ class Command
     set_status "working"
 
     # Check if the command should be run based on the 'if' condition
-    if @run_if && !system(@run_if)
-      set_status "skipped"
-      return "", @status
+    if @run_if
+      puts "running #{name} 'if' command: `#{@run_if}`" if verbose
+      stdout, stderr, status = Open3.capture3(@run_if)
+      if verbose
+        { output: stdout, ERROR: stderr }.each do |label, lines|
+          lines.each_line do |line|
+            puts with_prefix(line, prefix: "#{name} 'if' #{label}")
+          end
+        end
+      end
+      unless status.success?
+        puts "#{name} skipped because 'if' condition failed" if verbose
+        set_status "skipped"
+        return
+      end
     end
 
     begin
       # Use PTY for real-time command output, capturing both stdout and stderr
-      PTY.spawn(shell) do |stdout, _stdin, pid|
-        stdout.each do |line|
-          if verbose
-            if prefix_output
-              puts "#{COLORS[:reset]}#{COLORS[:yellow]}#{name}:#{COLORS[:reset]} #{line}" # Print directly if verbose is true
-            else
-              puts line
-            end
-          else
-            @output << line # Collect command output into @output
-          end
+      PTY.spawn(shell) do |thread_stdout, _stdin, pid|
+        thread_stdout.each do |line|
+          verbose ? puts(with_prefix(line)) : @output << line
         end
 
         # Wait for the child process to exit and capture its status
