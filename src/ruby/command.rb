@@ -5,9 +5,18 @@ require "open3"
 require_relative "gpush_error" # Import the custom error handling
 
 class Command
-  attr_reader :name, :shell, :output, :verbose, :status, :prefix_output
+  attr_reader :name, :shell, :output, :verbose, :status, :prefix_output, :pid
 
-  STATUS = %w[not\ started working success fail skipped interrupted].freeze
+  STATUS = %w[
+    not\ started
+    working
+    success
+    fail
+    skipped
+    interrupted
+    interrupting
+  ].freeze
+
   ENV_ERROR_MESSAGE = "The 'env' field must be a hash of key-value pairs".freeze
 
   def set_status(new_status)
@@ -78,11 +87,8 @@ class Command
     begin
       # Use PTY for real-time command output, capturing both stdout and stderr
       PTY.spawn(shell) do |thread_stdout, _stdin, pid|
-        Signal.trap("USR1") do
-          puts "#{name} received an interrupt"
-          Process.kill("INT", pid)  # Send SIGINT to the child process for graceful handling
-          set_status "interrupted"
-        end
+        @pid = pid
+
         thread_stdout.each do |line|
           verbose ? puts(with_prefix(line)) : @output << line
         end
@@ -91,8 +97,16 @@ class Command
         _, exit_status = Process.wait2(pid)
       end
 
-      set_status exit_status&.success? ? "success" : "fail" unless interrupted?
-    rescue PTY::ChildExited
+      # Determine the final status of the command
+      if exit_status.signaled?
+        set_status "interrupted"
+      elsif exit_status.success?
+        set_status "success"
+      else
+        set_status interrupting? ? "interrupted" : "fail"
+      end
+    rescue => e
+      puts "\n\nRESCUED Exception: #{e.message} - Command '#{name}' exited unexpectedly"
       set_status "fail"
     ensure
       print_output if fail? && !verbose # Print output if command failed and not in verbose mode
@@ -101,7 +115,16 @@ class Command
 
   def print_output
     puts "\n\n"
-    message = "Output for" + (fail? ? " failed test" : "") + ": #{name}"
+    extra_message =
+      case status
+      when "interrupted"
+        " interrupted test"
+      when "fail"
+        " failed test"
+      else
+        ""
+      end
+    message = "Output for" + extra_message + ": #{name}"
     puts "#{COLORS[:bold]}========== #{message} ==========#{COLORS[:reset]}"
     puts output
     puts "\n\n"
@@ -115,6 +138,8 @@ class Command
     return "✓" if success?
     return "✗" if fail?
     return "⏭" if skipped?
+    return "⏸" if interrupted?
+    return "⏳" if interrupting?
     return "…" if verbose
     SPINNER[output.length % SPINNER.size]
   end
@@ -127,7 +152,7 @@ class Command
       COLORS[:red]
     when "skipped"
       COLORS[:yellow]
-    when "interrupted"
+    when "interrupted", "interrupting"
       COLORS[:cyan]
     when "not started", "working"
       COLORS[:white] # Still running
@@ -141,6 +166,7 @@ class Command
   def fail? = @status == "fail"
   def working? = @status == "working"
   def interrupted? = @status == "interrupted"
+  def interrupting? = @status == "interrupting"
 
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(command_defs, verbose: false)
@@ -157,14 +183,34 @@ class Command
       end
 
     # Store the existing handler for SIGINT (if any)
+    processing_interruption = false
 
     default_int_handler =
       Signal.trap("INT") do
         puts "\nCtrl-C detected, attempting to stop gracefully..."
-        threads.each { signal_queue << :usr1 }  # Notify all threads of the signal
-        # If there was a previous handler, call it (this is equivalent to calling `super` in a signal trap)
+        if processing_interruption
+          all_commands.each do |command|
+            next unless command.interrupting? || command.working?
+            puts "Command '#{command.name}' did not exit gracefully, killing..."
+            Process.kill("KILL", command.pid)
+          end
+        else
+          all_commands.each do |command|
+            next unless command.working?
+            Process.kill("INT", -command.pid)
+            command.set_status "interrupting"
+          end
+        end
 
-        # default_int_handler.call if default_int_handler.respond_to?(:call)
+        # If there was a previous handler, call it (this is equivalent to calling `super` in a signal trap)
+        puts "default_int_handler: #{default_int_handler}"
+        puts "processing_interruption: #{processing_interruption}"
+        puts "respond_to?(:call): #{default_int_handler.respond_to?(:call)}"
+        if processing_interruption && default_int_handler.respond_to?(:call)
+          puts "calling default_int_handler"
+          default_int_handler.call
+        end
+        processing_interruption = true
       end
 
     # Spinner summary box with a single line spinner
@@ -203,15 +249,18 @@ class Command
     all_commands.each { |cmd| puts cmd.final_summary }
 
     # Report any errors encountered
-    unless all_commands.all? { |cmd| cmd.skipped? || cmd.success? || cmd.fail? || cmd.interrupted? }
-      raise GpushError, "Unexpected status found in commands #{all_commands.map(&:status)}"
+    unless all_commands.all? { |cmd|
+             cmd.skipped? || cmd.success? || cmd.fail? || cmd.interrupted?
+           }
+      raise GpushError,
+            "Unexpected status found in commands #{all_commands.map(&:status)}"
     end
 
     if all_commands.any?(&:fail?)
       puts "\n#{COLORS[:red]}《 Errors detected 》#{COLORS[:reset]}"
       return false
-    elsif all_command.any?(&:interrupted?)
-      puts "\n#{COLORS[:cyan]}《 Interruption detected 》#{COLORS[:reset]}"
+    elsif all_commands.any?(&:interrupted?)
+      puts "\n#{COLORS[:cyan]}《 Interruption detected ��#{COLORS[:reset]}"
       return false
     end
 
