@@ -105,7 +105,7 @@ class Command
       else
         set_status interrupting? ? "interrupted" : "fail"
       end
-    rescue => e
+    rescue PTY::ChildExited => e
       puts "\n\nRESCUED Exception: #{e.message} - Command '#{name}' exited unexpectedly"
       set_status "fail"
     ensure
@@ -167,6 +167,7 @@ class Command
   def working? = @status == "working"
   def interrupted? = @status == "interrupted"
   def interrupting? = @status == "interrupting"
+  def not_started? = @status == "not started"
 
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel(command_defs, verbose: false)
@@ -184,31 +185,35 @@ class Command
 
     # Store the existing handler for SIGINT (if any)
     processing_interruption = false
-
     default_int_handler =
       Signal.trap("INT") do
-        puts "\nCtrl-C detected, attempting to stop gracefully..."
+        puts "\nCtrl-C detected, attempting to stop gracefully. Press Ctrl-C again to force quit."
         if processing_interruption
-          all_commands.each do |command|
-            next unless command.interrupting? || command.working?
-            puts "Command '#{command.name}' did not exit gracefully, killing..."
-            Process.kill("KILL", command.pid)
+          # Call the original SIGINT handler (if it exists and is callable)
+          if default_int_handler.respond_to?(:call)
+            default_int_handler.call
+          elsif default_int_handler == "DEFAULT"
+            # Reset to default handler behavior
+            Signal.trap("INT", "DEFAULT")
+            Process.kill("INT", Process.pid) # Re-raise SIGINT to trigger the default behavior
+          elsif default_int_handler == "IGNORE"
+            # Do nothing if the previous handler was set to ignore
+            puts "Signal was previously ignored"
           end
         else
           all_commands.each do |command|
-            next unless command.working?
-            Process.kill("INT", -command.pid)
-            command.set_status "interrupting"
+            next unless command.working? || command.not_started?
+            time_now = Time.now
+            sleep 0.1 while !command.pid && Time.now - time_now < 2 # Wait for the command to start
+            next unless command.working? || command.not_started?
+            if command.pid
+              Process.kill("INT", -command.pid)
+              command.set_status "interrupting"
+            else
+              raise GpushError,
+                    "Command '#{command.name}' does not have a PID to interrupt"
+            end
           end
-        end
-
-        # If there was a previous handler, call it (this is equivalent to calling `super` in a signal trap)
-        puts "default_int_handler: #{default_int_handler}"
-        puts "processing_interruption: #{processing_interruption}"
-        puts "respond_to?(:call): #{default_int_handler.respond_to?(:call)}"
-        if processing_interruption && default_int_handler.respond_to?(:call)
-          puts "calling default_int_handler"
-          default_int_handler.call
         end
         processing_interruption = true
       end
@@ -256,11 +261,11 @@ class Command
             "Unexpected status found in commands #{all_commands.map(&:status)}"
     end
 
-    if all_commands.any?(&:fail?)
-      puts "\n#{COLORS[:red]}《 Errors detected 》#{COLORS[:reset]}"
+    if all_commands.any?(&:interrupted?)
+      puts "\n#{COLORS[:cyan]}《 Interruption detected 》#{COLORS[:reset]}"
       return false
-    elsif all_commands.any?(&:interrupted?)
-      puts "\n#{COLORS[:cyan]}《 Interruption detected ��#{COLORS[:reset]}"
+    elsif all_commands.any?(&:fail?)
+      puts "\n#{COLORS[:red]}《 Errors detected 》#{COLORS[:reset]}"
       return false
     end
 
