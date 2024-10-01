@@ -174,92 +174,112 @@ class Command
     all_commands = command_defs.map { |cmd| new(cmd, verbose:) }
 
     threads =
-      all_commands.map do |command|
-        Thread.new do
-          command.run # Capture the output and status
-        rescue GpushError
-          command.set_status "fail"
-          command.print_output unless verbose # Print output for GpushError in non-verbose mode
-        end
-      end
+    threads = run_commands_in_threads(all_commands, verbose)
 
-    # Store the existing handler for SIGINT (if any)
+    handle_interruptions(all_commands)
+
+    spinner_thread = start_spinner(all_commands, threads, verbose)
+
+    threads.each(&:join)
+    spinner_thread.kill
+
+    finalize_output(all_commands, verbose)
+    print_overall_summary(all_commands)
+  end
+
+
+  def self.run_commands_in_threads(all_commands, verbose)
+    all_commands.map do |command|
+      Thread.new do
+        command.run
+      rescue GpushError
+        command.set_status "fail"
+        command.print_output unless verbose
+      end
+    end
+  end
+
+  def self.handle_interruptions(all_commands)
     processing_interruption = false
     default_int_handler =
       Signal.trap("INT") do
-        puts "\nCtrl-C detected, attempting to stop gracefully. Press Ctrl-C again to force quit."
-        if processing_interruption
-          # Call the original SIGINT handler (if it exists and is callable)
-          if default_int_handler.respond_to?(:call)
-            default_int_handler.call
-          elsif default_int_handler == "DEFAULT"
-            # Reset to default handler behavior
-            Signal.trap("INT", "DEFAULT")
-            Process.kill("INT", Process.pid) # Re-raise SIGINT to trigger the default behavior
-          elsif default_int_handler == "IGNORE"
-            # Do nothing if the previous handler was set to ignore
-            puts "Signal was previously ignored"
-          end
-        else
-          all_commands.each do |command|
-            next unless command.working? || command.not_started?
-            time_now = Time.now
-            sleep 0.1 while !command.pid && Time.now - time_now < 2 # Wait for the command to start
-            next unless command.working? || command.not_started?
-            if command.pid
-              Process.kill("INT", -command.pid)
-              command.set_status "interrupting"
-            else
-              raise GpushError,
-                    "Command '#{command.name}' does not have a PID to interrupt"
-            end
-          end
-        end
+        process_interrupt(
+          all_commands,
+          processing_interruption,
+          default_int_handler,
+        )
         processing_interruption = true
       end
+  end
 
-    # Spinner summary box with a single line spinner
-    spinner_thread =
-      Thread.new do
-        old_status = nil
-        while threads.any?(&:alive?)
-          # this check prevents printing the spinner if the status hasn't changed, matters for verbose mode
-          new_status = all_commands.map(&:status) if verbose
-          if old_status != new_status || !verbose # if not verbose mode, update spinner every 0.3 seconds
-            puts "" if verbose
-            print_single_line_spinner(all_commands)
-            puts "\n\n" if verbose
-            old_status = new_status if verbose
-          end
-          sleep 0.3 # Limit the summary box refresh rate
-        end
+  def self.process_interrupt(
+    all_commands,
+    processing_interruption,
+    default_int_handler
+  )
+    puts "\nCtrl-C detected, attempting to stop gracefully. Press Ctrl-C again to force quit."
+    if processing_interruption
+      execute_default_handler(default_int_handler)
+    else
+      interrupt_commands(all_commands)
+    end
+  end
+
+  def self.execute_default_handler(default_int_handler)
+    if default_int_handler.respond_to?(:call)
+      default_int_handler.call
+    elsif default_int_handler == "DEFAULT"
+      Signal.trap("INT", "DEFAULT")
+      Process.kill("INT", Process.pid)
+    elsif default_int_handler == "IGNORE"
+      puts "Signal was previously ignored"
+    end
+  end
+
+  def self.interrupt_commands(all_commands)
+    all_commands.each do |command|
+      next unless command.working? || command.not_started?
+      time_now = Time.now
+      sleep 0.1 while !command.pid && Time.now - time_now < 2 # Wait for the command to start
+      next unless command.working? || command.not_started?
+      if command.pid
+        Process.kill("INT", -command.pid)
+        command.set_status "interrupting"
+      else
+        raise GpushError,
+              "Command '#{command.name}' does not have a PID to interrupt"
       end
+    end
+  end
 
-    # Wait for all threads to complete
-    threads.each(&:join)
-    spinner_thread.kill # Stop the spinner thread
+  def self.start_spinner(all_commands, threads, verbose)
+    Thread.new do
+      old_status = nil
+      while threads.any?(&:alive?)
+        new_status = all_commands.map(&:status) if verbose
+        if old_status != new_status || !verbose
+          puts "" if verbose
+          print_single_line_spinner(all_commands)
+          puts "\n\n" if verbose
+          old_status = new_status if verbose
+        end
+        sleep 0.3
+      end
+    end
+  end
 
-    # Final spinner print with completed statuses
+  def self.finalize_output(all_commands, verbose)
     print_single_line_spinner(all_commands) unless verbose
-
-    # Final output after all threads are done
     puts ""
     all_commands.each do |command|
-      next if command.skipped? || command.success? || verbose || command.fail? # Skip if verbose because outputs will be printed in real-time
+      next if command.skipped? || command.success? || verbose || command.fail?
       command.print_output
     end
+  end
 
-    # Print overall summary
+  def self.print_overall_summary(all_commands)
     puts "\n#{COLORS[:bold]}Summary#{COLORS[:reset]}"
     all_commands.each { |cmd| puts cmd.final_summary }
-
-    # Report any errors encountered
-    unless all_commands.all? { |cmd|
-             cmd.skipped? || cmd.success? || cmd.fail? || cmd.interrupted?
-           }
-      raise GpushError,
-            "Unexpected status found in commands #{all_commands.map(&:status)}"
-    end
 
     if all_commands.any?(&:interrupted?)
       puts "\n#{COLORS[:cyan]}《 Interruption detected 》#{COLORS[:reset]}"
