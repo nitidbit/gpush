@@ -72,9 +72,16 @@ class Command
       set_status "fail"
     ensure
       @spinner_running = false
+      print_output if fail? && !verbose # Print output if command failed and not in verbose mode
     end
 
     [@output.join, @status] # Return output and status for later use
+  end
+
+  def print_output
+    puts "#{COLORS[:bold]}========== Output for: #{name} ==========#{COLORS[:reset]}"
+    puts @output
+    puts "\n\n"
   end
 
   def spinner
@@ -115,6 +122,7 @@ class Command
           command.run # Capture the output and status
         rescue GpushError
           command.set_status "fail"
+          command.print_output unless verbose # Print output for GpushError in non-verbose mode
         end
       end
 
@@ -123,9 +131,8 @@ class Command
       Signal.trap("INT") do
         puts "\nCtrl-C detected, attempting to stop gracefully..."
         all_commands.each do |command|
-          puts "========== Output for: #{command.name} =========="
-          puts command.output
-          puts "\n"
+          next if command.fail? # Skip because outputs will be printed at time of failure
+          command.print_output
         end
 
         # If there was a previous handler, call it (this is equivalent to calling `super` in a signal trap)
@@ -161,10 +168,8 @@ class Command
     # Final output after all threads are done
     puts ""
     all_commands.each do |command|
-      next if command.skipped? || command.success? || verbose # Skip if verbose because outputs will be printed in real-time
-      puts "#{COLORS[:bold]}========== Output for: #{command.name} ==========#{COLORS[:reset]}"
-      puts command.output # Print the buffered output for failed commands.
-      puts "\n\n"
+      next if command.skipped? || command.success? || verbose || command.fail? # Skip if verbose because outputs will be printed in real-time
+      command.print_output
     end
 
     # Print overall summary
