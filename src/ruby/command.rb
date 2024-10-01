@@ -173,7 +173,6 @@ class Command
   def self.run_in_parallel(command_defs, verbose: false)
     all_commands = command_defs.map { |cmd| new(cmd, verbose:) }
 
-    threads =
     threads = run_commands_in_threads(all_commands, verbose)
 
     handle_interruptions(all_commands)
@@ -186,7 +185,6 @@ class Command
     finalize_output(all_commands, verbose)
     print_overall_summary(all_commands)
   end
-
 
   def self.run_commands_in_threads(all_commands, verbose)
     all_commands.map do |command|
