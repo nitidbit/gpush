@@ -162,10 +162,10 @@ class Command
   end
 
   def status_method_names
-    STATUS.map { |st| "#{st.gsub(" ", "_")}?".to_sym }
+    STATUS.map { |st| :"#{st.gsub(" ", "_")}?" }
   end
 
-  def method_missing(method_name, *args, &block)
+  def method_missing(method_name, *args, &)
     return super unless status_method_names.include?(method_name)
     @status == method_name.to_s.chomp("?").gsub("_", " ")
   end
