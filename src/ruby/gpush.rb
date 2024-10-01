@@ -170,25 +170,42 @@ rescue GpushError => e
   puts EXITING_MESSAGE
 end
 
-$options = {}
-OptionParser
-  .new do |opts|
-    opts.banner = "Usage: gpush [options]"
+# Check for unexpected arguments after options parsing
+unless ARGV.empty?
+  puts "Unexpected argument(s): #{ARGV.join(" ")}"
+  puts "Run 'gpush --help' for usage information."
+  exit 1
+end
+
+options = {}
+options_parser =
+  OptionParser.new do |opts|
+    # opts.banner = "Usage: gpush [options]"
 
     opts.on("--dry-run", "Simulate the commands without executing") do
-      $options[:dry_run] = true
+      options[:dry_run] = true
     end
 
     opts.on("-v", "--verbose", "prints command output while running") do
-      $options[:verbose] = true
+      options[:verbose] = true
     end
 
     opts.on_tail("--version", "Show version") do
       puts "gpush #{VERSION}"
       exit
     end
-  end
-  .parse!
 
+    opts.on_tail("-h", "--help", "Show this message") do
+      puts opts
+      exit
+    end
+  end
+begin
+  options_parser.parse!
+rescue OptionParser::InvalidOption => e
+  puts e
+  puts "Run 'gpush --help' for usage information."
+  exit
+end
 # Execute gpush workflow
-go(dry_run: $options[:dry_run], verbose: $options[:verbose])
+go(dry_run: options[:dry_run], verbose: options[:verbose])
