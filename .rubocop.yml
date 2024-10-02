@@ -1,0 +1,106 @@
+# rubocop configuration for the gpush project
+# this is NOT the shared configuration for all nitid projects
+# see the /nitid_linter_configs folder for shared configuration files
+
+inherit_from:
+  - node_modules/@prettier/plugin-ruby/rubocop.yml
+
+AllCops:
+  TargetRubyVersion: 2.6.10
+  UseCache: true
+  NewCops: enable
+  Exclude:
+    - "node_modules/**/*"
+    - "vendor/**/*"
+    - "bin/**/*"
+    - "db/**/*"
+    - "spec/**/*"
+
+# let prettier handle everything to do with Layout
+Layout:
+  Enabled: false
+
+# rubocop still throws LineLength errors without this
+Layout/LineLength:
+  Max: 999
+
+# Many AbcSize in the 50-100 range.
+Metrics/AbcSize:
+  Max: 80
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Max: 25
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Max: 200
+
+Metrics/PerceivedComplexity:
+  Max: 20
+
+# set_status in favor of status= to avoid confusion between setting a new variable vs setting an instance variable
+Naming/PredicateName:
+  Enabled: false
+
+# we have too many db fields like address_1 and population_women_13_to_44
+Naming/VariableNumber:
+  Enabled: false
+
+# Trade off between obvious class searching and tons of indentation. leaving it as is.
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+# prettier sometimes splits a block over multiple lines if it would not fit within the line length, but keeps the {} braces if there is only one line in the block
+Style/BlockDelimiters:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+# This is a concise way to force true/false instead of returning objects or who knows what and making other people deal with it
+Style/DoubleNegation:
+  Enabled: false
+
+Style/FormatStringToken:
+  EnforcedStyle: template
+
+# Let prettier handle this one
+Style/IfUnlessModifier:
+  Enabled: false
+
+# TODO add string literals
+Style/FrozenStringLiteralComment:
+  Enabled: false
+
+# if prettier can fit it all on one line, it's gonna do it, even if it has to use nested ternarys
+Style/NestedTernaryOperator:
+  Enabled: false
+
+# separate every three digits in a zip code/phone number? gtfo.
+Style/NumericLiterals:
+  Enabled: false
+
+# (f == 0) or (f.zero?) you decide.
+Style/NumericPredicate:
+  Enabled: false
+
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: "[]"
+
+Style/StringConcatenation:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: consistent_comma
