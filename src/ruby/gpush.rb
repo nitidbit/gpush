@@ -6,7 +6,6 @@ require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 
 VERSION = "2.2.1".freeze
-EXITING_MESSAGE = "\nExiting gpush.".freeze
 
 def parse_config
   config_paths = %w[./gpushrc.yml ./gpushrc.yaml]
@@ -162,10 +161,7 @@ def go(dry_run: false, verbose: false)
     puts "《 #{config["success_emoji"] || "🌺"} 》 Good job! You're doing great."
   end
 rescue GpushError => e
-  puts "\n\n"
-  puts "Gpush encountered an error:"
-  puts e.message
-  puts EXITING_MESSAGE
+  GitHelper.exit_with_error(e)
 end
 
 def run_one_command_and_exit(command_input)

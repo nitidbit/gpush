@@ -1,6 +1,21 @@
 require "English"
 require_relative "gpush_error" # Import the custom error handling
+require "open3"
+
 module GitHelper
+  def self.git_root_dir
+    stdout, stderr, status = Open3.capture3("git rev-parse --show-toplevel")
+    return stdout.strip if status.success?
+    raise GpushError, stderr.strip
+  end
+
+  def self.exit_with_error(error)
+    puts "\n\nGpush encountered an error:"
+    puts error.message
+    puts "\nExiting gpush."
+    exit 1
+  end
+
   def self.at_same_commit_as_remote_branch?
     system "git fetch"
     return false unless remote_branch_name

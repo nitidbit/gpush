@@ -4,19 +4,13 @@
 require "English"
 require_relative File.join(__dir__, "gpush_options_parser")
 require_relative File.join(__dir__, "gpush_changed_files")
+require_relative File.join(__dir__, "git_helper")
+require_relative File.join(__dir__, "gpush_error")
 require "find"
 require "fileutils"
 
 class GpushGetSpecs
-  def self.git_root_dir
-    root_dir = `git rev-parse --show-toplevel`.strip
-    return root_dir if $CHILD_STATUS.success?
-
-    raise "Not inside a Git repository"
-  end
-
   DEFAULT_OPTIONS = {
-    root_dir: git_root_dir,
     excludes: [],
     min_keyword_length: 3,
     output_separator: " ",
@@ -30,7 +24,7 @@ class GpushGetSpecs
   def find_matching_specs
     changed_files =
       GpushChangedFiles.new(
-        root_dir: @options[:root_dir],
+        root_dir: GitHelper.git_root_dir,
         include_deleted_files: true,
       )
     changed_filenames = changed_files.git_changed_files
@@ -51,6 +45,8 @@ class GpushGetSpecs
     end
 
     { specs: }.compact
+  rescue GpushError => e
+    GitHelper.exit_with_error(e)
   end
 
   def format_specs_for_output(specs)
@@ -73,18 +69,18 @@ class GpushGetSpecs
   end
 
   def get_specs(keywords)
-    log("Root dir: #{@options[:root_dir]}")
+    log("Root dir: #{GitHelper.git_root_dir}")
     log("Spec include pattern: #{@options[:include_pattern]}")
     log "Always include pattern: #{@options[:always_include]}"
     log("")
 
     if @options[:always_include]
       always_include_files =
-        Dir.glob File.join @options[:root_dir], @options[:always_include]
+        Dir.glob File.join GitHelper.git_root_dir, @options[:always_include]
     end
 
     files_to_match =
-      Dir.glob File.join @options[:root_dir], @options[:include_pattern]
+      Dir.glob File.join GitHelper.git_root_dir, @options[:include_pattern]
     matching_files =
       files_to_match.each_with_object([]) do |path, specs|
         filename = File.basename(path, ".*").downcase # Returns "example_spec"

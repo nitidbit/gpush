@@ -3,6 +3,7 @@
 
 require "English"
 require_relative File.join(__dir__, "gpush_options_parser")
+require_relative File.join(__dir__, "git_helper")
 
 class GpushChangedFiles
   DEFAULT_FALLBACK_BRANCHES = %w[main master].freeze
@@ -16,18 +17,11 @@ class GpushChangedFiles
     include_deleted_files: false,
   }.freeze
 
-  def self.git_root_dir
-    root_dir = `git rev-parse --show-toplevel`.strip
-    return root_dir if $CHILD_STATUS.success?
-
-    raise "Not inside a Git repository"
-  end
-
   def initialize(options = {})
     @options = DEFAULT_OPTIONS.merge(options)
 
     # Use git_root_dir as a fallback if root_dir is not set
-    @options[:root_dir] ||= self.class.git_root_dir
+    @options[:root_dir] ||= GitHelper.git_root_dir
 
     validate_options
     log("Starting GpushChangedFiles with options:")
@@ -110,44 +104,48 @@ class GpushChangedFiles
 end
 
 if __FILE__ == $PROGRAM_NAME
-  # Use GpushOptionsParser to parse command-line arguments
-  options =
-    GpushOptionsParser.parse(
-      ARGV,
-      config_prefix: "gpush_changed_files",
-      option_definitions:
-        lambda do |opts, parsing_options|
-          opts.on("--root-dir ROOT_DIR", "Specify root directory") do |v|
-            parsing_options[:root_dir] = v
-          end
-          opts.on(
-            "--fallback-branches x,y,z",
-            Array,
-            "Specify fallback branches",
-          ) { |v| parsing_options[:fallback_branches] = v }
-          opts.on("--verbose", "Enable verbose output") do
-            parsing_options[:verbose] = true
-          end
-          opts.on("--separator SEPARATOR", "Specify separator") do |v|
-            parsing_options[:separator] = v
-          end
-          opts.on(
-            "--pattern PATTERN",
-            "Filter files by pattern (e.g., *.rb *.js)",
-          ) { |v| parsing_options[:pattern] = v }
-          opts.on("--include-deleted-files", "Include deleted files") do
-            parsing_options[:include_deleted_files] = true
-          end
-        end,
-      required_options: [], # No required options
-    )
+  begin
+    # Use GpushOptionsParser to parse command-line arguments
+    options =
+      GpushOptionsParser.parse(
+        ARGV,
+        config_prefix: "gpush_changed_files",
+        option_definitions:
+          lambda do |opts, parsing_options|
+            opts.on("--root-dir ROOT_DIR", "Specify root directory") do |v|
+              parsing_options[:root_dir] = v
+            end
+            opts.on(
+              "--fallback-branches x,y,z",
+              Array,
+              "Specify fallback branches",
+            ) { |v| parsing_options[:fallback_branches] = v }
+            opts.on("--verbose", "Enable verbose output") do
+              parsing_options[:verbose] = true
+            end
+            opts.on("--separator SEPARATOR", "Specify separator") do |v|
+              parsing_options[:separator] = v
+            end
+            opts.on(
+              "--pattern PATTERN",
+              "Filter files by pattern (e.g., *.rb *.js)",
+            ) { |v| parsing_options[:pattern] = v }
+            opts.on("--include-deleted-files", "Include deleted files") do
+              parsing_options[:include_deleted_files] = true
+            end
+          end,
+        required_options: [], # No required options
+      )
 
-  # Create the GpushChangedFiles instance with the parsed options
-  changed_files_finder = GpushChangedFiles.new(options)
+    # Create the GpushChangedFiles instance with the parsed options
+    changed_files_finder = GpushChangedFiles.new(options)
 
-  # Find the changed files and output the result
-  changed_files = changed_files_finder.git_changed_files
-  output = changed_files_finder.format_changed_files(changed_files)
-  puts output if changed_files.any?
-  exit changed_files.any? ? 0 : 1
+    # Find the changed files and output the result
+    changed_files = changed_files_finder.git_changed_files
+    output = changed_files_finder.format_changed_files(changed_files)
+    puts output if changed_files.any?
+    exit changed_files.any? ? 0 : 1
+  rescue GpushError => e
+    GitHelper.exit_with_error(e)
+  end
 end
