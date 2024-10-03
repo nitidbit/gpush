@@ -109,9 +109,11 @@ class Command
       else
         set_status interrupting? ? "interrupted" : "fail"
       end
+      success?
     rescue PTY::ChildExited => e
       puts "\n\nRESCUED Exception: #{e.message} - Command '#{name}' exited unexpectedly"
       set_status "fail"
+      false
     ensure
       print_output if fail? && !verbose # Print output if command failed and not in verbose mode
     end
@@ -122,9 +124,9 @@ class Command
     extra_message =
       case status
       when "interrupted"
-        " interrupted test"
+        " interrupted command"
       when "fail"
-        " failed test"
+        " failed command"
       else
         ""
       end

@@ -3,7 +3,9 @@ class Gpush < Formula
   homepage "https://github.com/nitidbit/gpush"
   license "MIT"
   version "local-development"
-  depends_on "ruby" => ">= 3.1"
+
+  # commenting out the depends_on line speeds installation
+  # depends_on "ruby" => ">= 3.1"
 
   EXECUTABLES = %w[gpush_changed_files.rb gpush_get_specs.rb gpush.rb].freeze
 

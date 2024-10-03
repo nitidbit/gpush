@@ -5,7 +5,7 @@ require_relative "command" # Import the external command runner
 require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 
-VERSION = "2.2.0".freeze
+VERSION = "2.2.1".freeze
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
 def parse_config
@@ -42,7 +42,18 @@ def simple_run_commands_with_output(commands, title:, verbose:)
 
   print "Running #{title}..."
   puts "\n\n" if verbose
-  commands.each { |cmd_dict| Command.new(cmd_dict, verbose:).run }
+
+  commands.each do |cmd_dict|
+    command = Command.new(cmd_dict, verbose:)
+    command.run
+    next if command.success?
+
+    message = "#{title} command failed - #{command.name}"
+    message += " (`#{command.shell}`)" if command.shell != command.name
+    puts "#{message}\nHalting further execution and exiting gpush"
+    exit 1 # Halt execution if a command fails
+  end
+
   puts "\n\n" if verbose
   print "#{verbose ? title : ""} DONE"
   puts "\n\n"
