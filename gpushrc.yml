@@ -4,6 +4,7 @@ get_specs:
   include_pattern: spec/**/*spec.rb
 
 pre_run:
+  - shell: bundle check
   - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json' -O
 
 parallel_run:
