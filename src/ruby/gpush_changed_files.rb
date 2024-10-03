@@ -116,27 +116,27 @@ if __FILE__ == $PROGRAM_NAME
       ARGV,
       config_prefix: "gpush_changed_files",
       option_definitions:
-        lambda do |opts, options|
+        lambda do |opts, parsing_options|
           opts.on("--root-dir ROOT_DIR", "Specify root directory") do |v|
-            options[:root_dir] = v
+            parsing_options[:root_dir] = v
           end
           opts.on(
             "--fallback-branches x,y,z",
             Array,
             "Specify fallback branches",
-          ) { |v| options[:fallback_branches] = v }
+          ) { |v| parsing_options[:fallback_branches] = v }
           opts.on("--verbose", "Enable verbose output") do
-            options[:verbose] = true
+            parsing_options[:verbose] = true
           end
           opts.on("--separator SEPARATOR", "Specify separator") do |v|
-            options[:separator] = v
+            parsing_options[:separator] = v
           end
           opts.on(
             "--pattern PATTERN",
             "Filter files by pattern (e.g., *.rb *.js)",
-          ) { |v| options[:pattern] = v }
+          ) { |v| parsing_options[:pattern] = v }
           opts.on("--include-deleted-files", "Include deleted files") do
-            options[:include_deleted_files] = true
+            parsing_options[:include_deleted_files] = true
           end
         end,
       required_options: [], # No required options

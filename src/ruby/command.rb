@@ -90,7 +90,11 @@ class Command
         @pid = pid
 
         thread_stdout.each do |line|
-          verbose ? puts(with_prefix(line)) : @output << line
+          if verbose
+            puts(prefix_output ? with_prefix(line) : line)
+          else
+            @output << line
+          end
         end
 
         # Wait for the child process to exit and capture its status

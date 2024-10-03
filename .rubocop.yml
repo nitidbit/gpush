@@ -3,6 +3,7 @@
 # see the /nitid_linter_configs folder for shared configuration files
 
 inherit_from:
+  - .rubocop_todo.yml
   - node_modules/@prettier/plugin-ruby/rubocop.yml
 
 AllCops:
@@ -46,8 +47,8 @@ Metrics/ModuleLength:
 Metrics/PerceivedComplexity:
   Max: 20
 
-# set_status in favor of status= to avoid confusion between setting a new variable vs setting an instance variable
-Naming/PredicateName:
+# def set_status in favor of status= to avoid confusion between defining a new variable vs setting an instance variable
+Naming/AccessorMethodName:
   Enabled: false
 
 # we have too many db fields like address_1 and population_women_13_to_44
