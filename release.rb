@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'English'
+require "English"
 REPO = "nitidbit/gpush".freeze # Updated with the correct repository name
 
 def release
@@ -42,7 +42,15 @@ def release
       puts "Error: Failed to create git tag #{tag}."
       exit 1
     end
+  end
 
+  # Step 2.1: Check remote for existing tags
+  remote_tags =
+    `git ls-remote --tags origin`.split("\n")
+      .map { |line| line.split("\t").last.split("/").last }
+  if remote_tags.include?(tag)
+    puts "Tag #{tag} already exists on the remote, skipping tag push to origin."
+  else
     system("git push origin #{tag}")
     unless $CHILD_STATUS.success?
       puts "Error: Failed to push git tag #{tag} to origin."
@@ -50,21 +58,16 @@ def release
     end
   end
 
-  # Step 3: Create or update the 'latest' tag
-  system("git tag -f latest") # Force-update the 'latest' tag
-  unless $CHILD_STATUS.success?
-    puts "Error: Failed to create or update the latest tag."
-    exit 1
-  end
-
-  system("git push origin latest --force")
-  unless $CHILD_STATUS.success?
-    puts "Error: Failed to push the latest tag to origin."
-    exit 1
-  end
-
   # Step 4: Define the tarball URL and download the tarball
   tarball_url = "https://github.com/#{REPO}/archive/refs/tags/#{tag}.tar.gz"
+
+  # Verify that the tarball URL is valid
+  puts "Checking tarball URL: #{tarball_url}"
+  response_code = `curl -o /dev/null -s -w "%{http_code}" #{tarball_url} -L`
+  unless response_code == "200"
+    puts "Error: Tarball URL returned #{response_code}. The file may not exist or be accessible."
+    exit 1
+  end
 
   system("curl -L -o #{tag}.tar.gz #{tarball_url}")
   unless $CHILD_STATUS.success?
@@ -89,10 +92,13 @@ def release
   # Output the success message and formula details
   puts "Release #{tag} created successfully."
   puts "Update Formula/gpush.rb in the homebrew-gpush repo with:"
+  puts "=" * 80
   puts <<~FORMULA
     url "#{tarball_url}"
     sha256 "#{sha_256}"
   FORMULA
+  puts "=" * 80
+  puts ""
 
   # Step 6: Provide manual release instructions
   puts <<~INSTRUCTION
