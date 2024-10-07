@@ -4,6 +4,7 @@
 require "English"
 require_relative File.join(__dir__, "gpush_options_parser")
 require_relative File.join(__dir__, "git_helper")
+require "byebug"
 
 class GpushChangedFiles
   DEFAULT_FALLBACK_BRANCHES = %w[main master].freeze
@@ -20,16 +21,12 @@ class GpushChangedFiles
   def initialize(options = {})
     @options = DEFAULT_OPTIONS.merge(options)
 
-    # Use git_root_dir as a fallback if root_dir is not set
-    @options[:root_dir] ||= GitHelper.git_root_dir
-
-    validate_options
     log("Starting GpushChangedFiles with options:")
     log(@options.map { |k, v| "  #{k}: #{v}" }.join("\n"))
     log("")
   end
 
-  def git_changed_files
+  def all_changed_files
     branch_name = `git rev-parse --abbrev-ref HEAD`.strip
 
     # Determine which branch to use for the diff
@@ -40,7 +37,6 @@ class GpushChangedFiles
         @options[:fallback_branches].find do |fallback|
           branch_exists_on_origin?(fallback)
         end
-
       if fallback_branch
         log "Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}."
         diff_cmd = diff_command(fallback_branch, @options[:pattern])
@@ -51,21 +47,32 @@ class GpushChangedFiles
     end
 
     # Run the diff command and capture the output
-    Dir.chdir(@options[:root_dir]) do
-      result = `#{diff_cmd}`.split("\n")
-      if $CHILD_STATUS.success?
-        # Filter out deleted files if the option is not set
-        return result if @options[:include_deleted_files]
-
-        result.select { |fn| File.exist? File.join(@options[:root_dir], fn) }
-      else
-        puts "Error executing git diff command."
-        exit 3
-      end
-    end
+    result = `#{diff_cmd}`.split("\n")
+    return result if $CHILD_STATUS.success?
+    puts "Error executing git diff command."
+    exit 3
   end
 
-  def format_changed_files(files = git_changed_files)
+  def format_changed_files(files = all_changed_files)
+    if @options[:root_dir]
+      # in a block within the git root directory
+      Dir.chdir(GitHelper.git_root_dir) do
+        unless @options[:include_deleted_files]
+          files.select! { |filename| File.exist? filename }
+        end
+
+        # check that the root directroy is a valid directory
+        unless File.directory?(@options[:root_dir])
+          raise GpushError,
+                "Root directory #{@options[:root_dir]} is not a valid directory."
+        end
+
+        # filter out files that are not in the root directory
+        files.select! { |file| file.start_with?(@options[:root_dir]) }
+        # remove the root directory from the file paths
+        files.map! { |file| file.sub(%r{^#{@options[:root_dir]}/?}, "") }
+      end
+    end
     files.join(@options[:separator])
   end
 
@@ -80,17 +87,10 @@ class GpushChangedFiles
       # No need to escape the patterns; pass them directly
       command += " -- #{pattern_list.join(" ")}"
     end
-
     command
   end
 
   private
-
-  def validate_options
-    return if @options[:root_dir]
-    puts "Error: root_dir is required."
-    exit 4
-  end
 
   def log(message)
     puts message if @options[:verbose]
@@ -137,14 +137,10 @@ if __FILE__ == $PROGRAM_NAME
         required_options: [], # No required options
       )
 
-    # Create the GpushChangedFiles instance with the parsed options
-    changed_files_finder = GpushChangedFiles.new(options)
-
     # Find the changed files and output the result
-    changed_files = changed_files_finder.git_changed_files
-    output = changed_files_finder.format_changed_files(changed_files)
-    puts output if changed_files.any?
-    exit changed_files.any? ? 0 : 1
+    output = GpushChangedFiles.new(options).format_changed_files
+    puts output if output.length.positive?
+    exit output.length.positive? ? 0 : 1
   rescue GpushError => e
     GitHelper.exit_with_error(e)
   end
