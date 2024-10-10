@@ -4,7 +4,6 @@
 require "English"
 require_relative File.join(__dir__, "gpush_options_parser")
 require_relative File.join(__dir__, "git_helper")
-require "byebug"
 
 class GpushChangedFiles
   DEFAULT_FALLBACK_BRANCHES = %w[main master].freeze

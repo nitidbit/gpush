@@ -27,7 +27,7 @@ class GpushGetSpecs
         root_dir: GitHelper.git_root_dir,
         include_deleted_files: true,
       )
-    changed_filenames = changed_files.git_changed_files
+    changed_filenames = changed_files.all_changed_files
 
     log("Changed files:\n    #{changed_filenames.join("\n    ")}")
     log("")
