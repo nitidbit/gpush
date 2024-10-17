@@ -6,6 +6,7 @@ require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 
 VERSION = "2.2.3".freeze
+EXITING_MESSAGE = "\nExiting gpush.".freeze
 
 def parse_config
   config_paths = %w[./gpushrc.yml ./gpushrc.yaml]
@@ -216,27 +217,29 @@ rescue OptionParser::InvalidOption => e
   exit
 end
 
-# Check for unexpected arguments after options parsing
-unless ARGV.empty?
-  if ARGV[0] == "run"
-    if options.any?
-      puts "Unexpected option(s): #{options.keys.join(", ")}"
-      puts "gpush run does not accept any options."
+if __FILE__ == $PROGRAM_NAME
+  # Check for unexpected arguments after options parsing
+  unless ARGV.empty?
+    if ARGV[0] == "run"
+      if options.any? # rubocop:disable Metrics/BlockNesting
+        puts "Unexpected option(s): #{options.keys.join(", ")}"
+        puts "gpush run does not accept any options."
+        puts "Run 'gpush --help' for usage information."
+        exit 1
+      end
+      if ARGV.length == 1 # rubocop:disable Metrics/BlockNesting
+        puts "Enter a command to run (e.g., gpush run test_name)"
+        exit 1
+      else
+        run_one_command_and_exit(ARGV[1..].join(" "))
+      end
+    else
+      puts "Unexpected argument(s): #{ARGV.join(" ")}"
       puts "Run 'gpush --help' for usage information."
       exit 1
     end
-    if ARGV.length == 1
-      puts "Enter a command to run (e.g., gpush run test_name)"
-      exit 1
-    else
-      run_one_command_and_exit(ARGV[1..].join(" "))
-    end
-  else
-    puts "Unexpected argument(s): #{ARGV.join(" ")}"
-    puts "Run 'gpush --help' for usage information."
-    exit 1
   end
-end
 
-# Execute gpush workflow
-go(dry_run: options[:dry_run], verbose: options[:verbose])
+  # Execute gpush workflow
+  go(dry_run: options[:dry_run], verbose: options[:verbose])
+end
