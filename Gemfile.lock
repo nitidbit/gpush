@@ -2,6 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     ast (2.4.2)
+    diff-lcs (1.5.1)
     haml (6.3.0)
       temple (>= 0.8.2)
       thor
@@ -20,6 +21,19 @@ GEM
       logger
     regexp_parser (2.9.0)
     rexml (3.3.8)
+    rspec (3.13.0)
+      rspec-core (~> 3.13.0)
+      rspec-expectations (~> 3.13.0)
+      rspec-mocks (~> 3.13.0)
+    rspec-core (3.13.1)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.3)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.2)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-support (3.13.1)
     rubocop (1.63.1)
       json (~> 2.3)
       language_server-protocol (>= 3.17.0)
@@ -55,6 +69,7 @@ PLATFORMS
 
 DEPENDENCIES
   prettier_print
+  rspec
   rubocop
   syntax_tree
   syntax_tree-haml

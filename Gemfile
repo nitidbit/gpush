@@ -8,3 +8,7 @@ group :prettier do
   gem "syntax_tree-haml", require: false
   gem "syntax_tree-rbs", require: false
 end
+
+group :test do
+  gem "rspec"
+end
