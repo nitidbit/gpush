@@ -8,6 +8,9 @@ pre_run:
   - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json' -O
 
 parallel_run:
+  - name: rspec
+    shell: bundle exec rspec --format documentation
+
   - name: prettier
     shell: npx prettier --check --ignore-unknown 'src/**/*'
 
