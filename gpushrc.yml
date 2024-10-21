@@ -20,6 +20,12 @@ parallel_run:
   - name: Uncommitted git changes
     shell: git diff --name-only --exit-code
 
+  - name: bundle audit
+    shell: bundle exec bundle audit --update
+
+  - name: bundle leak
+    shell: bundle exec bundle leak --update
+
   - name: Check yaml files
     shell: |
       ruby -ryaml -e 'Dir.glob("**/*.{yml,yaml}").each { |file| raise "problem with: #{file}" unless YAML.load_file(file).is_a?(Hash) }'

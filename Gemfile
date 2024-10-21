@@ -1,4 +1,5 @@
 source "https://rubygems.org"
+ruby "3.1.6"
 
 gem "rubocop"
 
@@ -11,4 +12,9 @@ end
 
 group :test do
   gem "rspec"
+end
+
+group :gpush do
+  gem "bundler-audit"
+  gem "bundler-leak"
 end
