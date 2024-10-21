@@ -144,14 +144,14 @@ def go(dry_run: false, verbose: false)
   simple_run_commands_with_output(
     post_run_commands,
     title: "post-run",
-    verbose:
+    verbose:,
   )
 
   unless success
     simple_run_commands_with_output(
       post_run_failure_commands,
       title: "post-run failure",
-      verbose:
+      verbose:,
     )
     puts "Exiting gpush."
     return
@@ -160,7 +160,7 @@ def go(dry_run: false, verbose: false)
   simple_run_commands_with_output(
     post_run_success_commands,
     title: "post-run success",
-    verbose:
+    verbose:,
   )
 
   if dry_run
