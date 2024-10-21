@@ -17,7 +17,7 @@ module GitHelper
   end
 
   def self.at_same_commit_as_remote_branch?
-    system "git fetch"
+    Kernel.system "git fetch"
     return false unless remote_branch_name
     remote_commit = `git rev-parse @{u}`.strip
     local_commit = `git rev-parse @`.strip
@@ -29,12 +29,12 @@ module GitHelper
   end
 
   def self.not_a_git_repository?
-    system("git rev-parse --is-inside-work-tree > /dev/null 2>&1")
+    Kernel.system("git rev-parse --is-inside-work-tree > /dev/null 2>&1")
     !$CHILD_STATUS.success?
   end
 
   def self.up_to_date_or_ahead_of_remote_branch?
-    system "git fetch"
+    Kernel.system "git fetch"
 
     # Check if there's an upstream branch set
     return false unless remote_branch_name
@@ -103,4 +103,7 @@ module GitHelper
     raise GpushError, "No remote branch setup."
     # Stop further execution
   end
+
+  def system = raise "use Kernel.system (makes testing easier)"
+  def self.system = raise "use Kernel.system (makes testing easier)"
 end

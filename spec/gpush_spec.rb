@@ -4,9 +4,10 @@ require_relative "./mock_system.rb"
 
 RSpec.describe "Gpush" do
   let(:mock_system) { MockSystem.new }
-
   before do
-    allow_any_instance_of(Object).to receive(:system) do |_, command|
+    Dir.chdir(__dir__) # Change to the directory of the current spec file
+
+    allow(Kernel).to receive(:system) do |command|
       mock_system.mocked_system_call(command)
     end
     # Mock all backticks calls globally.
@@ -15,8 +16,26 @@ RSpec.describe "Gpush" do
     end
   end
 
-  it "tests the mock system" do
-    go(dry_run: true, verbose: true)
+  it "finds the gpushrc.yml in the directory" do
+    Dir.chdir(File.join(__dir__, "directory_with_config")) do
+      expect { go(dry_run: true, verbose: true) }.to output(
+        %r{
+          Using\ config\ file:\ spec/directory_with_config/gpushrc.yml.*
+          Pre-run\ command\ in\ spec/directory_with_config/gpushrc.yml
+        }xm,
+      ).to_stdout
+    end
+  end
+
+  it "traverses up the directory tree to find the gpushrc.yml" do
+    Dir.chdir(File.join(__dir__, "directory_without_config")) do
+      expect { go(dry_run: true, verbose: true) }.to output(
+        %r{
+          Using\ config\ file:\ spec/gpushrc.yml.*
+          Pre-run\ command\ in\ spec/gpushrc.yml
+        }xm,
+      ).to_stdout
+    end
   end
 
   # xit "runs the pre-defined git push command successfully" do

@@ -26,7 +26,7 @@ class MockSystem
     @commands << command
     if @responses[command]
       puts @responses[command][:output]
-      $CHILD_STATUS = MockChildStatus.new(@responses[command][:exit_code].zero?)
+      system("exit #{@responses[command][:exit_code]}") # set the $CHILD_STATUS variable
       return @responses[command][:exit_code] == 0
     end
 
