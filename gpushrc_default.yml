@@ -1,14 +1,10 @@
 pre_run:
-  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json' -O
-  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/nitid-lint-plugins/.stylelintrc.js' -O
-  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.rubocop.yml' -O
-  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.eslintrc.json' -O
-  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/lint.py' -O
+  - shell: echo "Add pre_run commands here"
 
 parallel_run:
   - name: Bundle Audit
     shell: bundle exec bundle-audit --update
-    if: bundle list
+    if: bundle info 'bundler-audit'
 
   - name: jest
     shell: npm run test
@@ -16,14 +12,11 @@ parallel_run:
 
   - name: npm audit
     shell: npm audit --audit-level=high
-    if: bundle list
+    if: "[ -f 'package.json' ] || { echo 'File does not exist.'; exit 1; }"
 
   - name: prettier
     shell: npx prettier --check --ignore-unknown $(gpush_changed_files)
     if: gpush_changed_files
-
-  - name: Yaml Lint
-    shell: 'npx yaml-lint "**/*.{yaml,yml}" --ignore-dir .node_modules'
 
   - name: Uncommitted git changes
     shell: "git status --porcelain | grep '.' > /dev/null && exit 1 || exit 0"
@@ -34,16 +27,12 @@ parallel_run:
 
   - name: rspec
     shell: bundle exec rspec $(gpush_get_specs)
-    if: gpush_get_specs
-
-  - name: style lint
-    shell: npx stylelint $(gpush_changed_files --pattern "**/*.{css,scss}"})
-    if: gpush_changed_files --pattern "**/*.{css,scss}"}
+    if: bundle info rspec && gpush_get_specs
 
   - name: rubocop
-    shell: bundle exec rubocop $(gpush_get_specs)
-    if: gpush_get_specs
+    shell: bundle exec rubocop
+    if: bundle info rubocop
 
   - name: brakeman
     shell: "bundle exec brakeman --run-all-checks --no-pager -w2" # -w2 to only report high and medium confidence warnings (ignore weak)
-    if: bundle list
+    if: bundle info rubocop
