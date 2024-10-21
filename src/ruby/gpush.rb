@@ -9,17 +9,32 @@ VERSION = "2.2.3".freeze
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
 def parse_config
-  config_paths = %w[./gpushrc.yml ./gpushrc.yaml]
-  config_file = config_paths.find { |path| File.exist?(path) }
+  config_names = %w[gpushrc.yml gpushrc.yaml] # Possible config filenames.
+  looking_in_dir = Dir.pwd # Start in the current working directory.
+  config_file = nil
 
-  if config_file
-    puts "Using config file: #{config_file}"
-    config = YAML.load_file(config_file)
-    return config unless config.empty?
-    raise GpushError, "Configuration file is empty!"
+  # Continue searching while no config file is found and we haven't reached the root.
+  while !config_file && looking_in_dir != "/"
+    # Check for the config file in the current directory.
+    config_file =
+      config_names.find { |path| File.exist?(File.join(looking_in_dir, path)) }
+
+    # If a config file is found, load and return it.
+    if config_file
+      # Construct the full path to the found config file.
+      config_path = File.join(looking_in_dir, config_file)
+      puts "Using config file: #{config_path.gsub(%r{^#{GitHelper.git_root_dir}/}, "")}"
+      config = YAML.load_file(config_path)
+      return config unless config.empty?
+      raise GpushError, "Configuration file is empty!"
+    end
+
+    # Move up one directory level without changing the current working directory.
+    looking_in_dir = File.dirname(looking_in_dir)
   end
 
-  puts "No configuration file found. Looking for #{config_paths.join(", ")}"
+  # If no config file is found after reaching the root, use the default configuration.
+  puts "No configuration file found. Looking for #{config_names.join(", ")}"
   puts "Using default configuration."
   YAML.load_file File.join(File.dirname(__FILE__), "gpushrc_default.yml")
 end
@@ -154,9 +169,9 @@ def go(dry_run: false, verbose: false)
     # Perform git push based on whether we are setting up a remote branch or just pushing
     if will_set_up_remote_branch
       puts "Setting up the remote branch..." unless dry_run
-      system("git push -u origin HEAD") unless dry_run
+      Kernel.system("git push -u origin HEAD") unless dry_run
     else
-      system("git push") unless dry_run
+      Kernel.system("git push") unless dry_run
     end
 
     puts "《 #{config["success_emoji"] || "🌺"} 》 Good job! You're doing great."
