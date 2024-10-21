@@ -5,7 +5,7 @@ require_relative "command" # Import the external command runner
 require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 
-VERSION = "2.2.3".freeze
+VERSION = "2.3.0".freeze
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
 def parse_config
@@ -144,14 +144,14 @@ def go(dry_run: false, verbose: false)
   simple_run_commands_with_output(
     post_run_commands,
     title: "post-run",
-    verbose:,
+    verbose:
   )
 
   unless success
     simple_run_commands_with_output(
       post_run_failure_commands,
       title: "post-run failure",
-      verbose:,
+      verbose:
     )
     puts "Exiting gpush."
     return
@@ -160,7 +160,7 @@ def go(dry_run: false, verbose: false)
   simple_run_commands_with_output(
     post_run_success_commands,
     title: "post-run success",
-    verbose:,
+    verbose:
   )
 
   if dry_run
