@@ -5,7 +5,15 @@ require "open3"
 require_relative "gpush_error" # Import the custom error handling
 
 class Command
-  attr_reader :name, :shell, :output, :verbose, :status, :prefix_output, :pid
+  attr_reader :name,
+              :shell,
+              :output,
+              :verbose,
+              :status,
+              :prefix_output,
+              :pid,
+              :start_time,
+              :end_time
 
   STATUS = %w[
     not\ started
@@ -63,6 +71,7 @@ class Command
   end
 
   def run
+    @start_time = Time.now # Start time for duration tracking
     exit_status = nil
     set_status "working"
 
@@ -115,6 +124,7 @@ class Command
       set_status "fail"
       false
     ensure
+      @end_time = Time.now # End time for duration tracking
       print_output if fail? && !verbose # Print output if command failed and not in verbose mode
     end
   end
@@ -137,7 +147,17 @@ class Command
   end
 
   def final_summary
-    "#{COLORS[:reset]}#{name}: #{color}#{status.upcase}#{COLORS[:reset]}"
+    "#{COLORS[:reset]}#{name}: #{color}#{status.upcase}#{COLORS[:reset]} #{COLORS[:white]}(#{duration_text})#{COLORS[:reset]}"
+  end
+
+  def duration = end_time && start_time ? (end_time - start_time) : nil
+
+  def duration_text
+    return "---" unless duration
+    return "<1s" if duration < 1
+    return "#{duration.round(1)}s" if duration < 60
+    minutes = (duration / 60).to_i
+    "#{minutes}m #{(duration - (minutes * 60)).round}s"
   end
 
   def spinner
