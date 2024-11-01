@@ -5,7 +5,7 @@ require_relative "command" # Import the external command runner
 require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 
-VERSION = "2.3.0".freeze
+VERSION = "2.4.0".freeze
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
 def parse_config
