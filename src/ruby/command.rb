@@ -2,7 +2,8 @@
 require "pty"
 require "io/console"
 require "open3"
-require_relative "gpush_error" # Import the custom error handling
+require_relative "gpush_error"
+require_relative "gpush_options_parser"
 
 class Command
   attr_reader :name,
@@ -64,10 +65,28 @@ class Command
       command_dict["if"] && [env_prefix, command_dict["if"]].compact.join(" ")
 
     set_status "not started"
+
+    # Set the working directory correctly before running the command
+    set_working_directory
   end
 
   def with_prefix(line, prefix: name)
     "#{COLORS[:reset]}#{COLORS[:yellow]}#{prefix}:#{COLORS[:reset]} #{line}"
+  end
+
+  # Set the working directory based on the config file or git root
+  def set_working_directory
+    working_dir = Dir.pwd
+    acceptable_directories = [
+      GpushOptionsParser.config_file_dir,
+      GitHelper.git_root_dir,
+    ].compact
+
+    until acceptable_directories.include?(working_dir) || working_dir == "/" # rubocop:disable Style/WhileUntilModifier
+      working_dir = File.expand_path("..", working_dir)
+    end
+
+    Dir.chdir(working_dir) unless ["/", Dir.pwd].include?(working_dir)
   end
 
   def run
