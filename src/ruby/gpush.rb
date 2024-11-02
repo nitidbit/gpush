@@ -4,6 +4,7 @@ require "optparse"
 require_relative "command" # Import the external command runner
 require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
+require_relative "gpush_options_parser" # Import the options parser
 
 VERSION = "2.4.0".freeze
 EXITING_MESSAGE = "\nExiting gpush.".freeze
@@ -75,6 +76,7 @@ def simple_run_commands_with_output(commands, title:, verbose:)
 end
 
 def go(dry_run: false, verbose: false)
+  GpushOptionsParser.check_version(VERSION)
   puts "Starting dry run" if dry_run
 
   will_set_up_remote_branch = false # Initialize the flag

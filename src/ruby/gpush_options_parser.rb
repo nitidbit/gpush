@@ -3,6 +3,7 @@
 
 require "optparse"
 require "yaml"
+require_relative "gpush_error"
 
 class GpushOptionsParser
   CONFIG_FILE = %w[gpushrc.yml gpushrc.yaml].freeze
@@ -65,5 +66,20 @@ class GpushOptionsParser
     end
 
     options
+  end
+
+  def self.check_version(current_version)
+    config_file = config_file_path
+    return unless config_file
+
+    required_version = [YAML.load_file(config_file)["gpush_version"]].flatten
+
+    requirement = Gem::Requirement.new(required_version)
+    current_version = Gem::Version.new(current_version)
+
+    return if requirement.satisfied_by?(current_version)
+
+    raise GpushError,
+          "gPush version #{required_version.join(", ")} is required. You have #{current_version}."
   end
 end

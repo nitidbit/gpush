@@ -44,6 +44,24 @@ RSpec.describe "Gpush" do
     ).to_stdout
   end
 
+  it "aborts if gpush_version in the config file is not compatible" do
+    expect(YAML).to receive(:load_file).and_return("gpush_version" => ">50.0")
+    expect { go(dry_run: true, verbose: true) }.to raise_error(
+      SystemExit,
+    ).and output(
+            /#{Regexp.escape "gPush version >50.0 is required. You have #{VERSION}."}/,
+          ).to_stdout
+  end
+
+  it "proceeds if gpush_version in the config file is compatible" do
+    expect(YAML).to receive(:load_file).and_return(
+      "gpush_version" => %w[<50.0 >1.1.0],
+    ).at_least(:once)
+    expect { go(dry_run: true, verbose: true) }.to output(
+      /#{Regexp.escape "《 Dry run completed 》"}/xm,
+    ).to_stdout
+  end
+
   # xit "runs the pre-defined git push command successfully" do
   #   # Define the mock response for the git push command
   #   mock_system.add_mock("git push", output: "Pushing to origin", exit_code: 0)
