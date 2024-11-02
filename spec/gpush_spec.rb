@@ -49,7 +49,7 @@ RSpec.describe "Gpush" do
     expect { go(dry_run: true, verbose: true) }.to raise_error(
       SystemExit,
     ).and output(
-            /#{Regexp.escape "gPush version >50.0 is required. You have #{VERSION}."}/,
+            /#{Regexp.escape("Your config file (#{__dir__}/gpushrc.yml) specifies version >50.0. You have #{VERSION}.")}\n\n#{Regexp.escape("Run 'brew update && brew upgrade gpush' to update.")}/m,
           ).to_stdout
   end
 

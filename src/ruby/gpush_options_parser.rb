@@ -80,6 +80,6 @@ class GpushOptionsParser
     return if requirement.satisfied_by?(current_version)
 
     raise GpushError,
-          "gPush version #{required_version.join(", ")} is required. You have #{current_version}."
+          "Your config file (#{config_file}) specifies version #{required_version.join(", ")}. You have #{current_version}.\n\nRun 'brew update && brew upgrade gpush' to update."
   end
 end
