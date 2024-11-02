@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "English"
+require_relative "git_helper"
 require_relative File.join(__dir__, "gpush_options_parser")
 require_relative File.join(__dir__, "git_helper")
 
@@ -26,15 +27,15 @@ class GpushChangedFiles
   end
 
   def all_changed_files
-    branch_name = `git rev-parse --abbrev-ref HEAD`.strip
+    branch_name = GitHelper.local_branch_name
 
     # Determine which branch to use for the diff
-    if branch_exists_on_origin?(branch_name)
+    if GitHelper.branch_exists_on_origin?(branch_name)
       diff_cmd = diff_command(branch_name, @options[:pattern])
     else
       fallback_branch =
         @options[:fallback_branches].find do |fallback|
-          branch_exists_on_origin?(fallback)
+          GitHelper.branch_exists_on_origin?(fallback)
         end
       if fallback_branch
         log "Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}."
@@ -46,20 +47,20 @@ class GpushChangedFiles
     end
 
     # Run the diff command and capture the output
-    result = `#{diff_cmd}`.split("\n")
-    return result if $CHILD_STATUS.success?
-    puts "Error executing git diff command."
-    exit 3
+    stdout, status = Open3.capture2(diff_cmd)
+    return stdout.split("\n") if status.success?
+    raise GpushError,
+          "Failed to run diff command: #{diff_cmd}, exited with status: #{status}"
   end
 
   def format_changed_files(files = all_changed_files)
-    if @options[:root_dir]
-      # in a block within the git root directory
-      Dir.chdir(GitHelper.git_root_dir) do
-        unless @options[:include_deleted_files]
-          files.select! { |filename| File.exist? filename }
-        end
+    # in a block within the git root directory
+    Dir.chdir(GitHelper.git_root_dir) do
+      unless @options[:include_deleted_files]
+        files.select! { |filename| File.exist? filename }
+      end
 
+      if @options[:root_dir]
         # check that the root directroy is a valid directory
         unless File.directory?(@options[:root_dir])
           raise GpushError,
@@ -93,12 +94,6 @@ class GpushChangedFiles
 
   def log(message)
     puts message if @options[:verbose]
-  end
-
-  def branch_exists_on_origin?(branch_name)
-    # Use git ls-remote to check if the branch exists on origin
-    result = `git ls-remote --heads origin #{branch_name}`.strip
-    !result.empty?
   end
 end
 

@@ -55,6 +55,16 @@ module GitHelper
     result.empty? ? nil : result
   end
 
+  def self.local_branch_name
+    `git rev-parse --abbrev-ref HEAD`.strip
+  end
+
+  def self.branch_exists_on_origin?(branch_name)
+    # Use git ls-remote to check if the branch exists on origin
+    result = `git ls-remote --heads origin #{branch_name}`.strip
+    !result.empty?
+  end
+
   def self.behind_remote_branch?
     !up_to_date_or_ahead_of_remote_branch?
   end
