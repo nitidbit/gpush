@@ -166,18 +166,20 @@ class Command
   end
 
   def final_summary
-    "#{COLORS[:reset]}#{name}: #{color}#{status.upcase}#{COLORS[:reset]} #{COLORS[:white]}(#{duration_text})#{COLORS[:reset]}"
+    "#{COLORS[:reset]}#{name}: #{color}#{status.upcase}#{COLORS[:reset]} #{duration_text}"
   end
 
   def duration = end_time && start_time ? (end_time - start_time) : nil
 
   def duration_text
-    return "---" unless duration
-    return "<1s" if duration < 1
-    return "#{duration.round(1)}s" if duration < 60
+    return unless duration
+    return wrap_in_color("<1s", :white) if duration < 1
+    return wrap_in_color("#{duration.round(1)}s", :white) if duration < 60
     minutes = (duration / 60).to_i
-    "#{minutes}m #{(duration - (minutes * 60)).round}s"
+    wrap_in_color "#{minutes}m #{(duration - (minutes * 60)).round}s", :white
   end
+
+  def wrap_in_color(text, color) = "#{COLORS[color]}#{text}#{COLORS[:reset]}"
 
   def spinner
     return "✓" if success?
