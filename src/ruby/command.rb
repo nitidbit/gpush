@@ -96,7 +96,7 @@ class Command
 
     # Check if the command should be run based on the 'if' condition
     if @run_if
-      puts "running #{name} 'if' command: `#{@run_if}`" if verbose
+      puts with_prefix("running 'if' command `#{@run_if}`") if verbose
       stdout, stderr, status = Open3.capture3(@run_if)
       if verbose
         { output: stdout, ERROR: stderr }.each do |label, lines|
@@ -116,6 +116,7 @@ class Command
       # Use PTY for real-time command output, capturing both stdout and stderr
       PTY.spawn(shell) do |thread_stdout, _stdin, pid|
         @pid = pid
+        puts with_prefix("running shell command `#{shell}`") if verbose
 
         thread_stdout.each do |line|
           if verbose
