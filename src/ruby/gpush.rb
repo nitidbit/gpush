@@ -6,8 +6,10 @@ require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_options_parser" # Import the options parser
 
-VERSION = "2.5.0".freeze
 EXITING_MESSAGE = "\nExiting gpush.".freeze
+
+DEFAULT_VERSION = "unknown".freeze # Default for uninstalled scripts
+VERSION = ENV["GPUSH_VERSION"] || DEFAULT_VERSION
 
 def parse_config
   config_names = %w[gpushrc.yml gpushrc.yaml] # Possible config filenames.

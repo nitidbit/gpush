@@ -38,7 +38,7 @@ class Gpush < Formula
       bin_name = File.basename(file, ".rb") # Get the name without the .rb extension
       (bin / bin_name).write <<~EOS
         #!/bin/bash
-        exec ruby "#{libexec}/#{file}" "$@"
+        GPUSH_VERSION=#{version} exec ruby "#{libexec}/#{file}" "$@"
       EOS
       chmod "+x", bin / bin_name
     end
@@ -49,6 +49,7 @@ class Gpush < Formula
 
   test do
     # Test to ensure the command runs successfully
-    system "#{bin}/gpush", "--version"
+    assert_match "Usage", shell_output("#{bin}/gpush --help")
+    assert_match "local-development", shell_output("#{bin}/gpush --version")
   end
 end

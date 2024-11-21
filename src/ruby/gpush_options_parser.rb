@@ -69,6 +69,8 @@ class GpushOptionsParser
   end
 
   def self.check_version(current_version)
+    return if current_version == "local-development"
+
     config_file = config_file_path
     return unless config_file
 
