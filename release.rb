@@ -6,11 +6,9 @@ require "English"
 REPO = "nitidbit/gpush".freeze # Updated with the correct repository name
 
 def release(version: nil)
-  # Step 1: Extract or validate the version
-  version ||= extract_version
+  exit_with_error("must specify a version (eg -v 1.2.3)") unless version
   unless version.match?(/^\d+\.\d+\.\d+$/)
-    puts "Error: Version #{version} is not a valid semantic version (X.Y.Z)."
-    exit 1
+    exit_with_error "Error: Version #{version} is not a valid semantic version (X.Y.Z)."
   end
 
   tag = "v#{version}"
@@ -67,15 +65,6 @@ def release(version: nil)
     2. Find the tag #{tag} (or draft a new release if necessary).
     3. Fill in the release notes and publish it.
   INSTRUCTION
-end
-
-def extract_version
-  version_file = File.read("./src/ruby/gpush.rb")
-  match = version_file.match(/VERSION\s*=\s*['"](.*)['"]/)
-  return match[1] if match
-
-  puts "Error: Failed to extract version from the version file."
-  exit 1
 end
 
 def fetch_remote_tags
