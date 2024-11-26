@@ -11,8 +11,11 @@ EXITING_MESSAGE = "\nExiting gpush.".freeze
 DEFAULT_VERSION = "unknown".freeze # Default for uninstalled scripts
 VERSION = ENV["GPUSH_VERSION"] || DEFAULT_VERSION
 
-def parse_config
+def parse_config(config_file = nil)
   config_names = %w[gpushrc.yml gpushrc.yaml] # Possible config filenames.
+  unless config_file.nil?
+    config_names.unshift(config_file) # Command line option takes precedence.
+  end
   looking_in_dir = Dir.pwd # Start in the current working directory.
   config_file = nil
 
@@ -77,7 +80,7 @@ def simple_run_commands_with_output(commands, title:, verbose:)
   puts "\n\n"
 end
 
-def go(dry_run: false, verbose: false)
+def go(dry_run: false, verbose: false, config_file: nil)
   GpushOptionsParser.check_version(VERSION)
   puts "Starting dry run" if dry_run
 
@@ -131,7 +134,7 @@ def go(dry_run: false, verbose: false)
     end
   end
 
-  config = parse_config
+  config = parse_config(config_file)
 
   pre_run_commands = config["pre_run"] || []
   parallel_run_commands = config["parallel_run"] || []
@@ -214,8 +217,12 @@ options_parser =
       options[:dry_run] = true
     end
 
-    opts.on("-v", "--verbose", "prints command output while running") do
+    opts.on("-v", "--verbose", "Prints command output while running") do
       options[:verbose] = true
+    end
+
+    opts.on("--config=FILE", "Specify a custom config file") do |file|
+      options[:config_file] = file
     end
 
     opts.on_tail("--version", "Show version") do
@@ -260,5 +267,5 @@ if __FILE__ == $PROGRAM_NAME
   end
 
   # Execute gpush workflow
-  go(dry_run: options[:dry_run], verbose: options[:verbose])
+  go(dry_run: options[:dry_run], verbose: options[:verbose], config_file: options[:config_file])
 end

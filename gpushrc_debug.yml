@@ -1,0 +1,27 @@
+# try me with: src/ruby/gpush.rb -v --dry-run --config gpushrc_debug.yml
+gpush_version: ">=2.4.1"
+success_emoji: "🐞"
+
+get_specs:
+  include_pattern: spec/**/*spec.rb
+
+pre_run:
+   - name: set up hello world
+     shell: echo ">>> HELLO WORLD DEBUG CONFIG"
+
+parallel_run:
+  - name: succeed me
+    shell: sleep 1 && true
+
+  - name: fail me
+    shell: sleep 1 && false # comment me out to "succeed"
+
+post_run:
+  - shell: echo ">>> GOODBYE WORLD 1" # && false
+  - shell: echo ">>> GOODBYE WORLD 2"
+
+post_run_success:
+  - shell: echo ">>> GOODBYE WORLD SUCCESS"
+
+post_run_failure:
+  - shell: echo ">>> GOODBYE WORLD FAILURE"
