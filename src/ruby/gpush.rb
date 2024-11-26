@@ -9,7 +9,7 @@ require_relative "notifier" # Import the desktop notifier
 
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
-DEFAULT_VERSION = "unknown".freeze # Default for uninstalled scripts
+DEFAULT_VERSION = "local-development".freeze # Default for uninstalled scripts
 VERSION = ENV["GPUSH_VERSION"] || DEFAULT_VERSION
 
 def parse_config(config_file = nil)
