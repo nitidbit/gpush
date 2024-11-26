@@ -5,6 +5,7 @@ require_relative "command" # Import the external command runner
 require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_options_parser" # Import the options parser
+require_relative "notifier" # Import the desktop notifier
 
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
@@ -160,6 +161,7 @@ def go(dry_run: false, verbose: false, config_file: nil)
       title: "post-run failure",
       verbose:,
     )
+    Notifier.notify(false)
     puts "Exiting gpush."
     return
   end
@@ -169,6 +171,7 @@ def go(dry_run: false, verbose: false, config_file: nil)
     title: "post-run success",
     verbose:,
   )
+  Notifier.notify(true)
 
   if dry_run
     puts "《 Dry run completed 》"
