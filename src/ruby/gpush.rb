@@ -5,39 +5,45 @@ require_relative "command" # Import the external command runner
 require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_options_parser" # Import the options parser
+require_relative "notifier" # Import the desktop notifier
 
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
-DEFAULT_VERSION = "unknown".freeze # Default for uninstalled scripts
+DEFAULT_VERSION = "local-development".freeze # Default for uninstalled scripts
 VERSION = ENV["GPUSH_VERSION"] || DEFAULT_VERSION
 
-def parse_config
-  config_names = %w[gpushrc.yml gpushrc.yaml] # Possible config filenames.
-  looking_in_dir = Dir.pwd # Start in the current working directory.
-  config_file = nil
+def parse_config(config_file = nil)
+  # If a custom config file is specified, use it.
 
+  config_names = %w[gpushrc.yml gpushrc.yaml] # Possible config filenames.
+  found_config_file = File.join(Dir.pwd, config_file) if config_file
+  looking_in_dir = Dir.pwd # Start in the current working directory.
   # Continue searching while no config file is found and we haven't reached the root.
-  while !config_file && looking_in_dir != "/"
+
+  while !found_config_file && looking_in_dir != "/"
     # Check for the config file in the current directory.
-    config_file =
+    config_name =
       config_names.find { |path| File.exist?(File.join(looking_in_dir, path)) }
 
     # If a config file is found, load and return it.
-    if config_file
-      # Construct the full path to the found config file.
-      config_path = File.join(looking_in_dir, config_file)
-      puts "Using config file: #{config_path.gsub(%r{^#{GitHelper.git_root_dir}/}, "")}"
-      config = YAML.load_file(config_path)
-      return config unless config.empty?
-      raise GpushError, "Configuration file is empty!"
-    end
+    found_config_file = File.join(looking_in_dir, config_name) if config_name
+    # Construct the full path to the found config file.
 
     # Move up one directory level without changing the current working directory.
     looking_in_dir = File.dirname(looking_in_dir)
   end
 
+  if found_config_file && File.exist?(found_config_file)
+    puts "Using config file: #{found_config_file.gsub(%r{^#{GitHelper.git_root_dir}/}, "")}"
+    config = YAML.load_file(found_config_file)
+    return config unless config.empty?
+    raise GpushError, "Configuration file is empty!"
+  end
+
+  raise GpushError, "Config file not found: #{config_file}" if config_file
+
   # If no config file is found after reaching the root, use the default configuration.
-  puts "No configuration file found. Looking for #{config_names.join(", ")}"
+  puts "Looking for #{config_names.join(", ")}"
   puts "Using default configuration."
   YAML.load_file File.join(File.dirname(__FILE__), "gpushrc_default.yml")
 end
@@ -77,7 +83,7 @@ def simple_run_commands_with_output(commands, title:, verbose:)
   puts "\n\n"
 end
 
-def go(dry_run: false, verbose: false)
+def go(dry_run: false, verbose: false, config_file: nil)
   GpushOptionsParser.check_version(VERSION)
   puts "Starting dry run" if dry_run
 
@@ -131,7 +137,7 @@ def go(dry_run: false, verbose: false)
     end
   end
 
-  config = parse_config
+  config = parse_config(config_file)
 
   pre_run_commands = config["pre_run"] || []
   parallel_run_commands = config["parallel_run"] || []
@@ -157,6 +163,7 @@ def go(dry_run: false, verbose: false)
       title: "post-run failure",
       verbose:,
     )
+    Notifier.notify(success: false)
     puts "Exiting gpush."
     return
   end
@@ -166,6 +173,7 @@ def go(dry_run: false, verbose: false)
     title: "post-run success",
     verbose:,
   )
+  Notifier.notify(success: true)
 
   if dry_run
     puts "《 Dry run completed 》"
@@ -214,8 +222,12 @@ options_parser =
       options[:dry_run] = true
     end
 
-    opts.on("-v", "--verbose", "prints command output while running") do
+    opts.on("-v", "--verbose", "Prints command output while running") do
       options[:verbose] = true
+    end
+
+    opts.on("--config_file=FILE", "Specify a custom config file") do |file|
+      options[:config_file] = file
     end
 
     opts.on_tail("--version", "Show version") do
@@ -260,5 +272,9 @@ if __FILE__ == $PROGRAM_NAME
   end
 
   # Execute gpush workflow
-  go(dry_run: options[:dry_run], verbose: options[:verbose])
+  go(
+    dry_run: options[:dry_run],
+    verbose: options[:verbose],
+    config_file: options[:config_file],
+  )
 end

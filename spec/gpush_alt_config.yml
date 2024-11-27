@@ -1,0 +1,6 @@
+pre_run:
+  - shell: echo "Pre-run command in spec/gpush_alt_config.yml"
+
+parallel_run:
+  - name: parallel_run_1
+    shell: echo "Parallel run 1 in spec/gpush_alt_config.yml"

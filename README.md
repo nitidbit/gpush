@@ -99,6 +99,19 @@ git push origin v1.0.0
 5. Test the Formula locally to ensure it downloads and installs correctly.
 6. Commit and push the new formula to the homebrew-gpush repo
 
+## Notifications
+
+Because builds can take a while, there is a notification system in place to let you know when the build is complete.
+*This is a MacOS only feature at this time.*
+
+To enable this, install `terminal-notifier` with your favorite packager, for example `brew install terminal-notifier`. 
+You can suppress notifications by setting the env `GPUSH_NO_NOTIFIER=1`.
+
+Your preferred success or fail sound effects will play if you set env `GPUSH_SOUND_SUCCESS` and/or `GPUSH_SOUND_FAIL` to the path
+of a sound file. Good starting points for these are:
+ - https://pixabay.com/sound-effects/wah-wah-sad-trombone-6347/
+ - https://pixabay.com/sound-effects/tada-fanfare-a-6313/
+
 ## Homebrew Core Submission Next Steps:
 
 Increase notability by upping GitHub stars, watchers, and forks

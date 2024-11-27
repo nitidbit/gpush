@@ -1,3 +1,4 @@
+ENV["GPUSH_VERSION"] ||= "2.0.0"
 require "rspec"
 require_relative "../src/ruby/gpush.rb"
 require_relative "./mock_system.rb"
@@ -42,6 +43,22 @@ RSpec.describe "Gpush" do
     expect { go(dry_run: true, verbose: true) }.to output(
       /#{Regexp.escape("Current directory in braces: [#{__dir__}/directory_with_config]")}/xm,
     ).to_stdout
+  end
+
+  it "accepts a custom config file" do
+    expect {
+      go(dry_run: true, verbose: true, config_file: "gpush_alt_config.yml")
+    }.to output(
+      /#{Regexp.escape("Using config file: spec/gpush_alt_config.yml")}/xm,
+    ).to_stdout
+  end
+
+  it "complains if the custom config file does not exist" do
+    expect {
+      go(dry_run: true, verbose: true, config_file: "non_existent.yml")
+    }.to raise_error(SystemExit).and output(
+            /#{Regexp.escape("Config file not found: non_existent.yml")}/m,
+          ).to_stdout
   end
 
   it "aborts if gpush_version in the config file is not compatible" do
