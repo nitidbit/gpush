@@ -1,4 +1,4 @@
-# try me with: src/ruby/gpush.rb -v --dry-run --config gpushrc_debug.yml
+# try me with: src/ruby/gpush.rb -v --dry-run --config_file gpushrc_debug.yml
 gpush_version: ">=2.4.1"
 success_emoji: "🐞"
 
