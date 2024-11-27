@@ -13,35 +13,37 @@ DEFAULT_VERSION = "local-development".freeze # Default for uninstalled scripts
 VERSION = ENV["GPUSH_VERSION"] || DEFAULT_VERSION
 
 def parse_config(config_file = nil)
-  config_names = %w[gpushrc.yml gpushrc.yaml] # Possible config filenames.
-  unless config_file.nil?
-    config_names.unshift(config_file) # Command line option takes precedence.
-  end
-  looking_in_dir = Dir.pwd # Start in the current working directory.
-  config_file = nil
+  # If a custom config file is specified, use it.
 
+  config_names = %w[gpushrc.yml gpushrc.yaml] # Possible config filenames.
+  found_config_file = File.join(Dir.pwd, config_file) if config_file
+  looking_in_dir = Dir.pwd # Start in the current working directory.
   # Continue searching while no config file is found and we haven't reached the root.
-  while !config_file && looking_in_dir != "/"
+
+  while !found_config_file && looking_in_dir != "/"
     # Check for the config file in the current directory.
-    config_file =
+    config_name =
       config_names.find { |path| File.exist?(File.join(looking_in_dir, path)) }
 
     # If a config file is found, load and return it.
-    if config_file
-      # Construct the full path to the found config file.
-      config_path = File.join(looking_in_dir, config_file)
-      puts "Using config file: #{config_path.gsub(%r{^#{GitHelper.git_root_dir}/}, "")}"
-      config = YAML.load_file(config_path)
-      return config unless config.empty?
-      raise GpushError, "Configuration file is empty!"
-    end
+    found_config_file = File.join(looking_in_dir, config_name) if config_name
+    # Construct the full path to the found config file.
 
     # Move up one directory level without changing the current working directory.
     looking_in_dir = File.dirname(looking_in_dir)
   end
 
+  if found_config_file && File.exist?(found_config_file)
+    puts "Using config file: #{found_config_file.gsub(%r{^#{GitHelper.git_root_dir}/}, "")}"
+    config = YAML.load_file(found_config_file)
+    return config unless config.empty?
+    raise GpushError, "Configuration file is empty!"
+  end
+
+  raise GpushError, "Config file not found: #{config_file}" if config_file
+
   # If no config file is found after reaching the root, use the default configuration.
-  puts "No configuration file found. Looking for #{config_names.join(", ")}"
+  puts "Looking for #{config_names.join(", ")}"
   puts "Using default configuration."
   YAML.load_file File.join(File.dirname(__FILE__), "gpushrc_default.yml")
 end
@@ -224,7 +226,7 @@ options_parser =
       options[:verbose] = true
     end
 
-    opts.on("--config=FILE", "Specify a custom config file") do |file|
+    opts.on("--config_file=FILE", "Specify a custom config file") do |file|
       options[:config_file] = file
     end
 
@@ -270,5 +272,9 @@ if __FILE__ == $PROGRAM_NAME
   end
 
   # Execute gpush workflow
-  go(dry_run: options[:dry_run], verbose: options[:verbose], config_file: options[:config_file])
+  go(
+    dry_run: options[:dry_run],
+    verbose: options[:verbose],
+    config_file: options[:config_file],
+  )
 end
