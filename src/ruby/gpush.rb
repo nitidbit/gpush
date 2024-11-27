@@ -163,7 +163,7 @@ def go(dry_run: false, verbose: false, config_file: nil)
       title: "post-run failure",
       verbose:,
     )
-    Notifier.notify(false)
+    Notifier.notify(success: false)
     puts "Exiting gpush."
     return
   end
@@ -173,7 +173,7 @@ def go(dry_run: false, verbose: false, config_file: nil)
     title: "post-run success",
     verbose:,
   )
-  Notifier.notify(true)
+  Notifier.notify(success: true)
 
   if dry_run
     puts "《 Dry run completed 》"

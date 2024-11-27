@@ -12,17 +12,19 @@
 
 # frozen_string_literal: true
 module Notifier
-  def self.notify(success = true, msg = "Finished!")
+  def self.notify(success: true, msg: "Finished!")
     audio_player = `which afplay`.chomp
     audio_player = nil if audio_player.empty?
 
     if audio_player
-      if ENV.key?("GPUSH_SOUND_SUCCESS") && File.file?(ENV["GPUSH_SOUND_SUCCESS"]) && success
-        Process.spawn(audio_player, ENV["GPUSH_SOUND_SUCCESS"])
+      if ENV.key?("GPUSH_SOUND_SUCCESS") &&
+           File.file?(ENV.fetch("GPUSH_SOUND_SUCCESS")) && success
+        Process.spawn(audio_player, ENV.fetch("GPUSH_SOUND_SUCCESS"))
       end
 
-      if ENV.key?("GPUSH_SOUND_FAIL") && File.file?(ENV["GPUSH_SOUND_FAIL"]) && !success
-        Process.spawn(audio_player, ENV["GPUSH_SOUND_FAIL"])
+      if ENV.key?("GPUSH_SOUND_FAIL") &&
+           File.file?(ENV.fetch("GPUSH_SOUND_FAIL")) && !success
+        Process.spawn(audio_player, ENV.fetch("GPUSH_SOUND_FAIL"))
       end
     end
 
@@ -37,11 +39,16 @@ module Notifier
 
     args = [
       terminal_notifier,
-      '-title', 'GPush Build',
-      '-subtitle', "#{emojis} #{subtitle} #{emojis}",
-      '-message', msg.to_s,
-      '-sound', sound,
-      '-sender', 'com.apple.terminal'
+      "-title",
+      "GPush Build",
+      "-subtitle",
+      "#{emojis} #{subtitle} #{emojis}",
+      "-message",
+      msg.to_s,
+      "-sound",
+      sound,
+      "-sender",
+      "com.apple.terminal",
     ]
 
     system(*args)
