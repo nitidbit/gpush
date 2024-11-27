@@ -1,5 +1,5 @@
+ENV["GPUSH_VERSION"] ||= "2.0.0"
 require "rspec"
-ENV["GPUSH_VERSION"] = "2.0.0"
 require_relative "../src/ruby/gpush.rb"
 require_relative "./mock_system.rb"
 
