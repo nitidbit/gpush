@@ -66,51 +66,48 @@ See below image:
 
 ## How to Create a New Release Version
 
-### Step 1: Prepare Your Repository
+### Step 1: Prepare the release build
 
-1. Commit Your Changes: Ensure all necessary changes are committed to your Git repository. Homebrew will pull exactly what's in the repository at the time of archiving.
-2. Tag Your Release: If you haven't already, tag the commit that you want to package. Tags help in versioning and maintaining stable releases. Use semantic versioning for clarity. For example:
+*In the `gpush` repository:*
 
+- Commit Your Changes: Ensure all necessary changes are committed to your Git repository. 
+  Homebrew will pull exactly what's in the repository at the time of archiving.
+- Find the *current* version number with `brew info gpush`, let's call that `a.b.c`
+- Prepare the release build and specify the *new* version number, let's call that `x.y.z`: `ruby release.rb -v x.y.z`
+- Take note of URL and SHA for the new release. The output will look like this:
 ```
-git tag -a v1.0.0 -m "Release version 1.0.0"
-git push origin v1.0.0
+  ================================================================================
+  url "https://github.com/nitidbit/gpush/archive/refs/tags/vx.y.z.tar.gz"
+  sha256 "18c50e59b66ff889c7720fec82899329c95eea28d32b12f34085cb96deadbeef"
+  ================================================================================
 ```
 
 ### Step 2: Publish the release
 
-- Go to your GitHub repository page.
-- Click on "Releases" or "Tags".
-- Find the tag you created (v1.0.0 in this example).
-- Click "Edit tag" or "Draft a new release".
+*In the `homebrew-gpush` repository:*
 
-### Step 3: Update Your Homebrew Formula - IN THE OTHER GIT REPO: homebrew-gpush
-
-1. Get the url for the tarball. It will be something like https://github.com/username/reponame/releases/download/v1.0.0/gpush-1.0.0.tar.gz.
-2. Download the tarball. Use the following command to get the checksum (replace with the correct filename)
-   ```
-   shasum -a 256 ~/Downloads/gpush-1.0.0.tar.gz
-   ```
-3. Update Formula/gpush.rb in the homebrew-gpush repo
-
-   - Update the url Field: set the url field to the direct download URL of your tarball.
-   - Update the sha256 Field
-
-4. (Optional) save the previous `gpush.rb` formula file as the old version number, eg `gpush@0.0.1.rb`
-5. Test the Formula locally to ensure it downloads and installs correctly.
-6. Commit and push the new formula to the homebrew-gpush repo
+- Save off the current release formula `cp Formula/gpush.rb Formula/gpush@a.b.c`
+- edit `Formula/gpush.rb@a.b.c` change the classname to `GpushATabc` (e.g. `GpushAT123` for v1.2.3)
+- edit `Formula/gpush.rb` update the 2 lines of `url` and `sha256` with the new values from the build
+- `git commit -am"version x.y.z"`
+- `git push`
+- `brew update gpush`
 
 ## Notifications
 
 Because builds can take a while, there is a notification system in place to let you know when the build is complete.
-*This is a MacOS only feature at this time.*
+*This is a macOS only feature at this time.*
 
-To enable this, install `terminal-notifier` with your favorite packager, for example `brew install terminal-notifier`. 
-You can suppress notifications by setting the env `GPUSH_NO_NOTIFIER=1`.
+You can suppress notifications by setting the env `GPUSH_NO_NOTIFIER=1` in your favorite shell configuration file.
 
-Your preferred success or fail sound effects will play if you set env `GPUSH_SOUND_SUCCESS` and/or `GPUSH_SOUND_FAIL` to the path
-of a sound file. Good starting points for these are:
- - https://pixabay.com/sound-effects/wah-wah-sad-trombone-6347/
- - https://pixabay.com/sound-effects/tada-fanfare-a-6313/
+Your preferred success or fail sound effects will play if you set env `GPUSH_SOUND_SUCCESS` and/or `GPUSH_SOUND_FAIL` to
+the path of a sound file. 
+
+Default "tadaa!" and "wah-wah-waaah!" for these are included here, which you can use by
+setting the env vars to `default`. These default sounds are from:
+
+ - [Pixabay, wah-wah-sad-trombone-6347](https://pixabay.com/sound-effects/wah-wah-sad-trombone-6347/) by kirbydx (Freesound)
+ - [Pixabay, tada-fanfare-a-6313](https://pixabay.com/sound-effects/tada-fanfare-a-6313/) by plasterbrain (Freesound)
 
 ## Homebrew Core Submission Next Steps:
 
