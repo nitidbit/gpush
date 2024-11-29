@@ -145,11 +145,12 @@ class Command
       false
     ensure
       @end_time = Time.now # End time for duration tracking
-      print_output if fail? && !verbose # Print output if command failed and not in verbose mode
+      print_nonverbose_output if fail? && !verbose # Print output if command failed and not in verbose mode
     end
   end
 
-  def print_output
+  def print_nonverbose_output
+    self.class.clear_single_line_spinner # Clear spinner, it will be reprinted below this output
     puts "\n\n"
     extra_message =
       case status
@@ -160,7 +161,7 @@ class Command
       else
         ""
       end
-    message = "Output for" + extra_message + ": #{name}"
+    message = "Output for#{extra_message}: #{name}"
     puts "#{COLORS[:bold]}========== #{message} ==========#{COLORS[:reset]}"
     puts output
     puts "\n\n"
@@ -245,7 +246,7 @@ class Command
         command.run
       rescue GpushError
         command.set_status "fail"
-        command.print_output unless verbose
+        command.print_nonverbose_output unless verbose
       end
     end
   end
@@ -268,6 +269,7 @@ class Command
     processing_interruption,
     default_int_handler
   )
+    clear_single_line_spinner
     puts "\nCtrl-C detected, attempting to stop gracefully. Press Ctrl-C again to force quit."
     if processing_interruption
       execute_default_handler(default_int_handler)
@@ -324,7 +326,7 @@ class Command
     puts ""
     all_commands.each do |command|
       next if command.skipped? || command.success? || verbose || command.fail?
-      command.print_output
+      command.print_nonverbose_output
     end
   end
 
@@ -365,6 +367,8 @@ class Command
     "#{command[0...max_length - 4]}... " # Truncate and add ellipsis
   end
 
+  def self.clear_single_line_spinner = print "\r#{" " * terminal_width}"
+
   def self.print_single_line_spinner(all_commands)
     command_names =
       all_commands.map { |command| "[#{command.spinner}]#{command.name}  " }
@@ -392,7 +396,7 @@ class Command
         .join
 
     # Print the single-line spinner and command status
-    print "\r#{" " * terminal_width}" # Clear the line
+    clear_single_line_spinner
     print "\r#{line}"
     $stdout.flush # Ensure real-time display of the spinner
   end
