@@ -43,8 +43,12 @@ module Notifier
       msg.to_s,
       "-sound",
       sound,
-      "-sender",
-      "com.apple.terminal",
+      # "-sender",
+      # "com.apple.terminal",
+      "-group",
+      "GPush",
+      "--timeout",
+      "5",
     ]
 
     system(*args)

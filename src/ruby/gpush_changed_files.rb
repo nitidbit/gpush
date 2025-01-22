@@ -31,15 +31,16 @@ class GpushChangedFiles
 
     # Determine which branch to use for the diff
     if GitHelper.branch_exists_on_origin?(branch_name)
-      diff_cmd = diff_command(branch_name, @options[:pattern])
+      diff_cmd = diff_command(branch_name)
     else
       fallback_branch =
         @options[:fallback_branches].find do |fallback|
           GitHelper.branch_exists_on_origin?(fallback)
         end
+
       if fallback_branch
         log "Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}."
-        diff_cmd = diff_command(fallback_branch, @options[:pattern])
+        diff_cmd = diff_command(fallback_branch)
       else
         puts "Branch not found on origin and no fallback branches available."
         exit 2
@@ -49,15 +50,23 @@ class GpushChangedFiles
     # Run the diff command and capture the output
     stdout, status = Open3.capture2(diff_cmd)
     return stdout.split("\n") if status.success?
+
     raise GpushError,
           "Failed to run diff command: #{diff_cmd}, exited with status: #{status}"
   end
 
   def format_changed_files(files = all_changed_files)
-    # in a block within the git root directory
+    # Process within the git root directory
     Dir.chdir(GitHelper.git_root_dir) do
       unless @options[:include_deleted_files]
         files.select! { |filename| File.exist? filename }
+      end
+
+      # Apply glob pattern filtering if specified
+      if @options[:pattern]
+        validate_glob_pattern(@options[:pattern])
+        matched_by_pattern = Dir.glob(@options[:pattern])
+        files.select! { |file| matched_by_pattern.include?(file) }
       end
 
       if @options[:root_dir]
@@ -73,27 +82,57 @@ class GpushChangedFiles
         files.map! { |file| file.sub(%r{^#{@options[:root_dir]}/?}, "") }
       end
     end
+
     files.join(@options[:separator])
   end
 
-  def diff_command(branch, patterns = nil)
-    # Start with the base diff command
+  def diff_command(branch)
     log("Checking diff for branch: origin/#{branch}")
-    command = "git diff --name-only origin/#{branch}"
-
-    # If patterns are provided, append them immediately after the branch reference
-    if patterns
-      pattern_list = patterns.split
-      # No need to escape the patterns; pass them directly
-      command += " -- #{pattern_list.join(" ")}"
-    end
-    command
+    "git diff --name-only origin/#{branch}"
   end
 
   private
 
   def log(message)
     puts message if @options[:verbose]
+  end
+
+  def validate_glob_pattern(pattern)
+    # Ensure the pattern is not empty or nil
+    if pattern.nil? || pattern.strip.empty?
+      raise GpushError, "Invalid pattern: pattern cannot be empty or nil"
+    end
+
+    if pattern.include?(" ")
+      raise GpushError, "Invalid pattern: contains spaces"
+    end
+
+    # Ensure braces `{}` are balanced
+    check_balanced(pattern, "{", "}")
+
+    # Ensure brackets `[]` are balanced
+    check_balanced(pattern, "[", "]")
+
+    # Ensure no consecutive directory separators (e.g., `//`)
+    if pattern.include?("//")
+      raise GpushError, "Invalid pattern: contains consecutive slashes"
+    end
+
+    # Ensure no empty braces `{}` or brackets `[]`
+    if pattern.match?(/\{\}/) || pattern.match?(/\[\]/)
+      raise GpushError, "Invalid pattern: contains empty braces or brackets"
+    end
+
+    true # Pattern is valid
+  end
+
+  def check_balanced(pattern, open_char, close_char)
+    open_count = pattern.count(open_char)
+    close_count = pattern.count(close_char)
+
+    return unless open_count != close_count
+    raise GpushError,
+          "Invalid pattern: unmatched #{open_char} and #{close_char}"
   end
 end
 
