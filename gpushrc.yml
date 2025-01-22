@@ -1,4 +1,4 @@
-gpush_version: ">=2.4.1"
+gpush_version: ">=2.6.2"
 success_emoji: "💐"
 
 get_specs:
