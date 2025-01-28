@@ -105,3 +105,10 @@ Style/TrailingCommaInArrayLiteral:
 
 Style/TrailingCommaInHashLiteral:
   EnforcedStyleForMultiline: consistent_comma
+
+# [Winston] Rubocop's argument is a lot of safe-navigation operators can be tricky to evaluate. 
+# I agree, but I feel the solution is to build our models so they don't allow 'nil' as often, 
+# not to limit safe-navigator chains.
+Style/SafeNavigationChainLength:
+  Enabled: false
+  
