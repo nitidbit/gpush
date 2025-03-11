@@ -12,7 +12,6 @@ require:
   - rubocop-rails-accessibility
 
 AllCops:
-  TargetRubyVersion: 3.2.2
   UseCache: true
   NewCops: enable
   Exclude:
