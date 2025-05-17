@@ -86,7 +86,6 @@ module GitHelper
 
       case char
       when "\r" # Enter key
-        puts "default is #{default}"
         return default unless default.nil? # Return the default value if Enter is pressed
       when "\e" # ESC key
         puts ""
