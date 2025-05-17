@@ -94,7 +94,7 @@ def go(dry_run: false, verbose: false, config_file: nil)
   if GitHelper.not_a_git_repository?
     puts "Not inside a Git repository. Exiting."
     return
-  elsif GitHelper.detached_head?
+  elsif !dry_run && GitHelper.detached_head?
     puts "Cannot push from a detached HEAD"
     if GitHelper.ask_yes_no("Run tests anyway?", default: true)
       puts "Entering dry run mode"
