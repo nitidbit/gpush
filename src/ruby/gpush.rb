@@ -20,7 +20,8 @@ def parse_config(config_file = nil)
   looking_in_dir = Dir.pwd # Start in the current working directory.
   # Continue searching while no config file is found and we haven't reached the root.
 
-  while !found_config_file && looking_in_dir != "/"
+  # Check each directory up to and including the root directory
+  while !found_config_file && looking_in_dir != "" && looking_in_dir != "/"
     # Check for the config file in the current directory.
     config_name =
       config_names.find { |path| File.exist?(File.join(looking_in_dir, path)) }
