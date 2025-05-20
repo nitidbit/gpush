@@ -6,6 +6,7 @@ require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_options_parser" # Import the options parser
 require_relative "notifier" # Import the desktop notifier
+require_relative "version_checker" # Import the version checker
 
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
@@ -174,6 +175,7 @@ def go(dry_run: false, verbose: false, config_file: nil)
     title: "post-run success",
     verbose:,
   )
+
   Notifier.notify(success: true)
 
   if dry_run
@@ -189,6 +191,9 @@ def go(dry_run: false, verbose: false, config_file: nil)
 
     puts "《 #{config["success_emoji"] || "🌺"} 》 Good job! You're doing great."
   end
+
+  # Check for updates after a successful run (even in dry run mode)
+  VersionChecker.print_message_if_new_version(VERSION)
 rescue GpushError => e
   GitHelper.exit_with_error(e)
 end
