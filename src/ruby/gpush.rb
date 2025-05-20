@@ -65,12 +65,16 @@ end
 
 def simple_run_commands_with_output(commands, title:, verbose:)
   return if commands.empty?
+  some_verbose = verbose || commands.any? { |cmd| cmd["verbose"] }
 
+  puts "\n"
   print "Running #{title}..."
-  puts "\n\n" if verbose
+  puts "\n" if some_verbose
 
   commands.each do |cmd_dict|
-    command = Command.new(cmd_dict, verbose:)
+    # Use command's verbose setting if specified, otherwise use global verbose setting
+    command_verbose = cmd_dict["verbose"].nil? ? verbose : cmd_dict["verbose"]
+    command = Command.new(cmd_dict, verbose: command_verbose)
     command.run
     next if command.success?
 
@@ -80,9 +84,8 @@ def simple_run_commands_with_output(commands, title:, verbose:)
     exit 1 # Halt execution if a command fails
   end
 
-  puts "\n\n" if verbose
-  print "#{verbose ? title : ""} DONE"
-  puts "\n\n"
+  some_verbose ? puts("#{title} DONE") : print("DONE\n")
+  puts "\n"
 end
 
 def go(dry_run: false, verbose: false, config_file: nil)

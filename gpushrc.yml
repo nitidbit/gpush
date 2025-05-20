@@ -34,3 +34,8 @@ parallel_run:
   - name: always skipped
     shell: echo "This should never run"
     if: exit 1
+
+post_run:
+  - name: verbosity
+    shell: echo "pre_run and post_run commands can be run with individual 'verbose' setting"
+    verbose: true
