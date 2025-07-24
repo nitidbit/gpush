@@ -40,7 +40,7 @@ RSpec.describe "Command Verbosity" do
       exit_code: 0,
     )
 
-    expect { go(dry_run: true, verbose: false) }.to output(
+    expect { Gpush.go(dry_run: true, verbose: false) }.to output(
       /Running post-run success.*verbose output.*post-run success DONE/m,
     ).to_stdout
   end
@@ -52,7 +52,7 @@ RSpec.describe "Command Verbosity" do
       exit_code: 0,
     )
 
-    expect { go(dry_run: true, verbose: true) }.not_to output(
+    expect { Gpush.go(dry_run: true, verbose: true) }.not_to output(
       /quiet output/,
     ).to_stdout
   end
@@ -65,12 +65,12 @@ RSpec.describe "Command Verbosity" do
     )
 
     # Test with verbose off
-    expect { go(dry_run: true, verbose: false) }.not_to output(
+    expect { Gpush.go(dry_run: true, verbose: false) }.not_to output(
       /default output/,
     ).to_stdout
 
     # Test with verbose on
-    expect { go(dry_run: true, verbose: true) }.to output(
+    expect { Gpush.go(dry_run: true, verbose: true) }.to output(
       /default output/,
     ).to_stdout
   end
@@ -92,7 +92,7 @@ RSpec.describe "Command Verbosity" do
       exit_code: 0,
     )
 
-    expect { go(dry_run: true, verbose: false) }.to output(
+    expect { Gpush.go(dry_run: true, verbose: false) }.to output(
       /Running post-run success.*post-run success DONE/m,
     ).to_stdout
   end

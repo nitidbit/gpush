@@ -1,6 +1,7 @@
 require "English"
-require_relative "gpush_error" # Import the custom error handling
 require "open3"
+require_relative "gpush_error" # Import the custom error handling
+require_relative "exit_helper"
 
 module GitHelper
   def self.git_root_dir
@@ -13,7 +14,7 @@ module GitHelper
     puts "\n\nGpush encountered an error:"
     puts error.message
     puts "\nExiting gpush."
-    exit 1
+    ExitHelper.exit 1
   end
 
   def self.at_same_commit_as_remote_branch?

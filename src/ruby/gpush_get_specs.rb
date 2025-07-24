@@ -6,6 +6,7 @@ require_relative File.join(__dir__, "gpush_options_parser")
 require_relative File.join(__dir__, "gpush_changed_files")
 require_relative File.join(__dir__, "git_helper")
 require_relative File.join(__dir__, "gpush_error")
+require_relative File.join(__dir__, "exit_helper")
 require "find"
 require "fileutils"
 
@@ -164,6 +165,6 @@ if __FILE__ == $PROGRAM_NAME
   if result[:specs]
     output = finder.format_specs_for_output(result[:specs])
     puts output unless output.empty?
-    exit output.empty? ? 1 : 0
+    ExitHelper.exit output.empty? ? 1 : 0
   end
 end

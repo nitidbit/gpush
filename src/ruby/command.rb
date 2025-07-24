@@ -78,7 +78,7 @@ class Command
   def set_working_directory
     working_dir = Dir.pwd
     acceptable_directories = [
-      GpushOptionsParser.config_file_dir,
+      ConfigHelper.config_file_dir,
       GitHelper.git_root_dir,
     ].compact
 
@@ -224,7 +224,7 @@ class Command
   end
 
   # Class method to run commands in parallel and show summary
-  def self.run_in_parallel(command_defs, verbose: false)
+  def self.run_in_parallel?(command_defs, verbose: false)
     all_commands = command_defs.map { |cmd| new(cmd, verbose:) }
 
     threads = run_commands_in_threads(all_commands, verbose)
@@ -237,7 +237,7 @@ class Command
     spinner_thread.kill
 
     finalize_output(all_commands, verbose)
-    print_overall_summary(all_commands)
+    print_summary_and_return_all_succeeded?(all_commands)
   end
 
   def self.run_commands_in_threads(all_commands, verbose)
@@ -330,7 +330,7 @@ class Command
     end
   end
 
-  def self.print_overall_summary(all_commands)
+  def self.print_summary_and_return_all_succeeded?(all_commands)
     puts "\n#{COLORS[:bold]}Summary#{COLORS[:reset]}"
     all_commands.each { |cmd| puts cmd.final_summary }
 
@@ -364,7 +364,7 @@ class Command
 
   def self.truncate_command_name(command, max_length)
     return command if command.length <= max_length
-    "#{command[0...max_length - 4]}... " # Truncate and add ellipsis
+    "#{command[0...(max_length - 4)]}... " # Truncate and add ellipsis
   end
 
   def self.clear_single_line_spinner = print "\r#{" " * terminal_width}"
