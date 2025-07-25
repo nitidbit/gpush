@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "English"
+require_relative "gpush" # sets version
 require_relative "git_helper"
 require_relative "gpush_options_parser"
 require_relative "exit_helper"
