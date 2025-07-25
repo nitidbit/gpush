@@ -4,10 +4,6 @@ require_relative "../src/ruby/gpush.rb"
 RSpec.describe "gpush run" do
   before do
     Dir.chdir(__dir__) # Change to the directory of the current spec file
-
-    expect(ExitHelper).to receive(:exit).exactly(:once) do |code|
-      raise "Exit called with code #{code}"
-    end
   end
 
   it "should run the specified command from parallel_run section" do

@@ -1,4 +1,4 @@
-require "rspec"
+require "spec_helper"
 require_relative "../src/ruby/gpush.rb"
 require_relative "./mock_system.rb"
 
@@ -55,9 +55,16 @@ RSpec.describe "Gpush" do
   it "complains if the custom config file does not exist" do
     expect {
       Gpush.cl(%w[--dry-run --verbose --config-file=non_existent.yml])
-    }.to raise_error(SystemExit).and output(
+    }.to raise_error("Exit called with code 1").and output(
             /#{Regexp.escape("Config file not found: non_existent.yml")}/m,
           ).to_stdout
+  end
+
+  it "can print the version" do
+    stub_const("VERSION", "42.0.0")
+    expect { Gpush.cl(%w[--version]) }.to output(
+      /gpush 42.0.0/,
+    ).to_stdout.and raise_error("Exit called with code 0")
   end
 
   context "version check" do
@@ -68,7 +75,7 @@ RSpec.describe "Gpush" do
         "gpush_version" => ">50.0",
       )
       expect { Gpush.cl(%w[--dry-run --verbose]) }.to raise_error(
-        SystemExit,
+        "Exit called with code 1",
       ).and output(
               /#{Regexp.escape("Your config file specifies version >50.0. You have 2.0.0.")}\n\n#{Regexp.escape("Run 'brew update && brew upgrade gpush' to update.")}/m,
             ).to_stdout

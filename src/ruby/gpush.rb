@@ -209,6 +209,55 @@ module Gpush
     rescue GpushError => e
       ExitHelper.exit_with_error(e)
     end
+
+    def option_definitions
+      lambda do |opts, parsing_options|
+        opts.banner =
+          "Usage:\ngpush [options] OR gpush [subcommand] [options]\n\nSubcommands:\n#{SUBCOMMANDS.keys.join("\n")}\n\nOptions:"
+
+        opts.on("--dry-run", "Simulate the commands without executing") do
+          parsing_options[:dry_run] = true
+        end
+
+        opts.on("-v", "--verbose", "Prints command output while running") do
+          parsing_options[:verbose] = true
+        end
+
+        opts.on("--config-file=FILE", "Specify a custom config file") do |file|
+          parsing_options[:config_file] = file
+        end
+
+        opts.on_tail("--version", "Show version") do
+          puts "gpush #{VERSION}"
+          ExitHelper.exit(0)
+        end
+      end
+
+      def required_options = []
+
+      def cl(argv)
+        subcommand = SUBCOMMANDS.keys.find { |key| argv[0] == key }
+        klass = subcommand ? SUBCOMMANDS[subcommand] : Gpush
+
+        # Use GpushOptionsParser to parse command-line arguments
+        options =
+          GpushOptionsParser.parse(
+            subcommand ? argv[1..] : argv,
+            config_prefix: nil,
+            option_definitions: klass.option_definitions,
+            required_options: klass.required_options,
+          )
+
+        # Execute gpush workflow
+        if subcommand
+          SUBCOMMANDS[subcommand].go(args: argv[1..], options:)
+        else
+          Gpush.go(options)
+        end
+      rescue GpushError => e
+        ExitHelper.exit_with_error(e)
+      end
+    end
   end
 end
 

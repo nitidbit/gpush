@@ -3,14 +3,7 @@ require_relative "../src/ruby/gpush_error.rb"
 require_relative "../src/ruby/gpush.rb"
 
 RSpec.describe "gpush fix" do
-  before do
-    Dir.chdir(__dir__)
-    @exit = nil
-
-    allow(ExitHelper).to receive(:exit) do |code|
-      raise "Exit called with code #{code}"
-    end
-  end
+  before { Dir.chdir(__dir__) }
 
   context "when running gpush fix" do
     it "should report an error if the config file is empty" do

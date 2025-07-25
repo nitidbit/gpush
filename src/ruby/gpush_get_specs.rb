@@ -24,6 +24,11 @@ class GpushGetSpecs
   end
 
   def find_matching_specs
+    if @options[:exclude_words].nil?
+      raise GpushError,
+            "exclude_words is required. Specify in config file or with --exclude-words cli option"
+    end
+
     changed_files =
       GpushChangedFiles.new(
         root_dir: GitHelper.git_root_dir,
@@ -100,11 +105,8 @@ class GpushGetSpecs
   def log(message)
     puts message if @options[:verbose]
   end
-end
 
-# Command-line execution
-if __FILE__ == $PROGRAM_NAME
-  option_definitions =
+  def self.option_definitions
     proc do |opts, options|
       opts.on(
         "-r",
@@ -149,15 +151,21 @@ if __FILE__ == $PROGRAM_NAME
         options[:verbose] = true
       end
     end
+  end
 
+  def self.required_options = %i[include_pattern]
+end
+
+# Command-line execution
+if __FILE__ == $PROGRAM_NAME
   required_options = %i[include_pattern]
   config_prefix = "get_specs"
   options =
     GpushOptionsParser.parse(
       ARGV,
       config_prefix:,
-      option_definitions:,
-      required_options:,
+      option_definitions: GpushGetSpecs.option_definitions,
+      required_options: GpushGetSpecs.required_options,
     )
 
   finder = GpushGetSpecs.new(options)
