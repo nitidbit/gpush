@@ -5,12 +5,7 @@ require_relative "exit_helper"
 module GpushRun
   class << self
     def go(args:, options:)
-      if options.any?
-        puts "Unexpected option(s): #{options.keys.join(", ")}"
-        puts "gpush run does not accept any options."
-        puts "Run 'gpush --help' for usage information."
-        ExitHelper.exit 1
-      elsif args.nil? || args.empty?
+      if args.nil? || args.empty?
         puts "Enter a command to run (e.g., gpush run test_name)"
         ExitHelper.exit 1
       else
