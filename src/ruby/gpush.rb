@@ -2,8 +2,9 @@
 require "optparse"
 require_relative "command" # Import the external command runner
 require_relative "config_helper" # Import the config helper
-require_relative "gpush_error" # Import the custom error handling
 require_relative "git_helper" # Import Git helper methods
+require_relative "gpush_error" # Import the custom error handling
+require_relative "gpush_fix" # Import the fix command
 require_relative "gpush_options_parser" # Import the options parser
 require_relative "notifier" # Import the desktop notifier
 require_relative "version_checker" # Import the version checker
@@ -168,17 +169,6 @@ module Gpush
 end
 
 if __FILE__ == $PROGRAM_NAME
-  # Check for unexpected arguments after options parsing
-  unless ARGV.empty?
-    if ARGV[0] == "run"
-      GpushRun.go(args: ARGV[1..], options:)
-    else
-      puts "Unexpected argument(s): #{ARGV.join(" ")}"
-      puts "Run 'gpush --help' for usage information."
-      exit 1
-    end
-  end
-
   options = {}
   options_parser =
     OptionParser.new do |opts|
@@ -212,6 +202,19 @@ if __FILE__ == $PROGRAM_NAME
     puts e
     puts "Run 'gpush --help' for usage information."
     exit 1
+  end
+
+  # Check for unexpected arguments after options parsing
+  if ARGV.any?
+    if ARGV[0] == "run"
+      GpushRun.go(args: ARGV[1..], options:)
+    elsif ARGV[0] == "fix"
+      GpushFix.go(args: ARGV[1..], options:)
+    else
+      puts "Unexpected argument(s): #{ARGV.join(" ")}"
+      puts "Run 'gpush --help' for usage information."
+      exit 1
+    end
   end
 
   # Execute gpush workflow

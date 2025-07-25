@@ -4,6 +4,10 @@ success_emoji: "💐"
 get_specs:
   include_pattern: spec/**/*spec.rb
 
+fix:
+  - shell: bundle exec rubocop --autocorrect 'src/**/*.rb'
+  - shell: npx prettier --write --ignore-unknown 'src/**/*'
+
 pre_run:
   - shell: bundle check
   - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json' -O
