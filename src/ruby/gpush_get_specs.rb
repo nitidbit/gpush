@@ -39,7 +39,7 @@ class GpushGetSpecs
     log("Changed files:\n    #{changed_filenames.join("\n    ")}")
     log("")
 
-    log "Ignoring keywords: #{@options[:exclude_words].join(", ")}"
+    log "Ignoring keywords: #{[@options[:exclude_words]].flatten.join(", ")}"
     keywords = extract_keywords(changed_filenames)
     log "Keywords derived from changed files:\n    #{keywords.join("\n    ")}\n\n"
 
@@ -76,6 +76,11 @@ class GpushGetSpecs
   end
 
   def get_specs(keywords)
+    if @options[:include_pattern].nil?
+      raise GpushError,
+            "include_pattern is required. Specify in config file or with --include-pattern cli option"
+    end
+
     log("Root dir: #{GitHelper.git_root_dir}")
     log("Spec include pattern: #{@options[:include_pattern]}")
     log "Always include pattern: #{@options[:always_include]}"
@@ -153,12 +158,11 @@ class GpushGetSpecs
     end
   end
 
-  def self.required_options = %i[include_pattern]
+  def self.required_options = %i[]
 end
 
 # Command-line execution
 if __FILE__ == $PROGRAM_NAME
-  required_options = %i[include_pattern]
   config_prefix = "get_specs"
   options =
     GpushOptionsParser.parse(

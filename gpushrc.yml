@@ -3,6 +3,7 @@ success_emoji: "💐"
 
 get_specs:
   include_pattern: spec/**/*spec.rb
+  exclude_words: spec_helper
 
 fix:
   - shell: bundle exec rubocop --autocorrect 'src/**/*.rb'
@@ -41,8 +42,7 @@ parallel_run:
   # just confirm this does not thorow an error
   - shell: gpush_changed_files
 
-  - name: gpush_get_specs
-    shell: gpush get_specs --include_pattern 'spec/**/*spec.rb'
+  - shell: gpush_get_specs
 
   - name: gpush run
     shell: gpush run shouldalways_PASS # test normalizing the command name

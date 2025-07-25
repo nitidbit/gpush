@@ -13,6 +13,14 @@ module GpushRun
       end
     end
 
+    def option_definitions
+      lambda do |opts, parsing_options|
+        # no options for run except the command to run
+      end
+    end
+
+    def required_options = %i[]
+
     private
 
     def normalize_command_name(command_input)

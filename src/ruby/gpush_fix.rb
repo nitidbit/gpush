@@ -31,4 +31,12 @@ module GpushFix
 
     ExitHelper.exit(commands_succeeded.all? ? 0 : 1)
   end
+
+  def self.option_definitions
+    lambda do |opts, parsing_options|
+      # no options for fix
+    end
+  end
+
+  def self.required_options = %i[]
 end

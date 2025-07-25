@@ -1,4 +1,4 @@
-require "rspec"
+require "spec_helper"
 require_relative "../src/ruby/gpush.rb"
 
 RSpec.describe "gpush run" do

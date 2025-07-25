@@ -1,4 +1,4 @@
-require "rspec"
+require "spec_helper"
 require_relative "../src/ruby/gpush_error.rb"
 require_relative "../src/ruby/gpush.rb"
 
