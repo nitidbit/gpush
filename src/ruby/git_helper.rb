@@ -10,13 +10,6 @@ module GitHelper
     raise GpushError, stderr.strip
   end
 
-  def self.exit_with_error(error)
-    puts "\n\nGpush encountered an error:"
-    puts error.message
-    puts "\nExiting gpush."
-    ExitHelper.exit 1
-  end
-
   def self.at_same_commit_as_remote_branch?
     Kernel.system "git fetch"
     return false unless remote_branch_name

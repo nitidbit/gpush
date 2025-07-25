@@ -3,9 +3,8 @@
 
 require "English"
 require_relative "git_helper"
-require_relative File.join(__dir__, "gpush_options_parser")
-require_relative File.join(__dir__, "git_helper")
-require_relative File.join(__dir__, "exit_helper")
+require_relative "gpush_options_parser"
+require_relative "exit_helper"
 
 class GpushChangedFiles
   DEFAULT_FALLBACK_BRANCHES = %w[main master].freeze
@@ -176,6 +175,6 @@ if __FILE__ == $PROGRAM_NAME
     puts output if output.length.positive?
     exit output.length.positive? ? 0 : 1
   rescue GpushError => e
-    GitHelper.exit_with_error(e)
+    ExitHelper.exit_with_error(e)
   end
 end

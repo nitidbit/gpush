@@ -10,16 +10,11 @@ require_relative "config_helper"
 class GpushOptionsParser
   def self.parse(
     arguments,
-    config:,
+    config_prefix:,
     option_definitions:,
-    required_options:,
-    config_prefix: nil
+    required_options:
   )
-    subconfig = config_prefix ? config[config_prefix] : config
-    options = {
-      **(subconfig || {}).transform_keys(&:to_sym),
-      **option_definitions,
-    }
+    options = {}
 
     # Parse command-line arguments
     OptionParser
@@ -40,17 +35,28 @@ class GpushOptionsParser
       ExitHelper.exit 1
     end
 
+    file_config = ConfigHelper.parse_config(options[:config_file])
+    subconfig = config_prefix ? file_config[config_prefix] : file_config
+    options = {
+      **(subconfig || {}).transform_keys(&:to_sym),
+      **options.transform_keys(&:to_sym),
+    }
+
+    check_version(options)
+
     options
   end
 
-  def self.check_version(current_version, config)
-    return if current_version == "local-development"
+  def self.check_version(config)
+    if VERSION == "local-development"
+      puts "skipping version check for version #{VERSION.inspect}"
+      return
+    end
 
-    required_version = [config["gpush_version"]].flatten
+    required_version = [config[:gpush_version]].flatten
 
     requirement = Gem::Requirement.new(required_version)
-    current_version = Gem::Version.new(current_version)
-
+    current_version = Gem::Version.new(VERSION)
     return if requirement.satisfied_by?(current_version)
 
     raise GpushError,

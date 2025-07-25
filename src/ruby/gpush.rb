@@ -2,10 +2,12 @@
 require "optparse"
 require_relative "command" # Import the external command runner
 require_relative "config_helper" # Import the config helper
+require_relative "exit_helper" # Import the exit helper
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_error" # Import the custom error handling
 require_relative "gpush_fix" # Import the fix command
 require_relative "gpush_options_parser" # Import the options parser
+require_relative "gpush_run" # Import the version checker
 require_relative "notifier" # Import the desktop notifier
 require_relative "version_checker" # Import the version checker
 
@@ -13,6 +15,7 @@ EXITING_MESSAGE = "\nExiting gpush.".freeze
 
 DEFAULT_VERSION = "local-development".freeze # Default for uninstalled scripts
 VERSION = ENV["GPUSH_VERSION"] || DEFAULT_VERSION
+SUBCOMMANDS = { "run" => GpushRun, "fix" => GpushFix }.freeze
 
 module Gpush
   class << self
@@ -46,12 +49,8 @@ module Gpush
       puts "\n"
     end
 
-    def go(dry_run: false, verbose: false, config_file: nil)
-      puts "Using config file: #{ConfigHelper.display_config_file_path(config_file)}"
-      config = ConfigHelper.parse_config(config_file)
-
-      GpushOptionsParser.check_version(VERSION, config)
-
+    def go(options)
+      dry_run = options[:dry_run]
       puts "Starting dry run" if dry_run
 
       will_set_up_remote_branch = false # Initialize the flag
@@ -105,11 +104,12 @@ module Gpush
         end
       end
 
-      pre_run_commands = config["pre_run"] || []
-      parallel_run_commands = config["parallel_run"] || []
-      post_run_commands = config["post_run"] || []
-      post_run_success_commands = config["post_run_success"] || []
-      post_run_failure_commands = config["post_run_failure"] || []
+      pre_run_commands = options[:pre_run] || []
+      parallel_run_commands = options[:parallel_run] || []
+      post_run_commands = options[:post_run] || []
+      post_run_success_commands = options[:post_run_success] || []
+      post_run_failure_commands = options[:post_run_failure] || []
+      verbose = options[:verbose]
 
       # Run pre-run commands
       simple_run_commands_with_output(
@@ -157,70 +157,65 @@ module Gpush
           Kernel.system("git push") unless dry_run
         end
 
-        puts "《 #{config["success_emoji"] || "🌺"} 》 Good job! You're doing great."
+        puts "《 #{options[:success_emoji] || "🌺"} 》 Good job! You're doing great."
       end
 
       # Check for updates after a successful run (even in dry run mode)
       VersionChecker.print_message_if_new_version(VERSION)
+    end
+
+    def cl(argv)
+      subcommand = argv[0]
+
+      if subcommand && !SUBCOMMANDS.key?(subcommand)
+        puts "Unexpected argument(s): #{argv.join(" ")}"
+        puts "Run 'gpush --help' for usage information."
+        exit 1
+      end
+
+      # Use GpushOptionsParser to parse command-line arguments
+      options =
+        GpushOptionsParser.parse(
+          argv,
+          config_prefix: subcommand,
+          option_definitions:
+            lambda do |opts, parsing_options|
+              opts.banner =
+                "Usage:\ngpush [options] OR gpush [subcommand] [options]\n\nSubcommands:\n#{SUBCOMMANDS.keys.join("\n")}\n\nOptions:"
+
+              opts.on("--dry-run", "Simulate the commands without executing") do
+                parsing_options[:dry_run] = true
+              end
+
+              opts.on(
+                "-v",
+                "--verbose",
+                "Prints command output while running",
+              ) { parsing_options[:verbose] = true }
+
+              opts.on(
+                "--config-file=FILE",
+                "Specify a custom config file",
+              ) { |file| parsing_options[:config_file] = file }
+
+              opts.on_tail("--version", "Show version") do
+                puts "gpush #{VERSION}"
+                ExitHelper.exit(0)
+              end
+            end,
+          required_options: [], # No required options
+        )
+
+      # Execute gpush workflow
+      if subcommand
+        SUBCOMMANDS[subcommand].go(args: argv[1..], options:)
+      else
+        Gpush.go(options)
+      end
     rescue GpushError => e
-      GitHelper.exit_with_error(e)
+      ExitHelper.exit_with_error(e)
     end
   end
 end
 
-if __FILE__ == $PROGRAM_NAME
-  options = {}
-  options_parser =
-    OptionParser.new do |opts|
-      opts.banner = "Usage: gpush [options] OR gpush run COMMAND\nOPTIONS:"
-
-      opts.on("--dry-run", "Simulate the commands without executing") do
-        options[:dry_run] = true
-      end
-
-      opts.on("-v", "--verbose", "Prints command output while running") do
-        options[:verbose] = true
-      end
-
-      opts.on("--config_file=FILE", "Specify a custom config file") do |file|
-        options[:config_file] = file
-      end
-
-      opts.on_tail("--version", "Show version") do
-        puts "gpush #{VERSION}"
-        exit
-      end
-
-      opts.on_tail("-h", "--help", "Show this message") do
-        puts opts
-        exit
-      end
-    end
-  begin
-    options_parser.parse!
-  rescue OptionParser::InvalidOption => e
-    puts e
-    puts "Run 'gpush --help' for usage information."
-    exit 1
-  end
-
-  # Check for unexpected arguments after options parsing
-  if ARGV.any?
-    if ARGV[0] == "run"
-      GpushRun.go(args: ARGV[1..], options:)
-    elsif ARGV[0] == "fix"
-      GpushFix.go(args: ARGV[1..], options:)
-    else
-      puts "Unexpected argument(s): #{ARGV.join(" ")}"
-      puts "Run 'gpush --help' for usage information."
-      exit 1
-    end
-  end
-
-  # Execute gpush workflow
-  Gpush.go(
-    dry_run: options[:dry_run],
-    verbose: options[:verbose],
-    config_file: options[:config_file],
-  )
-end
+Gpush.cl(ARGV) if __FILE__ == $PROGRAM_NAME

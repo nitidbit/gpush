@@ -30,7 +30,7 @@ RSpec.describe "Command Verbosity" do
     allow(Kernel).to receive(:`) do |command|
       mock_system.mocked_system_call(command)
     end
-    allow(YAML).to receive(:load_file).and_return(test_config)
+    expect(YAML).to receive(:load_file).exactly(:once).and_return(test_config)
   end
 
   it "runs verbose commands with full output regardless of global verbose setting" do
@@ -39,8 +39,7 @@ RSpec.describe "Command Verbosity" do
       output: "verbose output",
       exit_code: 0,
     )
-
-    expect { Gpush.go(dry_run: true, verbose: false) }.to output(
+    expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
       /Running post-run success.*verbose output.*post-run success DONE/m,
     ).to_stdout
   end
@@ -52,27 +51,31 @@ RSpec.describe "Command Verbosity" do
       exit_code: 0,
     )
 
-    expect { Gpush.go(dry_run: true, verbose: true) }.not_to output(
+    expect { Gpush.cl(%w[--dry-run --verbose]) }.not_to output(
       /quiet output/,
     ).to_stdout
   end
 
-  it "runs default commands according to global verbose setting" do
-    mock_system.add_mock(
-      "echo 'default output'",
-      output: "default output",
-      exit_code: 0,
-    )
+  context "runs default commands according to global verbose setting" do
+    before do
+      mock_system.add_mock(
+        "echo 'default output'",
+        output: "default output",
+        exit_code: 0,
+      )
+    end
 
-    # Test with verbose off
-    expect { Gpush.go(dry_run: true, verbose: false) }.not_to output(
-      /default output/,
-    ).to_stdout
+    it "when CLI does not specify verbose" do
+      expect { Gpush.cl(%w[--dry-run]) }.not_to output(
+        /default output/,
+      ).to_stdout
+    end
 
-    # Test with verbose on
-    expect { Gpush.go(dry_run: true, verbose: true) }.to output(
-      /default output/,
-    ).to_stdout
+    it "when CLI specifies verbose" do
+      expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
+        /default output/,
+      ).to_stdout
+    end
   end
 
   it "shows section title when any command in the section is verbose" do
@@ -92,7 +95,7 @@ RSpec.describe "Command Verbosity" do
       exit_code: 0,
     )
 
-    expect { Gpush.go(dry_run: true, verbose: false) }.to output(
+    expect { Gpush.cl(%w[--dry-run]) }.to output(
       /Running post-run success.*post-run success DONE/m,
     ).to_stdout
   end

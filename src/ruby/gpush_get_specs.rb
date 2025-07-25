@@ -2,13 +2,13 @@
 # frozen_string_literal: true
 
 require "English"
-require_relative File.join(__dir__, "gpush_options_parser")
-require_relative File.join(__dir__, "gpush_changed_files")
-require_relative File.join(__dir__, "git_helper")
-require_relative File.join(__dir__, "gpush_error")
-require_relative File.join(__dir__, "exit_helper")
-require "find"
 require "fileutils"
+require "find"
+require_relative "exit_helper"
+require_relative "git_helper"
+require_relative "gpush_changed_files"
+require_relative "gpush_error"
+require_relative "gpush_options_parser"
 
 class GpushGetSpecs
   DEFAULT_OPTIONS = {
@@ -47,7 +47,7 @@ class GpushGetSpecs
 
     { specs: }.compact
   rescue GpushError => e
-    GitHelper.exit_with_error(e)
+    ExitHelper.exit_with_error(e)
   end
 
   def format_specs_for_output(specs)

@@ -49,7 +49,7 @@ module ConfigHelper
 
     def parse_config(config_file = nil)
       full_path = config_file_path(config_file)
-
+      puts "Using config file: #{display_config_file_path(config_file)}"
       config = YAML.load_file full_path
       raise GpushError, "Configuration file is empty!" if config.empty?
 
