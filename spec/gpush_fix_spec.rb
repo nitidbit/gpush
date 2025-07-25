@@ -1,6 +1,6 @@
 require "rspec"
 require_relative "../src/ruby/gpush_error.rb"
-require_relative "../src/ruby/gpush_fix.rb"
+require_relative "../src/ruby/gpush.rb"
 
 RSpec.describe "gpush fix" do
   before do
@@ -14,7 +14,7 @@ RSpec.describe "gpush fix" do
   context "when running gpush fix" do
     it "should report an error if the config file is empty" do
       expect(YAML).to receive(:load_file).and_return({})
-      expect { GpushFix.go(args: [], options: {}) }.to raise_error(
+      expect { Gpush.cl(["fix"]) }.to raise_error(
         GpushError,
         "Configuration file is empty!",
       )
@@ -22,7 +22,7 @@ RSpec.describe "gpush fix" do
 
     it "should report an error if the fix section is not found in the config file" do
       expect(YAML).to receive(:load_file).and_return({ gpush_version: ">=1.0" })
-      expect { GpushFix.go(args: [], options: {}) }.to raise_error(
+      expect { Gpush.cl(["fix"]) }.to raise_error(
         "Exit called with code 1",
       ).and output(
               /#{Regexp.escape("No fix section found in config file")}/,
@@ -31,7 +31,7 @@ RSpec.describe "gpush fix" do
 
     it "should report an error if the fix section is empty" do
       expect(YAML).to receive(:load_file).and_return({ "fix" => [] })
-      expect { GpushFix.go(args: [], options: {}) }.to raise_error(
+      expect { Gpush.cl(["fix"]) }.to raise_error(
         "Exit called with code 1",
       ).and output(/#{Regexp.escape("Fix section is empty")}/).to_stdout
     end
@@ -45,7 +45,7 @@ RSpec.describe "gpush fix" do
           ],
         },
       )
-      expect { GpushFix.go(args: [], options: {}) }.to raise_error(
+      expect { Gpush.cl(["fix"]) }.to raise_error(
         "Exit called with code 0",
       ).and output(/howdy.*hello.*echo 'world'.*world/m).to_stdout
     end
@@ -54,9 +54,7 @@ RSpec.describe "gpush fix" do
       expect(YAML).to receive(:load_file).and_return(
         { fix: [{ "shell" => "exit 1" }] },
       )
-      expect { GpushFix.go(args: [], options: {}) }.to raise_error(
-        "Exit called with code 1",
-      )
+      expect { Gpush.cl(["fix"]) }.to raise_error("Exit called with code 1")
     end
   end
 end
