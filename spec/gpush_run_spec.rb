@@ -27,4 +27,10 @@ RSpec.describe "gpush run" do
       /Command not found: nonexistent_command/,
     ).to_stdout.and raise_error("Exit called with code 1")
   end
+
+  it "skips commands that fail the 'if' condition" do
+    expect { Gpush.cl(%w[run always_skipped]) }.to output(
+      /always skipped skipped because 'if' condition failed(?!.*should never run)/m,
+    ).to_stdout.and raise_error("Exit called with code 1")
+  end
 end

@@ -165,19 +165,13 @@ module Gpush
     end
 
     def cl(argv)
-      subcommand = argv[0]
-
-      if subcommand && !SUBCOMMANDS.key?(subcommand)
-        puts "Unexpected argument(s): #{argv.join(" ")}"
-        puts "Run 'gpush --help' for usage information."
-        exit 1
-      end
+      subcommand = SUBCOMMANDS.keys.find { |key| argv[0] == key }
 
       # Use GpushOptionsParser to parse command-line arguments
       options =
         GpushOptionsParser.parse(
-          argv,
-          config_prefix: subcommand,
+          subcommand ? argv[1..] : argv,
+          config_prefix: nil,
           option_definitions:
             lambda do |opts, parsing_options|
               opts.banner =
