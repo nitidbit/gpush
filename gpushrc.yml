@@ -31,6 +31,9 @@ parallel_run:
   - name: bundle leak
     shell: bundle exec bundle leak --update
 
+  - name: should always pass
+    shell: exit 0
+
   - name: Check yaml files
     shell: |
       ruby -ryaml -e 'Dir.glob("**/*.{yml,yaml}").each { |file| raise "problem with: #{file}" unless YAML.load_file(file).is_a?(Hash) }'
@@ -38,8 +41,11 @@ parallel_run:
   # just confirm this does not thorow an error
   - shell: gpush_changed_files
 
+  - name: gpush_get_specs
+    shell: gpush get_specs --include_pattern 'spec/**/*spec.rb'
+
   - name: gpush run
-    shell: gpush run uncommitted git_changes # test normalizing the command name
+    shell: gpush run shouldalways_PASS # test normalizing the command name
 
   - name: always skipped
     shell: echo "This should never run"
