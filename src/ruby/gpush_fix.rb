@@ -22,11 +22,13 @@ module GpushFix
       ExitHelper.exit(1)
     end
 
-    options[:fix].each do |cmd_dict|
-      command = Command.new(cmd_dict, verbose: true, prefix_output: false)
-      command.run
-    end
+    commands_succeeded =
+      options[:fix].map do |cmd_dict|
+        command = Command.new(cmd_dict, verbose: true, prefix_output: false)
+        command.run
+        command.success?
+      end
 
-    ExitHelper.exit(0)
+    ExitHelper.exit(commands_succeeded.all? ? 0 : 1)
   end
 end
