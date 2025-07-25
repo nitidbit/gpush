@@ -4,7 +4,7 @@ require_relative "exit_helper"
 
 module GpushRun
   class << self
-    def go(args:, options:)
+    def go(args:, options:) # rubocop:disable Lint/UnusedMethodArgument
       if args.nil? || args.empty?
         puts "Enter a command to run (e.g., gpush run test_name)"
         ExitHelper.exit 1
