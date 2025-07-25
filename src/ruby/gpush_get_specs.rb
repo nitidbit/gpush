@@ -6,6 +6,7 @@ require "fileutils"
 require "find"
 require_relative "exit_helper"
 require_relative "git_helper"
+require_relative "gpush" # sets version
 require_relative "gpush_changed_files"
 require_relative "gpush_error"
 require_relative "gpush_options_parser"
