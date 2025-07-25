@@ -23,6 +23,55 @@ class GpushGetSpecs
     @options = DEFAULT_OPTIONS.merge(options)
   end
 
+  def self.option_definitions
+    proc do |opts, options|
+      opts.on(
+        "-r",
+        "--root-dir DIRECTORY",
+        "Root directory of the project",
+      ) { |dir| options[:root_dir] = dir }
+
+      opts.on(
+        "-i",
+        "--include-pattern PATTERN",
+        "Glob pattern to include spec files (e.g., '*spec.rb')",
+      ) { |pattern| options[:include_pattern] = pattern }
+
+      opts.on(
+        "-a",
+        "--always-include PATTERN",
+        "Glob pattern to always include spec files",
+      ) { |pattern| options[:always_include] = pattern }
+
+      opts.on(
+        "-e",
+        "--exclude-words WORDS",
+        "Comma-separated list of words to exclude from keywords",
+      ) do |words|
+        options[:exclude_words] = words.split(",").map(&:strip).map(&:downcase)
+      end
+
+      opts.on(
+        "-l",
+        "--min-length LENGTH",
+        Integer,
+        "Minimum length for keywords",
+      ) { |length| options[:min_keyword_length] = length }
+
+      opts.on(
+        "-s",
+        "--output-separator SEPARATOR",
+        "String used to separate output filenames (default is a space)",
+      ) { |separator| options[:output_separator] = separator }
+
+      opts.on("-v", "--verbose", "Enable verbose output") do
+        options[:verbose] = true
+      end
+    end
+  end
+
+  def self.required_options = %i[]
+
   def find_matching_specs
     if @options[:exclude_words].nil?
       raise GpushError,
@@ -110,55 +159,6 @@ class GpushGetSpecs
   def log(message)
     puts message if @options[:verbose]
   end
-
-  def self.option_definitions
-    proc do |opts, options|
-      opts.on(
-        "-r",
-        "--root-dir DIRECTORY",
-        "Root directory of the project",
-      ) { |dir| options[:root_dir] = dir }
-
-      opts.on(
-        "-i",
-        "--include-pattern PATTERN",
-        "Glob pattern to include spec files (e.g., '*spec.rb')",
-      ) { |pattern| options[:include_pattern] = pattern }
-
-      opts.on(
-        "-a",
-        "--always-include PATTERN",
-        "Glob pattern to always include spec files",
-      ) { |pattern| options[:always_include] = pattern }
-
-      opts.on(
-        "-e",
-        "--exclude-words WORDS",
-        "Comma-separated list of words to exclude from keywords",
-      ) do |words|
-        options[:exclude_words] = words.split(",").map(&:strip).map(&:downcase)
-      end
-
-      opts.on(
-        "-l",
-        "--min-length LENGTH",
-        Integer,
-        "Minimum length for keywords",
-      ) { |length| options[:min_keyword_length] = length }
-
-      opts.on(
-        "-s",
-        "--output-separator SEPARATOR",
-        "String used to separate output filenames (default is a space)",
-      ) { |separator| options[:output_separator] = separator }
-
-      opts.on("-v", "--verbose", "Enable verbose output") do
-        options[:verbose] = true
-      end
-    end
-  end
-
-  def self.required_options = %i[]
 end
 
 # Command-line execution
