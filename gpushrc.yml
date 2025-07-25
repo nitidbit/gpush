@@ -35,6 +35,9 @@ parallel_run:
     shell: |
       ruby -ryaml -e 'Dir.glob("**/*.{yml,yaml}").each { |file| raise "problem with: #{file}" unless YAML.load_file(file).is_a?(Hash) }'
 
+  # just confirm this does not thorow an error
+  - shell: gpush_changed_files
+
   - name: always skipped
     shell: echo "This should never run"
     if: exit 1
