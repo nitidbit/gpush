@@ -6,9 +6,11 @@ inherit_from:
   - .rubocop_todo.yml
   - node_modules/@prettier/plugin-ruby/rubocop.yml
 
-require:
+plugins:
   - rubocop-rails
   - rubocop-rspec
+
+require:
   - rubocop-rails-accessibility
 
 AllCops:
@@ -55,7 +57,7 @@ Metrics/PerceivedComplexity:
   Max: 20
 
 # is_ and has_ provide extra information and were a style at one point
-Naming/PredicateName:
+Naming/PredicatePrefix:
   Enabled: false
 
 # we have too many db fields like address_1 and population_women_13_to_44
@@ -113,8 +115,8 @@ Style/TrailingCommaInArrayLiteral:
 Style/TrailingCommaInHashLiteral:
   EnforcedStyleForMultiline: consistent_comma
 
-# [Winston] Rubocop's argument is a lot of safe-navigation operators can be tricky to evaluate. 
-# I agree, but I feel the solution is to build our models so they don't allow 'nil' as often, 
+# [Winston] Rubocop's argument is a lot of safe-navigation operators can be tricky to evaluate.
+# I agree, but I feel the solution is to build our models so they don't allow 'nil' as often,
 # not to limit safe-navigator chains.
 Style/SafeNavigationChainLength:
   Enabled: false
