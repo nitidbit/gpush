@@ -4,3 +4,7 @@ pre_run:
 parallel_run:
   - name: parallel_run_1
     shell: echo "Parallel run 1 in spec/gpushrc.yml"
+
+  - name: always skipped
+    shell: echo "This should never run"
+    if: exit 1

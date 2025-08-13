@@ -6,9 +6,9 @@ require "English"
 REPO = "nitidbit/gpush".freeze # Updated with the correct repository name
 
 def release(version: nil)
-  exit_with_error("must specify a version (eg -v 1.2.3)") unless version
+  exit_with_message("must specify a version (eg -v 1.2.3)") unless version
   unless version.match?(/^\d+\.\d+\.\d+$/)
-    exit_with_error "Error: Version #{version} is not a valid semantic version (X.Y.Z)."
+    exit_with_message "Error: Version #{version} is not a valid semantic version (X.Y.Z)."
   end
 
   tag = "v#{version}"
@@ -16,14 +16,14 @@ def release(version: nil)
 
   # Step 2: Handle existing version tags
   existing_tags = `git tag`.split("\n")
-  exit_with_error("Failed to retrieve git tags.") if existing_tags.empty?
+  exit_with_message("Failed to retrieve git tags.") if existing_tags.empty?
 
   if existing_tags.include?(tag)
     puts "Tag #{tag} already exists, skipping tag creation."
   else
     system("git tag -a #{tag} -m 'Release version #{tag}'")
     unless $CHILD_STATUS.success?
-      exit_with_error("Failed to create git tag #{tag}.")
+      exit_with_message("Failed to create git tag #{tag}.")
     end
   end
 
@@ -34,7 +34,7 @@ def release(version: nil)
   else
     system("git push origin #{tag}")
     unless $CHILD_STATUS.success?
-      exit_with_error("Failed to push git tag #{tag} to origin.")
+      exit_with_message("Failed to push git tag #{tag} to origin.")
     end
   end
 
@@ -84,21 +84,21 @@ end
 def compute_sha256(tag, tarball_url)
   system("curl -L -o #{tag}.tar.gz #{tarball_url}")
   unless $CHILD_STATUS.success?
-    exit_with_error("Failed to download tarball from #{tarball_url}.")
+    exit_with_message("Failed to download tarball from #{tarball_url}.")
   end
 
   sha_256 = `shasum -a 256 #{tag}.tar.gz`.split.first
-  exit_with_error("Failed to compute SHA-256 checksum.") unless sha_256
+  exit_with_message("Failed to compute SHA-256 checksum.") unless sha_256
 
   system("rm #{tag}.tar.gz")
   unless $CHILD_STATUS.success?
-    exit_with_error("Failed to remove the downloaded tarball.")
+    exit_with_message("Failed to remove the downloaded tarball.")
   end
 
   sha_256
 end
 
-def exit_with_error(message)
+def exit_with_message(message)
   puts "Error: #{message}"
   exit 1
 end

@@ -1,4 +1,4 @@
-# require "spec_helper"
+require "spec_helper"
 require_relative "../src/ruby/version_checker"
 
 RSpec.describe VersionChecker do

@@ -2,9 +2,10 @@
 # frozen_string_literal: true
 
 require "English"
+require_relative "gpush" # sets version
 require_relative "git_helper"
-require_relative File.join(__dir__, "gpush_options_parser")
-require_relative File.join(__dir__, "git_helper")
+require_relative "gpush_options_parser"
+require_relative "exit_helper"
 
 class GpushChangedFiles
   DEFAULT_FALLBACK_BRANCHES = %w[main master].freeze
@@ -43,7 +44,7 @@ class GpushChangedFiles
         diff_cmd = diff_command(fallback_branch)
       else
         puts "Branch not found on origin and no fallback branches available."
-        exit 2
+        ExitHelper.exit(2)
       end
     end
 
@@ -64,7 +65,7 @@ class GpushChangedFiles
 
       # Apply glob pattern filtering if specified
       if @options[:pattern]
-        validate_glob_pattern(@options[:pattern])
+        valid_glob_pattern?(@options[:pattern])
         matched_by_pattern = Dir.glob(@options[:pattern])
         files.select! { |file| matched_by_pattern.include?(file) }
       end
@@ -97,7 +98,7 @@ class GpushChangedFiles
     puts message if @options[:verbose]
   end
 
-  def validate_glob_pattern(pattern)
+  def valid_glob_pattern?(pattern)
     # Ensure the pattern is not empty or nil
     if pattern.nil? || pattern.strip.empty?
       raise GpushError, "Invalid pattern: pattern cannot be empty or nil"
@@ -175,6 +176,6 @@ if __FILE__ == $PROGRAM_NAME
     puts output if output.length.positive?
     exit output.length.positive? ? 0 : 1
   rescue GpushError => e
-    GitHelper.exit_with_error(e)
+    ExitHelper.exit_with_error(e)
   end
 end

@@ -1,5 +1,4 @@
-ENV["GPUSH_VERSION"] ||= "2.0.0"
-require "rspec"
+require "spec_helper"
 require_relative "../src/ruby/gpush.rb"
 require_relative "./mock_system.rb"
 
@@ -20,7 +19,7 @@ RSpec.describe "Gpush" do
   it "finds the gpushrc.yml in the directory" do
     Dir.chdir(File.join(__dir__, "directory_with_config"))
 
-    expect { go(dry_run: true, verbose: true) }.to output(
+    expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
       %r{
         Using\ config\ file:\ spec/directory_with_config/gpushrc.yml.*
         Pre-run\ command\ in\ spec/directory_with_config/gpushrc.yml
@@ -30,7 +29,7 @@ RSpec.describe "Gpush" do
 
   it "traverses up the directory tree to find the gpushrc.yml" do
     Dir.chdir(File.join(__dir__, "directory_without_config"))
-    expect { go(dry_run: true, verbose: true) }.to output(
+    expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
       %r{
         Using\ config\ file:\ spec/gpushrc.yml.*
         Pre-run\ command\ in\ spec/gpushrc.yml
@@ -40,14 +39,14 @@ RSpec.describe "Gpush" do
 
   it "runs the commands from directory of the gpushrc.yml" do
     Dir.chdir(File.join(__dir__, "directory_with_config", "empty_subdir"))
-    expect { go(dry_run: true, verbose: true) }.to output(
+    expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
       /#{Regexp.escape("Current directory in braces: [#{__dir__}/directory_with_config]")}/xm,
     ).to_stdout
   end
 
   it "accepts a custom config file" do
     expect {
-      go(dry_run: true, verbose: true, config_file: "gpush_alt_config.yml")
+      Gpush.cl(%w[--dry-run --verbose --config-file=gpush_alt_config.yml])
     }.to output(
       /#{Regexp.escape("Using config file: spec/gpush_alt_config.yml")}/xm,
     ).to_stdout
@@ -55,28 +54,70 @@ RSpec.describe "Gpush" do
 
   it "complains if the custom config file does not exist" do
     expect {
-      go(dry_run: true, verbose: true, config_file: "non_existent.yml")
-    }.to raise_error(SystemExit).and output(
+      Gpush.cl(%w[--dry-run --verbose --config-file=non_existent.yml])
+    }.to raise_error("Exit called with code 1").and output(
             /#{Regexp.escape("Config file not found: non_existent.yml")}/m,
           ).to_stdout
   end
 
-  it "aborts if gpush_version in the config file is not compatible" do
-    expect(YAML).to receive(:load_file).and_return("gpush_version" => ">50.0")
-    expect { go(dry_run: true, verbose: true) }.to raise_error(
-      SystemExit,
-    ).and output(
-            /#{Regexp.escape("Your config file (#{__dir__}/gpushrc.yml) specifies version >50.0. You have #{VERSION}.")}\n\n#{Regexp.escape("Run 'brew update && brew upgrade gpush' to update.")}/m,
-          ).to_stdout
+  it "can print the version" do
+    stub_const("VERSION", "42.0.0")
+    expect { Gpush.cl(%w[--version]) }.to output(
+      /gpush 42.0.0/,
+    ).to_stdout.and raise_error("Exit called with code 0")
   end
 
-  it "proceeds if gpush_version in the config file is compatible" do
-    expect(YAML).to receive(:load_file).and_return(
-      "gpush_version" => %w[<50.0 >1.1.0],
-    ).at_least(:once)
-    expect { go(dry_run: true, verbose: true) }.to output(
-      /#{Regexp.escape "《 Dry run completed 》"}/xm,
-    ).to_stdout
+  context "version check" do
+    before { stub_const("VERSION", "2.0.0") }
+
+    it "aborts if gpush_version in the config file is not compatible" do
+      expect(YAML).to receive(:load_file).exactly(:once).and_return(
+        "gpush_version" => ">50.0",
+      )
+      expect { Gpush.cl(%w[--dry-run --verbose]) }.to raise_error(
+        "Exit called with code 1",
+      ).and output(
+              /#{Regexp.escape("Your config file specifies version >50.0. You have 2.0.0.")}\n\n#{Regexp.escape("Run 'brew update && brew upgrade gpush' to update.")}/m,
+            ).to_stdout
+    end
+
+    it "proceeds if gpush_version in the config file is compatible" do
+      expect(YAML).to receive(:load_file).exactly(:once).and_return(
+        "gpush_version" => %w[<50.0 >1.1.0],
+      )
+      expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
+        /#{Regexp.escape "《 Dry run completed 》"}/xm,
+      ).to_stdout
+    end
+  end
+
+  context "success emoji" do
+    before do
+      expect(YAML).to receive(:load_file).exactly(:once).and_return(
+        "success_emoji" => "🦄",
+      )
+    end
+    it "prints it when not in dry run mode" do
+      expect(GitHelper).to receive(:behind_remote_branch?).and_return(false)
+      expect(GitHelper).to receive(
+        :up_to_date_or_ahead_of_remote_branch?,
+      ).and_return(true)
+      expect(GitHelper).to receive(
+        :at_same_commit_as_remote_branch?,
+      ).and_return(false)
+      mock_system.add_mock(
+        "git push",
+        output: "Mock pushing to origin",
+        exit_code: 0,
+      )
+      expect { Gpush.cl([]) }.to output(/#{Regexp.escape "🦄"}/xm).to_stdout
+    end
+
+    it "does not print it when in dry run mode" do
+      expect { Gpush.cl(%w[--dry-run]) }.not_to output(
+        /#{Regexp.escape "🦄"}/xm,
+      ).to_stdout
+    end
   end
 
   # xit "runs the pre-defined git push command successfully" do
@@ -84,7 +125,7 @@ RSpec.describe "Gpush" do
   #   mock_system.add_mock("git push", output: "Pushing to origin", exit_code: 0)
 
   #   # Execute the gpush workflow
-  #   expect { go(dry_run: false, verbose: false) }.not_to raise_error
+  #   expect { Gpush.go(dry_run: false, verbose: false) }.not_to raise_error
 
   #   # Validate the command was called
   #   expect(mock_system.commands).to include("git push")
@@ -98,13 +139,13 @@ RSpec.describe "Gpush" do
   #     exit_code: 1,
   #   )
 
-  #   expect { go(dry_run: false, verbose: false) }.to raise_error(SystemExit)
+  #   expect { Gpush.go(dry_run: false, verbose: false) }.to raise_error(SystemExit)
 
   #   # Validate the command was called
   #   expect(mock_system.commands).to include("git push")
   # end
 
   # it "runs successfully with a dry run" do
-  #   expect { go(dry_run: true, verbose: false) }.not_to raise_error
+  #   expect { Gpush.go(dry_run: true, verbose: false) }.not_to raise_error
   # end
 end
