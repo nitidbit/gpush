@@ -12,7 +12,8 @@ class GpushOptionsParser
     arguments,
     config_prefix:,
     option_definitions:,
-    required_options:
+    required_options:,
+    verbose: false
   )
     options = {}
 
@@ -35,21 +36,21 @@ class GpushOptionsParser
       ExitHelper.exit 1
     end
 
-    file_config = ConfigHelper.parse_config(options[:config_file])
+    file_config = ConfigHelper.parse_config(options[:config_file], verbose:)
     subconfig = config_prefix ? file_config[config_prefix] : file_config
     options = {
       **(subconfig || {}).transform_keys(&:to_sym),
       **options.transform_keys(&:to_sym),
     }
 
-    check_version(options)
+    check_version(options, verbose:)
 
     options
   end
 
-  def self.check_version(config)
+  def self.check_version(config, verbose:)
     if VERSION == "local-development"
-      puts "skipping version check for version #{VERSION.inspect}"
+      puts "skipping version check for version #{VERSION.inspect}" if verbose
       return
     end
 

@@ -201,6 +201,7 @@ module Gpush
           config_prefix: nil,
           option_definitions: klass.option_definitions,
           required_options: klass.required_options,
+          verbose: true,
         )
 
       # Execute gpush workflow
