@@ -188,8 +188,6 @@ module Gpush
       end
     end
 
-    def required_options = []
-
     def cl(argv)
       subcommand = SUBCOMMANDS.keys.find { |key| argv[0] == key }
       klass = subcommand ? SUBCOMMANDS[subcommand] : Gpush
@@ -200,7 +198,6 @@ module Gpush
           subcommand ? argv[1..] : argv,
           config_prefix: nil,
           option_definitions: klass.option_definitions,
-          required_options: klass.required_options,
           verbose: true,
           is_subcommand: !!subcommand,
         )

@@ -37,6 +37,4 @@ module GpushFix
       # no options for fix
     end
   end
-
-  def self.required_options = %i[]
 end

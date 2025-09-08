@@ -70,8 +70,6 @@ class GpushGetSpecs
     end
   end
 
-  def self.required_options = %i[]
-
   def find_matching_specs
     if @options[:exclude_words].nil?
       raise GpushError,
@@ -169,7 +167,6 @@ if __FILE__ == $PROGRAM_NAME
       ARGV,
       config_prefix:,
       option_definitions: GpushGetSpecs.option_definitions,
-      required_options: GpushGetSpecs.required_options,
     )
 
   finder = GpushGetSpecs.new(options)

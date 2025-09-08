@@ -19,8 +19,6 @@ module GpushRun
       end
     end
 
-    def required_options = %i[]
-
     private
 
     def normalize_command_name(command_input)

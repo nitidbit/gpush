@@ -12,7 +12,6 @@ class GpushOptionsParser
     arguments,
     config_prefix:,
     option_definitions:,
-    required_options:,
     verbose: false,
     is_subcommand: false
   )
@@ -36,13 +35,6 @@ class GpushOptionsParser
     if !is_subcommand && remaining_args.any?
       raise GpushError,
             "Unknown arguments: #{remaining_args.join(", ")}. Run 'gpush --help' for usage information."
-    end
-
-    # Validate required options
-    missing_options = required_options.select { |opt| options[opt].nil? }
-    unless missing_options.empty?
-      puts "Missing required options: #{missing_options.map { |opt| "--#{opt.to_s.tr("_", "-")}" }.join(", ")}"
-      ExitHelper.exit 1
     end
 
     file_config = ConfigHelper.parse_config(options[:config_file], verbose:)

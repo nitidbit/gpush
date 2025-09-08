@@ -168,7 +168,6 @@ if __FILE__ == $PROGRAM_NAME
               parsing_options[:include_deleted_files] = true
             end
           end,
-        required_options: [], # No required options
       )
 
     # Find the changed files and output the result
