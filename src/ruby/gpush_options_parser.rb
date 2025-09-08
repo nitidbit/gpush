@@ -13,21 +13,30 @@ class GpushOptionsParser
     config_prefix:,
     option_definitions:,
     required_options:,
-    verbose: false
+    verbose: false,
+    is_subcommand: false
   )
     options = {}
 
     # Parse command-line arguments
-    OptionParser
-      .new do |opts|
-        opts.banner = "Usage: script.rb [options]"
-        option_definitions.call(opts, options)
-        opts.on("-h", "--help", "Prints this help") do
-          puts opts
-          ExitHelper.exit 1
+    remaining_args =
+      OptionParser
+        .new do |opts|
+          opts.banner = "Usage: script.rb [options]"
+          option_definitions.call(opts, options)
+          opts.on("-h", "--help", "Prints this help") do
+            puts opts
+            ExitHelper.exit 1
+          end
         end
-      end
-      .parse!(arguments)
+        .parse!(arguments)
+
+    # Check for unknown positional arguments only if not a subcommand
+    # Subcommands handle their own argument validation
+    if !is_subcommand && remaining_args.any?
+      raise GpushError,
+            "Unknown arguments: #{remaining_args.join(", ")}. Run 'gpush --help' for usage information."
+    end
 
     # Validate required options
     missing_options = required_options.select { |opt| options[opt].nil? }

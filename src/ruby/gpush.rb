@@ -202,6 +202,7 @@ module Gpush
           option_definitions: klass.option_definitions,
           required_options: klass.required_options,
           verbose: true,
+          is_subcommand: !!subcommand,
         )
 
       # Execute gpush workflow
@@ -210,7 +211,7 @@ module Gpush
       else
         Gpush.go(options)
       end
-    rescue GpushError => e
+    rescue GpushError, OptionParser::InvalidOption => e
       ExitHelper.exit_with_error(e)
     end
   end

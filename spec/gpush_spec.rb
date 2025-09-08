@@ -67,6 +67,18 @@ RSpec.describe "Gpush" do
     ).to_stdout.and raise_error("Exit called with code 0")
   end
 
+  it "shows error for invalid arguments" do
+    expect { Gpush.cl(%w[blerg]) }.to output(
+      /Unknown arguments: blerg/,
+    ).to_stdout.and raise_error("Exit called with code 1")
+  end
+
+  it "shows error for invalid options" do
+    expect { Gpush.cl(%w[--invalid-flag]) }.to output(
+      /invalid option: --invalid-flag/,
+    ).to_stdout.and raise_error("Exit called with code 1")
+  end
+
   context "version check" do
     before { stub_const("VERSION", "2.0.0") }
 
