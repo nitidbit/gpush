@@ -12,6 +12,7 @@ fix:
 pre_run:
   - shell: bundle check
   - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json' -O
+  - shell: curl https://raw.githubusercontent.com/nitidbit/gpush/main/nitid_linter_configs/log-coverage.mjs -O
 
 parallel_run:
   - name: rspec
@@ -55,3 +56,7 @@ post_run:
   - name: verbosity
     shell: echo "pre_run and post_run commands can be run with individual 'verbose' setting"
     verbose: true
+
+post_run_success:
+  - name: "Log Coverage"
+    shell: node log-coverage.mjs "Gpush" coverage/.resultset.json

@@ -16,3 +16,7 @@ dist/
 
 *.swp
 **/__pycache__
+
+coverage/**/*
+
+log-coverage.mjs

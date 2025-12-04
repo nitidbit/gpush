@@ -18,3 +18,7 @@ group :gpush do
   gem "bundler-audit"
   gem "bundler-leak"
 end
+
+group :development do
+  gem "simplecov"
+end
