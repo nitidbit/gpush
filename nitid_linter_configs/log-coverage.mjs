@@ -23,8 +23,8 @@ function detectFileType(coverage) {
 
 function processJSCoverage(coverage, title = "JS") {
   const total = coverage.total;
-  const linesPct = total.lines.pct;
-  const branchesPct = total.branches.pct;
+  const linesPct = Math.round(total.lines.pct);
+  const branchesPct = Math.round(total.branches.pct);
   console.log(`${title} Lines ${linesPct}%`);
   console.log(`${title} Branches ${branchesPct}%`);
   return { title, lines: linesPct, branches: branchesPct };
@@ -73,12 +73,14 @@ function processRubyCoverage(coverage, title = "Ruby") {
   const branchCoverage =
     totalBranches > 0 ? (coveredBranches / totalBranches) * 100 : 0;
 
-  console.log(`${title} Lines ${lineCoverage.toFixed(2)}%`);
-  console.log(`${title} Branches ${branchCoverage.toFixed(2)}%`);
+  const linesPct = Math.round(lineCoverage);
+  const branchesPct = Math.round(branchCoverage);
+  console.log(`${title} Lines ${linesPct}%`);
+  console.log(`${title} Branches ${branchesPct}%`);
   return {
     title,
-    lines: parseFloat(lineCoverage.toFixed(2)),
-    branches: parseFloat(branchCoverage.toFixed(2)),
+    lines: linesPct,
+    branches: branchesPct,
   };
 }
 
@@ -116,7 +118,7 @@ async function sendToSlack(coverages, appName, webhookUrl) {
       type: "header",
       text: {
         type: "plain_text",
-        text: `${appName} - Test Coverage`,
+        text: appName,
       },
     },
     {
@@ -229,6 +231,7 @@ const slackWebhookUrl = process.env.SLACK_COVERAGE_WEBHOOK_URL;
 if (slackWebhookUrl && coverages.length > 0) {
   sendToSlack(coverages, appName, slackWebhookUrl)
     .then(() => {
+      console.log("Coverage posted to Slack");
       process.exit(0);
     })
     .catch((error) => {

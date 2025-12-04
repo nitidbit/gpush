@@ -11,8 +11,7 @@ fix:
 
 pre_run:
   - shell: bundle check
-  - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.prettierrc.json' -O
-  - shell: curl https://raw.githubusercontent.com/nitidbit/gpush/main/nitid_linter_configs/log-coverage.mjs -O
+  - shell: curl https://raw.githubusercontent.com/nitidbit/gpush/main/nitid_linter_configs/.prettierrc.json -O
 
 parallel_run:
   - name: rspec
@@ -59,4 +58,4 @@ post_run:
 
 post_run_success:
   - name: "Log Coverage"
-    shell: node log-coverage.mjs "Gpush" coverage/.resultset.json
+    shell: node ./nitid_linter_configs/log-coverage.mjs "Gpush" coverage/.resultset.json
