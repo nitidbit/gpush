@@ -239,5 +239,10 @@ if (slackWebhookUrl && coverages.length > 0) {
       process.exit(1);
     });
 } else {
+  if (!slackWebhookUrl && coverages.length > 0) {
+    console.error(
+      "Slack not posted: set SLACK_COVERAGE_WEBHOOK_URL to post coverage to Slack"
+    );
+  }
   process.exit(0);
 }
