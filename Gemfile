@@ -1,5 +1,5 @@
 source "https://rubygems.org"
-ruby "3.1.6"
+ruby "3.3.11"
 
 gem "rubocop"
 
