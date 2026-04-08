@@ -95,7 +95,7 @@ Clone the repo if you have not already:
 git clone https://github.com/nitidbit/gpush
 ```
 
-**Current Homebrew** (4.x and later) does **not** accept a bare path like `brew install ./Formula/gpush.rb`. It responds with *“Homebrew requires formulae to be in a tap”*. The supported approach is to **tap this repository** (it already has `Formula/gpush.rb` at the repo root), then install by **tap-qualified name**.
+**Current Homebrew** (4.x and later) does **not** accept a bare path like `brew install ./Formula/gpush.rb`. It responds with _“Homebrew requires formulae to be in a tap”_. The supported approach is to **tap this repository** (it already has `Formula/gpush.rb` at the repo root), then install by **tap-qualified name**.
 
 From the **root of your clone**:
 
