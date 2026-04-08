@@ -5,9 +5,9 @@ class Gpush < Formula
   version "local-development"
 
   # commenting out the depends_on line speeds installation
-  # depends_on "ruby" => ">= 3.1"
+  # depends_on "ruby" => ">= 3.3"
 
-  depends_on 'terminal-notifier' => :recommended
+  depends_on "terminal-notifier" => :recommended
 
   EXECUTABLES = %w[gpush_changed_files.rb gpush_get_specs.rb gpush.rb].freeze
 

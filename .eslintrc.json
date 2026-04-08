@@ -1,4 +1,12 @@
 {
+  "ignorePatterns": [
+    "vendor/**",
+    "node_modules/**",
+    "coverage/**",
+    "build/**",
+    "dist/**",
+    ".bundle/**"
+  ],
   "extends": [
     "airbnb",
     "prettier"

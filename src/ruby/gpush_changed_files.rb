@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require "English"
-require_relative "gpush" # sets version
+require_relative "gpush_version"
 require_relative "git_helper"
 require_relative "gpush_options_parser"
 require_relative "exit_helper"
@@ -27,28 +27,12 @@ class GpushChangedFiles
     log("")
   end
 
+  def diff_base_ref
+    "origin/#{resolved_diff_branch_name}"
+  end
+
   def all_changed_files
-    branch_name = GitHelper.local_branch_name
-
-    # Determine which branch to use for the diff
-    if GitHelper.branch_exists_on_origin?(branch_name)
-      diff_cmd = diff_command(branch_name)
-    else
-      fallback_branch =
-        @options[:fallback_branches].find do |fallback|
-          GitHelper.branch_exists_on_origin?(fallback)
-        end
-
-      if fallback_branch
-        log "Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}."
-        diff_cmd = diff_command(fallback_branch)
-      else
-        puts "Branch not found on origin and no fallback branches available."
-        ExitHelper.exit(2)
-      end
-    end
-
-    # Run the diff command and capture the output
+    diff_cmd = diff_command(resolved_diff_branch_name)
     stdout, status = Open3.capture2(diff_cmd)
     return stdout.split("\n") if status.success?
 
@@ -88,11 +72,32 @@ class GpushChangedFiles
   end
 
   def diff_command(branch)
-    log("Checking diff for branch: origin/#{branch}")
     "git diff --name-only origin/#{branch}"
   end
 
   private
+
+  def resolved_diff_branch_name
+    branch_name = GitHelper.local_branch_name
+
+    if GitHelper.branch_exists_on_origin?(branch_name)
+      log("Checking diff for branch: origin/#{branch_name}")
+      return branch_name
+    end
+
+    fallback_branch =
+      @options[:fallback_branches].find do |fallback|
+        GitHelper.branch_exists_on_origin?(fallback)
+      end
+
+    if fallback_branch
+      log "Branch #{branch_name} not found on origin. Falling back to origin/#{fallback_branch}."
+      return fallback_branch
+    end
+
+    puts "Branch not found on origin and no fallback branches available."
+    ExitHelper.exit(2)
+  end
 
   def log(message)
     puts message if @options[:verbose]
@@ -139,7 +144,6 @@ end
 
 if __FILE__ == $PROGRAM_NAME
   begin
-    # Use GpushOptionsParser to parse command-line arguments
     options =
       GpushOptionsParser.parse(
         ARGV,
@@ -170,7 +174,6 @@ if __FILE__ == $PROGRAM_NAME
           end,
       )
 
-    # Find the changed files and output the result
     output = GpushChangedFiles.new(options).format_changed_files
     puts output if output.length.positive?
     exit output.length.positive? ? 0 : 1

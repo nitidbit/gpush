@@ -87,21 +87,37 @@ See below image:
 
 [Github Issues Page](https://github.com/nitidbit/gpush/issues)
 
-### Install gpush using homebrew
+### Install gpush using Homebrew (from your clone)
 
-clone the gpush repo (if you have not yet done so)
+Clone the repo if you have not already:
 
-```
+```bash
 git clone https://github.com/nitidbit/gpush
 ```
 
-Install (use `brew reinstall` if you already have a version of gpush installed)
+**Current Homebrew** (4.x and later) does **not** accept a bare path like `brew install ./Formula/gpush.rb`. It responds with *“Homebrew requires formulae to be in a tap”*. The supported approach is to **tap this repository** (it already has `Formula/gpush.rb` at the repo root), then install by **tap-qualified name**.
 
+From the **root of your clone**:
+
+```bash
+cd /path/to/gpush
+brew tap YOURNAME/gpush-local "file://$(pwd)"
+brew install YOURNAME/gpush-local/gpush
 ```
-brew install [path-to-local-gpush-repo]/Formula/gpush.rb
-# OR
-brew reinstall [path-to-local-gpush-repo]/Formula/gpush.rb
+
+Use any tap prefix that is free on your machine (for example your GitHub username plus `-local`). If you need to redo the tap: `brew untap YOURNAME/gpush-local` first.
+
+Reinstall after formula changes:
+
+```bash
+brew reinstall YOURNAME/gpush-local/gpush
 ```
+
+Homebrew keeps its own checkout of the tap; if edits to `Formula/gpush.rb` in your working tree are not picked up, `brew untap …` and `brew tap …` again, or follow your usual flow to refresh that tap clone.
+
+**Without Homebrew:** run the CLI with Ruby from the repo, e.g. `ruby src/ruby/gpush.rb --help` or `ruby src/ruby/gpush.rb --dry-run`.
+
+More on taps: [Taps (Third-Party Repositories)](https://docs.brew.sh/Taps), `man brew tap`.
 
 ### Development
 

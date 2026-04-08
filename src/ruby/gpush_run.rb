@@ -14,9 +14,21 @@ module GpushRun
     end
 
     def option_definitions
-      lambda do |opts, parsing_options|
-        # no options for run except the command to run
-      end
+      lambda { |opts, _parsing_options| opts.banner = <<~BANNER }
+          gpush run: execute one parallel_run command by name.
+
+          Usage:
+            gpush run COMMAND
+
+          COMMAND is matched against the name (or shell) of entries under parallel_run in gpushrc.
+          Matching ignores spaces, underscores, dashes, and case (same lookup as gpush run).
+
+          Examples:
+            gpush run rspec
+            gpush run prettier
+
+          Options:
+        BANNER
     end
 
     private

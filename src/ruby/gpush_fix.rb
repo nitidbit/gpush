@@ -33,8 +33,16 @@ module GpushFix
   end
 
   def self.option_definitions
-    lambda do |opts, parsing_options|
-      # no options for fix
-    end
+    lambda { |opts, _parsing_options| opts.banner = <<~BANNER }
+        gpush fix: run every command in the fix: section of gpushrc.
+
+        Usage:
+          gpush fix
+
+        No arguments. Commands run in order; exits non-zero if any command fails.
+        Uses the same gpushrc discovery as gpush (walk up from the current directory).
+
+        Options:
+      BANNER
   end
 end

@@ -101,4 +101,35 @@ RSpec.describe "gpush_changed_files" do
       end
     end
   end
+
+  describe "#diff_base_ref" do
+    subject { GpushChangedFiles.new(options).diff_base_ref }
+
+    context "when the branch exists on origin" do
+      before do
+        expect(GitHelper).to receive(:local_branch_name).and_return("test-branch")
+        expect(GitHelper).to receive(:branch_exists_on_origin?).with(
+          "test-branch",
+        ).and_return(true)
+      end
+
+      it { is_expected.to eq "origin/test-branch" }
+    end
+
+    context "when falling back to main" do
+      let(:options) { { fallback_branches: %w[main master] } }
+
+      before do
+        expect(GitHelper).to receive(:local_branch_name).and_return("feature-x")
+        expect(GitHelper).to receive(:branch_exists_on_origin?).with(
+          "feature-x",
+        ).and_return(false)
+        expect(GitHelper).to receive(:branch_exists_on_origin?).with(
+          "main",
+        ).and_return(true)
+      end
+
+      it { is_expected.to eq "origin/main" }
+    end
+  end
 end

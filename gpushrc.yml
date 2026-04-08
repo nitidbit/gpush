@@ -36,8 +36,7 @@ parallel_run:
     shell: exit 0
 
   - name: Check yaml files
-    shell: |
-      ruby -ryaml -e 'Dir.glob("**/*.{yml,yaml}").each { |file| raise "problem with: #{file}" unless YAML.load_file(file).is_a?(Hash) }'
+    shell: ruby -ryaml -e 'Dir.glob("**/*.{yml,yaml}").each { |f| next if f.split("/").include?("vendor"); raise "problem with: #{f}" unless YAML.load_file(f).is_a?(Hash) }'
 
   # just confirm this does not thorow an error
   - shell: gpush_changed_files

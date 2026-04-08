@@ -1,10 +1,12 @@
 #!/usr/bin/env ruby
 require "optparse"
+require_relative "gpush_version"
 require_relative "command" # Import the external command runner
 require_relative "config_helper" # Import the config helper
 require_relative "exit_helper" # Import the exit helper
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_error" # Import the custom error handling
+require_relative "gpush_diff_branch" # Import the diff-branch subcommand
 require_relative "gpush_fix" # Import the fix command
 require_relative "gpush_options_parser" # Import the options parser
 require_relative "gpush_run" # Import the version checker
@@ -13,9 +15,23 @@ require_relative "version_checker" # Import the version checker
 
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
-DEFAULT_VERSION = "local-development".freeze # Default for uninstalled scripts
-VERSION = ENV["GPUSH_VERSION"] || DEFAULT_VERSION
-SUBCOMMANDS = { "run" => GpushRun, "fix" => GpushFix }.freeze
+SUBCOMMANDS = {
+  "run" => {
+    klass: GpushRun,
+    description:
+      "Run one entry from parallel_run in gpushrc by name (matching ignores spaces, dashes, case).",
+  },
+  "fix" => {
+    klass: GpushFix,
+    description:
+      "Run every shell command in the fix: section of gpushrc, in order.",
+  },
+  "diff-branch" => {
+    klass: GpushDiffBranch,
+    description:
+      "Print the remote ref (e.g. origin/main) that gpush_changed_files uses for git diff; honors optional gpush_changed_files: settings in gpushrc.",
+  },
+}.freeze
 
 module Gpush
   class << self
@@ -166,8 +182,33 @@ module Gpush
 
     def option_definitions
       lambda do |opts, parsing_options|
-        opts.banner =
-          "Usage:\ngpush [options] OR gpush [subcommand] [options]\n\nSubcommands: #{SUBCOMMANDS.keys.join(", ")}\n\nOptions:"
+        subcmd_width = SUBCOMMANDS.keys.map(&:length).max
+        subcommands_block =
+          SUBCOMMANDS
+            .map do |name, meta|
+              format("  %-#{subcmd_width}s  %s", name, meta[:description])
+            end
+            .join("\n")
+
+        opts.banner = <<~BANNER
+          gpush: run pre-push checks from gpushrc, then push (unless --dry-run).
+
+          Usage:
+            gpush [options]                      Full workflow: pre_run, parallel_run, post_run, then git push
+            gpush SUBCOMMAND [options] [args]    Subcommand (see below)
+
+          Subcommands:
+          #{subcommands_block}
+
+          Other programs installed with this package:
+            gpush_changed_files   List paths changed vs the same origin ref as above (see diff-branch).
+            gpush_get_specs       List spec files to run for those changes.
+
+          More help:
+            gpush SUBCOMMAND --help    Options for run, fix, or diff-branch
+
+          Options:
+        BANNER
 
         opts.on("--dry-run", "Simulate the commands without executing") do
           parsing_options[:dry_run] = true
@@ -190,24 +231,25 @@ module Gpush
 
     def cl(argv)
       subcommand = SUBCOMMANDS.keys.find { |key| argv[0] == key }
-      klass = subcommand ? SUBCOMMANDS[subcommand] : Gpush
+      klass = subcommand ? SUBCOMMANDS.fetch(subcommand).fetch(:klass) : Gpush
+
+      parser_verbose = argv.include?("-v") || argv.include?("--verbose")
+
+      # Dup so OptionParser.parse! can strip flags; remaining entries are positional args for go().
+      arg_slice = (subcommand ? argv[1..] : argv).dup
 
       # Use GpushOptionsParser to parse command-line arguments
       options =
         GpushOptionsParser.parse(
-          subcommand ? argv[1..] : argv,
+          arg_slice,
           config_prefix: nil,
           option_definitions: klass.option_definitions,
-          verbose: true,
+          verbose: parser_verbose,
           is_subcommand: !!subcommand,
         )
 
       # Execute gpush workflow
-      if subcommand
-        SUBCOMMANDS[subcommand].go(args: argv[1..], options:)
-      else
-        Gpush.go(options)
-      end
+      subcommand ? klass.go(args: arg_slice, options:) : Gpush.go(options)
     rescue GpushError, OptionParser::InvalidOption => e
       ExitHelper.exit_with_error(e)
     end

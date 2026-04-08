@@ -3,6 +3,7 @@
 
 require "optparse"
 require "yaml"
+require_relative "gpush_version"
 require_relative "gpush_error"
 require_relative "exit_helper"
 require_relative "config_helper"
