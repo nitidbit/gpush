@@ -38,6 +38,12 @@ class GpushGetSpecs
       ) { |pattern| options[:include_pattern] = pattern }
 
       opts.on(
+        "-x",
+        "--exclude-pattern PATTERN",
+        "Glob pattern to exclude spec files",
+      ) { |pattern| options[:exclude_pattern] = pattern }
+
+      opts.on(
         "-a",
         "--always-include PATTERN",
         "Glob pattern to always include spec files",
@@ -130,6 +136,7 @@ class GpushGetSpecs
 
     log("Root dir: #{GitHelper.git_root_dir}")
     log("Spec include pattern: #{@options[:include_pattern]}")
+    log("Spec exclude pattern: #{@options[:exclude_pattern]}")
     log "Always include pattern: #{@options[:always_include]}"
     log("")
 
@@ -138,10 +145,17 @@ class GpushGetSpecs
         Dir.glob File.join GitHelper.git_root_dir, @options[:always_include]
     end
 
-    files_to_match =
+    files_include =
       Dir.glob File.join GitHelper.git_root_dir, @options[:include_pattern]
+    files_exclude =
+      if @options[:exclude_pattern]
+        Dir.glob File.join GitHelper.git_root_dir, @options[:exclude_pattern]
+      else
+        []
+      end
+
     matching_files =
-      files_to_match.each_with_object([]) do |path, specs|
+      (files_include - files_exclude).each_with_object([]) do |path, specs|
         filename = File.basename(path, ".*").downcase # Returns "example_spec"
         filename_keywords = filename.split(/[_\-\.]/) # Returns ["example", "spec"]
         specs << path if filename_keywords.intersect? keywords
