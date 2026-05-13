@@ -26,6 +26,7 @@ PROMPT = <<~PROMPT.freeze
   - Anything that should block commit
 
   Do not report low-value style nits.
+  Do not report formatting issues (handled by Prettier or similar tools).
 
   Format your output for a terminal — plain text, no markdown. Use blank lines for
   separation and dashes for bullet points.
@@ -35,8 +36,6 @@ PROMPT = <<~PROMPT.freeze
     - Location: `path/to/file:line` (or range)
     - Issue: what is wrong
     - Fix: exact recommended change
-
-  If no blocking issues, print a brief summary of changes.
 
   The final line must be the word EXIT followed by a number; exactly one of:
   - `EXIT 0` (no changes needed)
