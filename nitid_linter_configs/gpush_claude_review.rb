@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 require "json"
+
+INSTRUCTIONS_FILE = File.join(__dir__, "gpush_claude_review_instructions.md")
 
 ALLOWED_TOOLS = [
   "Bash(gpush diff-branch)",
@@ -7,44 +11,14 @@ ALLOWED_TOOLS = [
   "Bash(git show*)",
 ].freeze
 
-PROMPT = <<~PROMPT.freeze
-  Run `gpush diff-branch` first. It should return exactly one git branch name (the
-  base branch).
+prompt =
+  begin
+    File.read(INSTRUCTIONS_FILE)
+  rescue Errno::ENOENT
+    warn "ERROR: Instructions file not found: #{INSTRUCTIONS_FILE}"
+    exit 9
+  end
 
-  Then review changes from that base to HEAD using:
-  - `git diff <base>...HEAD`
-  - `git log <base>..HEAD`
-  - `git show <sha>` when needed for context
-
-  Use the git commit messages to inform your review.
-
-  Review for:
-  - Bugs and regressions
-  - Typos
-  - Security vulnerabilities
-  - Violations of repo conventions
-  - Anything that should block commit
-
-  Do not report low-value style nits.
-  Do not report formatting issues (handled by Prettier or similar tools).
-
-  Format your output for a terminal — plain text, no markdown. Use blank lines for
-  separation and dashes for bullet points.
-
-  - For each finding include:
-    - Severity: HIGH | MEDIUM | LOW
-    - Location: `path/to/file:line` (or range)
-    - Issue: what is wrong
-    - Fix: exact recommended change
-
-  The final line must be the word EXIT followed by a number; exactly one of:
-  - `EXIT 0` (no changes needed)
-  - `EXIT 1` (issues found)
-  - `EXIT 2` (could not complete due to tooling/access)
-
-PROMPT
-
-output = ""
 cmd = [
   "claude",
   "--print",
@@ -56,14 +30,19 @@ cmd = [
   ALLOWED_TOOLS.join(","),
 ]
 
-IO.popen(cmd, "r+") do |io|
-  io.write(PROMPT)
+# String.new produces mutable strings
+output = String.new
+raw_stdout = String.new
+
+IO.popen(cmd + [{ err: %i[child out] }], "r+") do |io|
+  io.write(prompt)
   io.close_write
   io.each_line do |line|
     event =
       begin
         JSON.parse(line)
       rescue StandardError
+        raw_stdout << line
         next
       end
     next unless event["type"] == "stream_event"
@@ -73,6 +52,12 @@ IO.popen(cmd, "r+") do |io|
     print text
     output << text
   end
+end
+
+st = Process.last_status
+unless st.success?
+  warn raw_stdout unless raw_stdout.empty?
+  exit(st.exitstatus || 1)
 end
 
 puts # ensure newline after streaming

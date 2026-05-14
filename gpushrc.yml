@@ -38,6 +38,10 @@ parallel_run:
   - name: Check yaml
     shell: ruby src/ruby/check_yaml.rb
 
+  - name: Claude Review
+    shell: ruby nitid_linter_configs/gpush_claude_review.rb
+    if: claude --version # only run if claude is installed
+
   # just confirm this does not thorow an error
   - shell: gpush_changed_files
 
