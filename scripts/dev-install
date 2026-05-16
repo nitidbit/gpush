@@ -1,0 +1,24 @@
+#!/bin/bash
+set -e
+
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+INSTALL_DIR="/opt/homebrew/bin"
+BINS=(gpush gpush_get_specs gpush_changed_files)
+
+for bin in "${BINS[@]}"; do
+  target="$INSTALL_DIR/$bin"
+  if [ -e "$target" ] || [ -L "$target" ]; then
+    resolved="$(readlink "$target" 2>/dev/null || true)"
+    if [[ "$resolved" != "$REPO/"* ]]; then
+      echo "error: $target already exists and is not a dev symlink" >&2
+      exit 1
+    fi
+  fi
+done
+
+echo "Installing dev gpush binaries from $REPO/bin/ -> $INSTALL_DIR/"
+for bin in "${BINS[@]}"; do
+  ln -sf "$REPO/bin/$bin" "$INSTALL_DIR/$bin"
+  echo "  linked $bin"
+done
+echo "Done."

@@ -1,0 +1,5 @@
+#!/bin/bash
+SCRIPT="$0"
+while [ -L "$SCRIPT" ]; do SCRIPT="$(readlink "$SCRIPT")"; done
+DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
+exec /opt/homebrew/opt/ruby/bin/ruby "$DIR/../src/ruby/gpush_get_specs.rb" "$@"

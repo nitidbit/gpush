@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+INSTALL_DIR="/opt/homebrew/bin"
+BINS=(gpush gpush_get_specs gpush_changed_files)
+
+echo "Removing dev gpush binaries..."
+for bin in "${BINS[@]}"; do
+  rm -f "$INSTALL_DIR/$bin"
+  echo "  removed $bin"
+done
+echo "Done."
