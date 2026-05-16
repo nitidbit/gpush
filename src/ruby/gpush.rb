@@ -12,6 +12,7 @@ require_relative "gpush_options_parser" # Import the options parser
 require_relative "gpush_run" # Import the version checker
 require_relative "notifier" # Import the desktop notifier
 require_relative "version_checker" # Import the version checker
+require_relative "worktree_helper" # Import the worktree helper
 
 EXITING_MESSAGE = "\nExiting gpush.".freeze
 
@@ -40,7 +41,7 @@ module Gpush
     end
 
     def simple_run_commands_with_output(commands, title:, verbose:)
-      return if commands.empty?
+      return if commands.nil? || commands.empty?
       some_verbose = verbose || commands.any? { |cmd| cmd["verbose"] }
 
       puts "\n"
@@ -120,32 +121,73 @@ module Gpush
         end
       end
 
-      pre_run_commands = options[:pre_run] || []
-      parallel_run_commands = options[:parallel_run] || []
-      post_run_commands = options[:post_run] || []
-      post_run_success_commands = options[:post_run_success] || []
-      post_run_failure_commands = options[:post_run_failure] || []
+      if will_set_up_remote_branch && options[:worktree]
+        puts "Cannot create a new remote branch from a worktree (git push -u requires a real branch)."
+        unless GitHelper.ask_yes_no("Run without worktree?", default: true)
+          puts EXITING_MESSAGE
+          return
+        end
+        options[:worktree] = false
+      end
+
+      original_dir = Dir.pwd
+      original_branch = GitHelper.local_branch_name
+      worktree_path = nil
+
+      if options[:worktree]
+        git_root = GitHelper.git_root_dir
+        ENV["GPUSH_BRANCH"] = original_branch
+        worktree_path =
+          WorktreeHelper.create(
+            git_root: git_root,
+            symlink_dirs: options[:worktree_symlink_dirs] || [],
+          )
+        at_exit { WorktreeHelper.remove(worktree_path) }
+        puts "Running in worktree: #{worktree_path}"
+
+        if options[:worktree_copy_gitignored]
+          puts "Copying gitignored files into worktree..."
+          WorktreeHelper.copy_gitignored(
+            git_root: git_root,
+            worktree_path: worktree_path,
+            globs: options[:worktree_copy_gitignored],
+          )
+        end
+
+        Dir.chdir(worktree_path)
+      end
+
       verbose = options[:verbose]
 
-      # Run pre-run commands
       simple_run_commands_with_output(
-        pre_run_commands,
+        options[worktree_path ? :worktree_pre_run : :no_worktree_pre_run],
+        title: worktree_path ? "worktree-pre-run" : "no-worktree-pre-run",
+        verbose:,
+      )
+
+      simple_run_commands_with_output(
+        options[:pre_run],
         title: "pre-run",
         verbose:,
       )
 
-      # Run parallel run commands
-      success = Command.run_in_parallel?(parallel_run_commands, verbose:)
+      success = Command.run_in_parallel?(options[:parallel_run], verbose:)
 
       simple_run_commands_with_output(
-        post_run_commands,
+        options[:post_run],
         title: "post-run",
+        verbose:,
+      )
+
+      simple_run_commands_with_output(
+        options[worktree_path ? :worktree_post_run : :no_worktree_post_run],
+        title: worktree_path ? "worktree-post-run" : "no-worktree-post-run",
         verbose:,
       )
 
       unless success
         simple_run_commands_with_output(
-          post_run_failure_commands,
+          options[:post_run_failure],
           title: "post-run failure",
           verbose:,
         )
@@ -155,7 +197,7 @@ module Gpush
       end
 
       simple_run_commands_with_output(
-        post_run_success_commands,
+        options[:post_run_success],
         title: "post-run success",
         verbose:,
       )
@@ -165,12 +207,14 @@ module Gpush
       if dry_run
         puts "《 Dry run completed 》"
       else
-        # Perform git push based on whether we are setting up a remote branch or just pushing
-        if will_set_up_remote_branch
-          puts "Setting up the remote branch..." unless dry_run
-          Kernel.system("git push -u origin HEAD") unless dry_run
-        else
-          Kernel.system("git push") unless dry_run
+        push_dir = worktree_path || original_dir
+        Dir.chdir(push_dir) do
+          if will_set_up_remote_branch
+            puts "Setting up the remote branch..."
+            Kernel.system("git push -u origin #{original_branch}")
+          else
+            Kernel.system("git push origin HEAD:#{original_branch}")
+          end
         end
 
         puts "《 #{options[:success_emoji] || "🌺"} 》 Good job! You're doing great."
@@ -221,6 +265,22 @@ module Gpush
         opts.on("--config-file=FILE", "Specify a custom config file") do |file|
           parsing_options[:config_file] = file
         end
+
+        opts.on(
+          "--[no-]worktree",
+          "Run checks in an isolated git worktree (overrides config)",
+        ) { |v| parsing_options[:worktree] = v }
+
+        opts.on(
+          "--copy-gitignored[=GLOBS]",
+          "Copy gitignored files into the worktree; optionally comma-separated globs (overrides config)",
+        ) do |v|
+          parsing_options[:worktree_copy_gitignored] = v ? v.split(",") : true
+        end
+        opts.on(
+          "--no-copy-gitignored",
+          "Skip copying gitignored files into the worktree (overrides config)",
+        ) { parsing_options[:worktree_copy_gitignored] = false }
 
         opts.on_tail("--version", "Show version") do
           puts "gpush #{VERSION}"
