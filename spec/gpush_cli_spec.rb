@@ -7,8 +7,9 @@ RSpec.describe "Gpush" do
   before do
     Dir.chdir(__dir__) # Change to the directory of the current spec file
 
-    allow(Kernel).to receive(:system) do |command|
-      mock_system.mocked_system_call(command)
+    allow(Kernel).to receive(:system) do |*args|
+      cmd = args.reject { |a| a.is_a?(Hash) }.join(" ")
+      mock_system.mocked_system_call(cmd)
     end
     # Mock all backticks calls globally.
     allow(Kernel).to receive(:`).and_wrap_original do |method, *args|
@@ -19,7 +20,7 @@ RSpec.describe "Gpush" do
   it "finds the gpushrc.yml in the directory" do
     Dir.chdir(File.join(__dir__, "directory_with_config"))
 
-    expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
+    expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
       %r{
         Using\ config\ file:\ spec/directory_with_config/gpushrc.yml.*
         Pre-run\ command\ in\ spec/directory_with_config/gpushrc.yml
@@ -29,7 +30,7 @@ RSpec.describe "Gpush" do
 
   it "traverses up the directory tree to find the gpushrc.yml" do
     Dir.chdir(File.join(__dir__, "directory_without_config"))
-    expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
+    expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
       %r{
         Using\ config\ file:\ spec/gpushrc.yml.*
         Pre-run\ command\ in\ spec/gpushrc.yml
@@ -39,14 +40,14 @@ RSpec.describe "Gpush" do
 
   it "runs the commands from directory of the gpushrc.yml" do
     Dir.chdir(File.join(__dir__, "directory_with_config", "empty_subdir"))
-    expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
+    expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
       /#{Regexp.escape("Current directory in braces: [#{__dir__}/directory_with_config]")}/xm,
     ).to_stdout
   end
 
   it "accepts a custom config file" do
     expect {
-      Gpush.cl(%w[--dry-run --verbose --config-file=gpush_alt_config.yml])
+      GpushCli.run(%w[--dry-run --verbose --config-file=gpush_alt_config.yml])
     }.to output(
       /#{Regexp.escape("Using config file: spec/gpush_alt_config.yml")}/xm,
     ).to_stdout
@@ -54,7 +55,7 @@ RSpec.describe "Gpush" do
 
   it "complains if the custom config file does not exist" do
     expect {
-      Gpush.cl(%w[--dry-run --verbose --config-file=non_existent.yml])
+      GpushCli.run(%w[--dry-run --verbose --config-file=non_existent.yml])
     }.to raise_error("Exit called with code 1").and output(
             /#{Regexp.escape("Config file not found: non_existent.yml")}/m,
           ).to_stdout
@@ -62,19 +63,19 @@ RSpec.describe "Gpush" do
 
   it "can print the version" do
     stub_const("VERSION", "42.0.0")
-    expect { Gpush.cl(%w[--version]) }.to output(
+    expect { GpushCli.run(%w[--version]) }.to output(
       /gpush 42.0.0/,
     ).to_stdout.and raise_error("Exit called with code 0")
   end
 
   it "shows error for invalid arguments" do
-    expect { Gpush.cl(%w[blerg]) }.to output(
+    expect { GpushCli.run(%w[blerg]) }.to output(
       /Unknown arguments: blerg/,
     ).to_stdout.and raise_error("Exit called with code 1")
   end
 
   it "shows error for invalid options" do
-    expect { Gpush.cl(%w[--invalid-flag]) }.to output(
+    expect { GpushCli.run(%w[--invalid-flag]) }.to output(
       /invalid option: --invalid-flag/,
     ).to_stdout.and raise_error("Exit called with code 1")
   end
@@ -86,7 +87,7 @@ RSpec.describe "Gpush" do
       expect(YAML).to receive(:load_file).exactly(:once).and_return(
         "gpush_version" => ">50.0",
       )
-      expect { Gpush.cl(%w[--dry-run --verbose]) }.to raise_error(
+      expect { GpushCli.run(%w[--dry-run --verbose]) }.to raise_error(
         "Exit called with code 1",
       ).and output(
               /#{Regexp.escape("Your config file specifies version >50.0. You have 2.0.0.")}\n\n#{Regexp.escape("Run 'brew update && brew upgrade gpush' to update.")}/m,
@@ -97,7 +98,7 @@ RSpec.describe "Gpush" do
       expect(YAML).to receive(:load_file).exactly(:once).and_return(
         "gpush_version" => %w[<50.0 >1.1.0],
       )
-      expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
+      expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
         /#{Regexp.escape "《 Dry run completed 》"}/xm,
       ).to_stdout
     end
@@ -110,6 +111,8 @@ RSpec.describe "Gpush" do
       )
     end
     it "prints it when not in dry run mode" do
+      expect(GitHelper).to receive(:remote_branch_name).at_least(:once).and_return("origin/mybranch")
+      expect(GitHelper).to receive(:local_branch_name).at_least(:once).and_return("mybranch")
       expect(GitHelper).to receive(:behind_remote_branch?).and_return(false)
       expect(GitHelper).to receive(
         :up_to_date_or_ahead_of_remote_branch?,
@@ -118,15 +121,15 @@ RSpec.describe "Gpush" do
         :at_same_commit_as_remote_branch?,
       ).and_return(false)
       mock_system.add_mock(
-        "git push",
+        "git push origin HEAD:mybranch",
         output: "Mock pushing to origin",
         exit_code: 0,
       )
-      expect { Gpush.cl([]) }.to output(/#{Regexp.escape "🦄"}/xm).to_stdout
+      expect { GpushCli.run([]) }.to output(/#{Regexp.escape "🦄"}/xm).to_stdout
     end
 
     it "does not print it when in dry run mode" do
-      expect { Gpush.cl(%w[--dry-run]) }.not_to output(
+      expect { GpushCli.run(%w[--dry-run]) }.not_to output(
         /#{Regexp.escape "🦄"}/xm,
       ).to_stdout
     end

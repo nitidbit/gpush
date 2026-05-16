@@ -55,7 +55,11 @@ module GitHelper
 
   def self.branch_exists_on_origin?(branch_name)
     # Use git ls-remote to check if the branch exists on origin
-    result = `git ls-remote --heads origin #{branch_name}`.strip
+    result =
+      Open3
+        .capture2("git", "ls-remote", "--heads", "origin", branch_name)
+        .first
+        .strip
     !result.empty?
   end
 
