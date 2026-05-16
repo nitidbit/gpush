@@ -49,6 +49,13 @@ module Gpush
       puts "\n"
     end
 
+    def filter_commands(commands, in_worktree:)
+      (commands || []).reject do |cmd|
+        (cmd["only_worktree"] && !in_worktree) ||
+          (cmd["only_no_worktree"] && in_worktree)
+      end
+    end
+
     def check_git_state_return_nil_for_exit(dry_run)
       will_set_up_remote_branch = false
 
@@ -147,36 +154,29 @@ module Gpush
       end
 
       verbose = options[:verbose]
+      in_worktree = !worktree_path.nil?
 
       simple_run_commands_with_output(
-        options[worktree_path ? :worktree_pre_run : :no_worktree_pre_run],
-        title: worktree_path ? "worktree-pre-run" : "no-worktree-pre-run",
-        verbose:,
-      )
-
-      simple_run_commands_with_output(
-        options[:pre_run],
+        filter_commands(options[:pre_run], in_worktree:),
         title: "pre-run",
         verbose:,
       )
 
-      success = Command.run_in_parallel?(options[:parallel_run] || [], verbose:)
+      success =
+        Command.run_in_parallel?(
+          filter_commands(options[:parallel_run], in_worktree:),
+          verbose:,
+        )
 
       simple_run_commands_with_output(
-        options[:post_run],
+        filter_commands(options[:post_run], in_worktree:),
         title: "post-run",
-        verbose:,
-      )
-
-      simple_run_commands_with_output(
-        options[worktree_path ? :worktree_post_run : :no_worktree_post_run],
-        title: worktree_path ? "worktree-post-run" : "no-worktree-post-run",
         verbose:,
       )
 
       unless success
         simple_run_commands_with_output(
-          options[:post_run_failure],
+          filter_commands(options[:post_run_failure], in_worktree:),
           title: "post-run failure",
           verbose:,
         )
@@ -186,7 +186,7 @@ module Gpush
       end
 
       simple_run_commands_with_output(
-        options[:post_run_success],
+        filter_commands(options[:post_run_success], in_worktree:),
         title: "post-run success",
         verbose:,
       )
