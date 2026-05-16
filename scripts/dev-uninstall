@@ -1,12 +1,23 @@
 #!/bin/bash
 set -e
 
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
 INSTALL_DIR="/opt/homebrew/bin"
 BINS=(gpush gpush_get_specs gpush_changed_files)
 
 echo "Removing dev gpush binaries..."
 for bin in "${BINS[@]}"; do
-  rm -f "$INSTALL_DIR/$bin"
-  echo "  removed $bin"
+  target="$INSTALL_DIR/$bin"
+  if [ -L "$target" ]; then
+    resolved="$(readlink "$target" 2>/dev/null || true)"
+    if [[ "$resolved" == "$REPO/"* ]]; then
+      rm -f "$target"
+      echo "  removed $bin"
+    else
+      echo "  skipped $bin (not a dev symlink)" >&2
+    fi
+  else
+    echo "  skipped $bin (not found or not a symlink)" >&2
+  fi
 done
 echo "Done."
