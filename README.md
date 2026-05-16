@@ -34,31 +34,66 @@ while in a directory within your git repo
 
 ### Command line options
 
-|                    |                                                                                           |
-| ------------------ | ----------------------------------------------------------------------------------------- |
-| --version          | print the current version                                                                 |
-| -h, --help         | print the help documentation                                                              |
-| --dry-run          | run pre_run_commands, parallel_run_commands, and post_run_commands without pushing to git |
-| --config_file=FILE | use an alternate config file. Default is gpushrc(.yml \| .yaml)                           |
+|                                    |                                                                                                           |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| --version                          | print the current version                                                                                 |
+| -h, --help                         | print the help documentation                                                                              |
+| --dry-run                          | run pre_run, parallel_run, and post_run without pushing to git                                            |
+| --config-file=FILE                 | use an alternate config file. Default is gpushrc(.yml \| .yaml)                                           |
+| --worktree / --no-worktree         | run checks in an isolated git worktree (overrides config)                                                 |
+| --worktree-copy-gitignored[=GLOBS] | copy gitignored files into the worktree; optionally comma-separated globs (e.g. `config/master.key,.env`) |
+| --no-worktree-copy-gitignored      | skip copying gitignored files into the worktree                                                           |
 
 ### Config: `gpushrc.yml` or `gpushrc.yaml`
 
 Gpush will look for a config file in the current directory. If not found, it will traverse up the directory structure until it finds a config file reaches the root directory ("/"). If still not found, it will use a built-in default config file.
 
-#### TODO: add documentation for the config file. The table below is out of date
+#### Config keys
 
-#### TODO: add example config yaml inline here
+| **config key**             | **type**             | **description**                                                                                                                                           |
+| :------------------------- | -------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pre_run`                  | list of commands     | run before parallel checks                                                                                                                                |
+| `parallel_run`             | list of commands     | run in parallel (main test/lint suite)                                                                                                                    |
+| `post_run`                 | list of commands     | run after parallel checks, regardless of result                                                                                                           |
+| `post_run_success`         | list of commands     | run only if all checks passed                                                                                                                             |
+| `post_run_failure`         | list of commands     | run only if any check failed                                                                                                                              |
+| `worktree`                 | boolean              | run checks in an isolated git worktree                                                                                                                    |
+| `worktree_copy_gitignored` | boolean or glob/list | copy gitignored files into the worktree. `true` copies all; a string or list of strings copies matching files only (e.g. `["config/master.key", ".env"]`) |
+| `success_emoji`            | string               | emoji printed on success (default 🌺)                                                                                                                     |
+| `gpush_version`            | string or list       | required gpush version constraint (e.g. `">= 2.0"`)                                                                                                       |
 
-| **config key**      | **type**           | **values**                              |
-| :------------------ | ------------------ | :-------------------------------------- |
-| root_dir            | string             | path to working directory               |
-| pre_run             | string or [string] |                                         |
-| post_run            | string or [string] |                                         |
-| import              | string or [string] | array of file paths or single file path |
-| shell               | string             | shell commands to execute               |
-| <NAME>              | string             | sets environment <NAME> to string       |
-| if                  | string             | conditional shell expression            |
-| command_definitions | object             | definition of a command                 |
+#### Per-command flags
+
+Any command in any section can include these flags:
+
+| **flag**                 | **description**                                 |
+| :----------------------- | ----------------------------------------------- |
+| `only_worktree: true`    | only run this command when in worktree mode     |
+| `only_no_worktree: true` | only run this command when not in worktree mode |
+
+#### Example
+
+```yaml
+worktree: true
+worktree_copy_gitignored:
+  - "config/master.key"
+  - ".env"
+
+pre_run:
+  - name: npm install
+    shell: npm install
+    only_worktree: true
+
+parallel_run:
+  - name: rspec
+    shell: bundle exec rspec
+  - name: rubocop
+    shell: bundle exec rubocop
+
+post_run_success:
+  - name: notify
+    shell: echo "All good!"
+```
 
 ### Notifications
 
@@ -121,10 +156,26 @@ More on taps: [Taps (Third-Party Repositories)](https://docs.brew.sh/Taps), `man
 
 ### Development
 
-Edit the files in the src/ruby directory. To test your changes,
+Clone the repo, then run the dev-install script to symlink the dev binaries into your PATH:
 
-- write tests and use rspec `bundle exec rspec`
-- reinstall the development version (see above) and run gpush --dry-run
+```bash
+scripts/dev-install
+```
+
+This links `gpush`, `gpush_get_specs`, and `gpush_changed_files` from the repo's `bin/` directory into `/opt/homebrew/bin/`. Changes to `src/ruby/` are picked up immediately — no reinstall needed.
+
+To revert:
+
+```bash
+scripts/dev-uninstall
+```
+
+Edit the files in `src/ruby/`. To test your changes:
+
+```bash
+bundle exec rspec        # run the test suite
+gpush --dry-run          # smoke test the CLI
+```
 
 ### pushing changes
 
