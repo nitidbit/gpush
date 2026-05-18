@@ -6,6 +6,7 @@ RSpec.describe "Gpush" do
   let(:mock_system) { MockSystem.new }
   before do
     Dir.chdir(__dir__) # Change to the directory of the current spec file
+    allow(GitHelper).to receive(:head_sha).and_return("0123456")
 
     allow(Kernel).to receive(:system) do |*args|
       cmd = args.reject { |a| a.is_a?(Hash) }.join(" ")
@@ -99,7 +100,7 @@ RSpec.describe "Gpush" do
         "gpush_version" => %w[<50.0 >1.1.0],
       )
       expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
-        /#{Regexp.escape "《 Dry run completed 》"}/xm,
+        /Tested commit: 0123456.*#{Regexp.escape "《 Dry run completed 》"}/m,
       ).to_stdout
     end
   end
@@ -125,7 +126,9 @@ RSpec.describe "Gpush" do
         output: "Mock pushing to origin",
         exit_code: 0,
       )
-      expect { GpushCli.run([]) }.to output(/#{Regexp.escape "🦄"}/xm).to_stdout
+      expect { GpushCli.run([]) }.to output(
+        /Tested commit: 0123456.*#{Regexp.escape "🦄"}/m,
+      ).to_stdout
     end
 
     it "does not print it when in dry run mode" do

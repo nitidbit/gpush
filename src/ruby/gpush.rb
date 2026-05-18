@@ -155,6 +155,7 @@ module Gpush
 
       verbose = options[:verbose]
       in_worktree = !worktree_path.nil?
+      tested_sha = GitHelper.head_sha
 
       simple_run_commands_with_output(
         filter_commands(options[:pre_run], in_worktree:),
@@ -181,6 +182,7 @@ module Gpush
           verbose:,
         )
         Notifier.notify(success: false)
+        report_tested_commit(tested_sha)
         puts "Exiting gpush."
         return
       end
@@ -192,6 +194,8 @@ module Gpush
       )
 
       Notifier.notify(success: true)
+
+      report_tested_commit(tested_sha)
 
       if dry_run
         puts "《 Dry run completed 》"
@@ -211,6 +215,10 @@ module Gpush
 
       # Check for updates after a successful run (even in dry run mode)
       VersionChecker.print_message_if_new_version(VERSION)
+    end
+
+    def report_tested_commit(sha)
+      puts "Tested commit: #{sha}"
     end
   end
 end

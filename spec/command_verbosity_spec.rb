@@ -24,6 +24,7 @@ RSpec.describe "Command Verbosity" do
 
   before do
     Dir.chdir(__dir__)
+    allow(GitHelper).to receive(:head_sha).and_return("0123456")
     allow(Kernel).to receive(:system) do |command|
       mock_system.mocked_system_call(command)
     end
