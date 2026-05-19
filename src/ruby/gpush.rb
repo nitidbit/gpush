@@ -218,8 +218,7 @@ module Gpush
     end
 
     def report_tested_commit(sha)
-      puts "Tested commit: #{sha}"
-      puts ""
+      puts "Finished testing commit: #{sha}"
       puts ""
     end
   end

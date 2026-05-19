@@ -100,7 +100,7 @@ RSpec.describe "Gpush" do
         "gpush_version" => %w[<50.0 >1.1.0],
       )
       expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
-        /Tested commit: 0123456.*#{Regexp.escape "《 Dry run completed 》"}/m,
+        /Finished testing commit: 0123456.*#{Regexp.escape "《 Dry run completed 》"}/m,
       ).to_stdout
     end
   end
@@ -112,8 +112,12 @@ RSpec.describe "Gpush" do
       )
     end
     it "prints it when not in dry run mode" do
-      expect(GitHelper).to receive(:remote_branch_name).at_least(:once).and_return("origin/mybranch")
-      expect(GitHelper).to receive(:local_branch_name).at_least(:once).and_return("mybranch")
+      expect(GitHelper).to receive(:remote_branch_name).at_least(
+        :once,
+      ).and_return("origin/mybranch")
+      expect(GitHelper).to receive(:local_branch_name).at_least(
+        :once,
+      ).and_return("mybranch")
       expect(GitHelper).to receive(:behind_remote_branch?).and_return(false)
       expect(GitHelper).to receive(
         :up_to_date_or_ahead_of_remote_branch?,
@@ -127,7 +131,7 @@ RSpec.describe "Gpush" do
         exit_code: 0,
       )
       expect { GpushCli.run([]) }.to output(
-        /Tested commit: 0123456.*#{Regexp.escape "🦄"}/m,
+        /Finished testing commit: 0123456.*#{Regexp.escape "🦄"}/m,
       ).to_stdout
     end
 
