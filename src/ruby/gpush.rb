@@ -210,7 +210,9 @@ module Gpush
           end
         end
 
+        puts ""
         puts "《 #{options[:success_emoji] || "🌺"} 》 Good job! You're doing great."
+        puts ""
       end
 
       # Check for updates after a successful run (even in dry run mode)
