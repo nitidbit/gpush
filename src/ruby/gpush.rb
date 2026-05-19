@@ -219,6 +219,8 @@ module Gpush
 
     def report_tested_commit(sha)
       puts "Tested commit: #{sha}"
+      puts ""
+      puts ""
     end
   end
 end
