@@ -7,11 +7,14 @@ BINS=(gpush gpush_get_specs gpush_changed_files)
 
 for bin in "${BINS[@]}"; do
   target="$INSTALL_DIR/$bin"
-  if [ -e "$target" ] || [ -L "$target" ]; then
+  if [ -e "$target" ] && [ ! -L "$target" ]; then
+    echo "error: $target already exists and is not a symlink (brew-managed?)" >&2
+    exit 1
+  fi
+  if [ -L "$target" ]; then
     resolved="$(readlink "$target" 2>/dev/null || true)"
     if [[ "$resolved" != "$REPO/"* ]]; then
-      echo "error: $target already exists and is not a dev symlink" >&2
-      exit 1
+      echo "warning: overwriting symlink $target -> $resolved" >&2
     fi
   fi
 done

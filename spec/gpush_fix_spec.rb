@@ -8,21 +8,21 @@ RSpec.describe "gpush fix" do
   context "when running gpush fix" do
     it "should report an error if the config file is empty" do
       expect(YAML).to receive(:load_file).and_return({})
-      expect { Gpush.cl(["fix"]) }.to output(
+      expect { GpushCli.run(["fix"]) }.to output(
         /Configuration file is empty/,
       ).to_stdout.and raise_error("Exit called with code 1")
     end
 
     it "should report an error if the fix section is not found in the config file" do
       expect(YAML).to receive(:load_file).and_return({ gpush_version: ">=1.0" })
-      expect { Gpush.cl(["fix"]) }.to output(
+      expect { GpushCli.run(["fix"]) }.to output(
         /#{Regexp.escape("No fix section found in config file")}/,
       ).to_stdout.and raise_error("Exit called with code 1")
     end
 
     it "should report an error if the fix section is empty" do
       expect(YAML).to receive(:load_file).and_return({ "fix" => [] })
-      expect { Gpush.cl(["fix"]) }.to output(
+      expect { GpushCli.run(["fix"]) }.to output(
         /#{Regexp.escape("Fix section is empty")}/,
       ).to_stdout.and raise_error("Exit called with code 1")
     end
@@ -36,7 +36,7 @@ RSpec.describe "gpush fix" do
           ],
         },
       )
-      expect { Gpush.cl(["fix"]) }.to output(
+      expect { GpushCli.run(["fix"]) }.to output(
         /howdy.*hello.*echo 'world'.*world/m,
       ).to_stdout.and raise_error("Exit called with code 0")
     end
@@ -45,7 +45,7 @@ RSpec.describe "gpush fix" do
       expect(YAML).to receive(:load_file).and_return(
         { fix: [{ "shell" => "exit 1" }] },
       )
-      expect { Gpush.cl(["fix"]) }.to output(
+      expect { GpushCli.run(["fix"]) }.to output(
         /#{Regexp.escape("running shell command `exit 1`")}/xm,
       ).to_stdout.and raise_error("Exit called with code 1")
     end

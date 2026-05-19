@@ -78,7 +78,7 @@ class GpushChangedFiles
   private
 
   def resolved_diff_branch_name
-    branch_name = GitHelper.local_branch_name
+    branch_name = ENV.fetch("GPUSH_BRANCH", nil) || GitHelper.local_branch_name
 
     if GitHelper.branch_exists_on_origin?(branch_name)
       log("Checking diff for branch: origin/#{branch_name}")

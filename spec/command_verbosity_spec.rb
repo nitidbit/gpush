@@ -24,6 +24,7 @@ RSpec.describe "Command Verbosity" do
 
   before do
     Dir.chdir(__dir__)
+    allow(GitHelper).to receive(:head_sha).and_return("0123456")
     allow(Kernel).to receive(:system) do |command|
       mock_system.mocked_system_call(command)
     end
@@ -39,7 +40,7 @@ RSpec.describe "Command Verbosity" do
       output: "verbose output",
       exit_code: 0,
     )
-    expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
+    expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
       /Running post-run success.*verbose output.*post-run success DONE/m,
     ).to_stdout
   end
@@ -51,7 +52,7 @@ RSpec.describe "Command Verbosity" do
       exit_code: 0,
     )
 
-    expect { Gpush.cl(%w[--dry-run --verbose]) }.not_to output(
+    expect { GpushCli.run(%w[--dry-run --verbose]) }.not_to output(
       /quiet output/,
     ).to_stdout
   end
@@ -66,13 +67,13 @@ RSpec.describe "Command Verbosity" do
     end
 
     it "when CLI does not specify verbose" do
-      expect { Gpush.cl(%w[--dry-run]) }.not_to output(
+      expect { GpushCli.run(%w[--dry-run]) }.not_to output(
         /default output/,
       ).to_stdout
     end
 
     it "when CLI specifies verbose" do
-      expect { Gpush.cl(%w[--dry-run --verbose]) }.to output(
+      expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
         /default output/,
       ).to_stdout
     end
@@ -95,7 +96,7 @@ RSpec.describe "Command Verbosity" do
       exit_code: 0,
     )
 
-    expect { Gpush.cl(%w[--dry-run]) }.to output(
+    expect { GpushCli.run(%w[--dry-run]) }.to output(
       /Running post-run success.*post-run success DONE/m,
     ).to_stdout
   end
