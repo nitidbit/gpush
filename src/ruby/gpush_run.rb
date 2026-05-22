@@ -1,3 +1,4 @@
+require_relative "colors"
 require_relative "command"
 require_relative "config_helper"
 require_relative "exit_helper"
@@ -47,7 +48,7 @@ module GpushRun
       if cmd_dict
         command = Command.new(cmd_dict, verbose: true, prefix_output: false)
         message = "Running command: #{command.name}"
-        puts "#{Command::COLORS[:bold]}========== #{message} ==========#{Command::COLORS[:reset]}"
+        puts "#{COLORS[:bold]}========== #{message} ==========#{COLORS[:reset]}"
         command.run
         puts ""
         puts command.final_summary

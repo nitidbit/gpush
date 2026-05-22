@@ -2,6 +2,7 @@
 require "pty"
 require "io/console"
 require "open3"
+require_relative "colors"
 require_relative "gpush_error"
 require_relative "gpush_options_parser"
 
@@ -28,6 +29,16 @@ class Command
 
   ENV_ERROR_MESSAGE = "The 'env' field must be a hash of key-value pairs".freeze
 
+  KNOWN_COMMAND_KEYS = %w[
+    shell
+    name
+    env
+    if
+    verbose
+    only_worktree
+    only_no_worktree
+  ].freeze
+
   def set_status(new_status)
     unless STATUS.include?(new_status)
       raise GpushError, "Invalid status: #{new_status}"
@@ -35,22 +46,11 @@ class Command
     @status = new_status
   end
 
-  COLORS = {
-    green: "\e[32m",
-    red: "\e[31m",
-    white: "\e[37m",
-    blue: "\e[34m",
-    yellow: "\e[33m",
-    magenta: "\e[35m",
-    cyan: "\e[36m",
-    black: "\e[30m",
-    bold: "\e[1m",
-    reset: "\e[0m",
-  }.freeze
-
   SPINNER = ["|", "/", "-", '\\'].freeze
 
   def initialize(command_dict, verbose: false, prefix_output: true)
+    warn_unknown_command_keys(command_dict)
+
     if command_dict["env"]
       raise GpushError, ENV_ERROR_MESSAGE unless command_dict["env"].is_a?(Hash)
       env_prefix = command_dict["env"]&.map { |k, v| "#{k}=#{v}" }&.join(" ")
@@ -207,6 +207,18 @@ class Command
       COLORS[:white] # Still running
     else
       raise "unexpected status: #{status}"
+    end
+  end
+
+  def warn_unknown_command_keys(command_dict)
+    unknown = command_dict.keys.map(&:to_s) - KNOWN_COMMAND_KEYS
+    return if unknown.empty?
+    command_id = command_dict["name"] || command_dict["shell"] || "unknown"
+    unknown.each do |key|
+      puts ""
+      puts "#{COLORS[:bold_red]}WARNING: Unknown config key '#{key}' in command '#{command_id}'#{COLORS[:reset]}"
+      puts "#{COLORS[:yellow]}This key will be ignored. Check gpushrc.yml for typos.#{COLORS[:reset]}"
+      puts ""
     end
   end
 

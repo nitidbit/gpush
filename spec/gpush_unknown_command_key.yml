@@ -1,0 +1,4 @@
+parallel_run:
+  - name: a command
+    shell: echo "hello"
+    typo_key: some_value

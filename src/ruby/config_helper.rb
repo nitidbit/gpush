@@ -1,8 +1,24 @@
 require "yaml"
+require_relative "colors"
 require_relative "git_helper"
 
 module ConfigHelper
   CONFIG_NAMES = %w[gpushrc.yml gpushrc.yaml].freeze
+
+  KNOWN_TOP_LEVEL_KEYS = %w[
+    fix
+    gpush_changed_files
+    gpush_version
+    parallel_run
+    post_run
+    post_run_failure
+    post_run_success
+    pre_run
+    success_emoji
+    verbose
+    worktree
+    worktree_copy_gitignored
+  ].freeze
 
   class << self
     def config_file_path(config_file = nil)
@@ -55,7 +71,20 @@ module ConfigHelper
       config = YAML.load_file full_path
       raise GpushError, "Configuration file is empty!" if config.empty?
 
+      warn_if_any_top_level_keys_are_not_known_top_level_keys(config)
       config
+    end
+
+    private
+
+    def warn_if_any_top_level_keys_are_not_known_top_level_keys(config)
+      unknown = config.keys.map(&:to_s) - KNOWN_TOP_LEVEL_KEYS
+      unknown.each do |key|
+        puts ""
+        puts "#{COLORS[:bold_red]}WARNING: Unknown config key '#{key}' in top-level config#{COLORS[:reset]}"
+        puts "#{COLORS[:yellow]}This key will be ignored. Check gpushrc.yml for typos.#{COLORS[:reset]}"
+        puts ""
+      end
     end
   end
 end
