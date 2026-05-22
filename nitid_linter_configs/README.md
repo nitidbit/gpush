@@ -16,4 +16,3 @@ pre_run:
   - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/.eslintrc_typescript.json' -o '.eslintrc.json'
   - shell: curl 'https://raw.githubusercontent.com/nitidbit/gpush/main/lint.py' -O
 ```
-
