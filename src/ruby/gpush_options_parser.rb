@@ -38,7 +38,12 @@ class GpushOptionsParser
             "Unknown arguments: #{remaining_args.join(", ")}. Run 'gpush --help' for usage information."
     end
 
-    file_config = ConfigHelper.parse_config(options[:config_file], verbose:)
+    file_config =
+      ConfigHelper.parse_config(
+        options[:config_file],
+        verbose:,
+        unknown_key_warn: config_prefix.nil? && !is_subcommand,
+      )
     subconfig = config_prefix ? file_config[config_prefix] : file_config
     options = {
       **(subconfig || {}).transform_keys(&:to_sym),

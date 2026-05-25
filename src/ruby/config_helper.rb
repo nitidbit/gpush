@@ -7,6 +7,7 @@ module ConfigHelper
 
   KNOWN_TOP_LEVEL_KEYS = %w[
     fix
+    get_specs
     gpush_changed_files
     gpush_version
     parallel_run
@@ -63,7 +64,7 @@ module ConfigHelper
       File.dirname(config_file_path(config_file))
     end
 
-    def parse_config(config_file = nil, verbose: false)
+    def parse_config(config_file = nil, verbose: false, unknown_key_warn: false)
       full_path = config_file_path(config_file)
       if verbose
         puts "Using config file: #{display_config_file_path(config_file)}"
@@ -71,15 +72,15 @@ module ConfigHelper
       config = YAML.load_file full_path
       raise GpushError, "Configuration file is empty!" if config.empty?
 
-      warn_if_any_top_level_keys_are_not_known_top_level_keys(config)
+      warn_if_any_top_level_keys_are_not_known(config) if unknown_key_warn
       config
     end
 
     private
 
-    def warn_if_any_top_level_keys_are_not_known_top_level_keys(config)
-      unknown = config.keys.map(&:to_s) - KNOWN_TOP_LEVEL_KEYS
-      unknown.each do |key|
+    def warn_if_any_top_level_keys_are_not_known(config)
+      unknown_keys = config.keys.map(&:to_s) - KNOWN_TOP_LEVEL_KEYS
+      unknown_keys.each do |key|
         puts ""
         puts "#{COLORS[:bold_red]}WARNING: Unknown config key '#{key}' in top-level config#{COLORS[:reset]}"
         puts "#{COLORS[:yellow]}This key will be ignored. Check gpushrc.yml for typos.#{COLORS[:reset]}"
