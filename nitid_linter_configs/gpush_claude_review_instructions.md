@@ -21,7 +21,11 @@ Use the git commit messages to inform your review.
 - Violations of repo conventions
 - Anything that should block commit
 
-Do not report low-value style nits or syntax issues that can be handled with tools like Prettier.
+## Ignore (do not report):
+
+- low-value style nits
+- syntax issues that can be handled with tools like Prettier
+- addition or removal of linter comments (such as eslint-disable-line, rubocop:disable)
 
 ## Output format
 
