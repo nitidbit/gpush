@@ -29,7 +29,9 @@ Use the git commit messages to inform your review.
 
 ## Output format
 
-Format your output for a terminal — plain text, no markdown. Use blank lines for separation and dashes for bullet points. Do not wrap sections in backticks (```).
+Format your output for a terminal — plain text, no markdown. Use blank lines for separation and dashes for bullet points.
+
+Do NOT use triple backticks (```) anywhere in your response. Do not wrap the whole review, any section, any code snippet, or any file path in a code fence. Output the review text directly.
 
 For each finding include:
 
@@ -37,14 +39,18 @@ For each finding include:
 - Location: `path/to/file:line` (or range)
 - Issue: what is wrong
 - Why: why it matters
-- Fix: exact recommended change
+- Fix: exact recommended change (including code if appropriate)
 
 If no blocking issues, print a brief summary of changes.
 
 ## Exit line
 
-The final line must be the word EXIT followed by a number; exactly one of:
+End with an exit line: the word EXIT, a single space, then a single digit — and nothing else on that line. The line must be exactly `EXIT 0`, `EXIT 1`, or `EXIT 2`.
 
-- `EXIT 0` (no changes needed)
-- `EXIT 1` (issues found)
-- `EXIT 2` (could not complete due to tooling/access)
+This must be the very last line of your entire response. Output absolutely nothing after it — no closing remarks, no summary sentence, no punctuation, no blank line followed by text, and no code fence. The EXIT line is the final thing you write.
+
+Choose the digit by this meaning:
+
+- 0 — no changes needed
+- 1 — issues found
+- 2 — could not complete due to tooling/access
