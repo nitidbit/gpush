@@ -30,9 +30,12 @@ cmd = [
   ALLOWED_TOOLS.join(","),
 ]
 
+# Stream agent output as it arrives, in order, ahead of any script output below.
+$stdout.sync = true
+
 # String.new produces mutable strings
 output = String.new
-raw_stdout = String.new
+result_event = nil
 
 IO.popen(cmd + [{ err: %i[child out] }], "r+") do |io|
   io.write(prompt)
@@ -42,23 +45,34 @@ IO.popen(cmd + [{ err: %i[child out] }], "r+") do |io|
       begin
         JSON.parse(line)
       rescue StandardError
-        raw_stdout << line
+        # Non-JSON line (e.g. a CLI error) — show it in order rather than hide it.
+        print line
+        output << line
         next
       end
-    next unless event["type"] == "stream_event"
-    delta = event.dig("event", "delta")
-    next unless delta&.dig("type") == "text_delta"
-    text = delta["text"]
-    print text
-    output << text
+    case event["type"]
+    when "stream_event"
+      delta = event.dig("event", "delta")
+      next unless delta&.dig("type") == "text_delta"
+      text = delta["text"]
+      print text
+      output << text
+    when "result"
+      result_event = event
+    end
   end
 end
 
 st = Process.last_status
-unless st.success?
-  warn raw_stdout unless raw_stdout.empty?
-  exit(st.exitstatus || 1)
+
+# If nothing streamed (no text_delta events), fall back to the final result text
+# so the agent output is always printed before the script output below.
+if output.strip.empty? && result_event && result_event["result"].is_a?(String)
+  print result_event["result"]
+  output << result_event["result"]
 end
+
+exit(st.exitstatus || 1) unless st.success?
 
 puts # ensure newline after streaming
 
