@@ -51,6 +51,6 @@ This must be the very last line of your entire response. Output absolutely nothi
 
 Choose the digit by this meaning:
 
-- 0 — no changes needed
-- 1 — issues found
+- 0 — No changes needed - code is OK to push
+- 1 — Blocking issues found - should be fixed before push
 - 2 — could not complete due to tooling/access
