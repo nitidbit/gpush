@@ -6,6 +6,7 @@ RSpec.describe "Gpush" do
   let(:mock_system) { MockSystem.new }
   before do
     Dir.chdir(__dir__) # Change to the directory of the current spec file
+    GitHelper.instance_variable_set(:@fetch_success, nil)
     allow(GitHelper).to receive(:head_sha).and_return("0123456")
 
     allow(Kernel).to receive(:system) do |*args|

@@ -10,8 +10,12 @@ module GitHelper
     raise GpushError, stderr.strip
   end
 
+  def self.fetch
+    return @fetch_success unless @fetch_success.nil?
+    @fetch_success = Kernel.system("git fetch")
+  end
+
   def self.at_same_commit_as_remote_branch?
-    Kernel.system "git fetch"
     return false unless remote_branch_name
     remote_commit = `git rev-parse @{u}`.strip
     local_commit = `git rev-parse @`.strip
@@ -28,8 +32,6 @@ module GitHelper
   end
 
   def self.up_to_date_or_ahead_of_remote_branch?
-    Kernel.system "git fetch"
-
     # Check if there's an upstream branch set
     return false unless remote_branch_name
 
