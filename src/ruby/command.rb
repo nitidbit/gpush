@@ -237,9 +237,12 @@ class Command
 
   # Class method to run commands in parallel and show summary
   def self.run_in_parallel?(command_defs, verbose: false)
-    all_commands = command_defs.map { |cmd| new(cmd, verbose:) }
+    all_commands =
+      command_defs.map do |cmd|
+        new(cmd, verbose: cmd["verbose"].nil? ? verbose : cmd["verbose"])
+      end
 
-    threads = run_commands_in_threads(all_commands, verbose)
+    threads = run_commands_in_threads(all_commands)
 
     handle_interruptions(all_commands)
 
@@ -252,13 +255,13 @@ class Command
     print_summary_and_return_all_succeeded?(all_commands)
   end
 
-  def self.run_commands_in_threads(all_commands, verbose)
+  def self.run_commands_in_threads(all_commands)
     all_commands.map do |command|
       Thread.new do
         command.run
       rescue GpushError
         command.set_status "fail"
-        command.print_nonverbose_output unless verbose
+        command.print_nonverbose_output unless command.verbose
       end
     end
   end
@@ -337,7 +340,10 @@ class Command
     print_single_line_spinner(all_commands) unless verbose
     puts ""
     all_commands.each do |command|
-      next if command.skipped? || command.success? || verbose || command.fail?
+      if command.skipped? || command.success? || command.verbose ||
+           command.fail?
+        next
+      end
       command.print_nonverbose_output
     end
   end
