@@ -62,7 +62,14 @@ module Gpush
       if GitHelper.not_a_git_repository?
         puts "Not inside a Git repository. Exiting."
         return nil
-      elsif !dry_run && GitHelper.detached_head?
+      end
+
+      unless dry_run || GitHelper.fetch
+        puts "git fetch failed. Check your network connection and try again."
+        return nil
+      end
+
+      if !dry_run && GitHelper.detached_head?
         puts "Cannot push from a detached HEAD"
         if GitHelper.ask_yes_no("Run tests anyway?", default: true)
           dry_run = true

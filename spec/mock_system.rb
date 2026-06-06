@@ -11,6 +11,10 @@ class MockSystem
       output: "",
       exit_code: 0,
     },
+    "git fetch" => {
+      output: "",
+      exit_code: 0,
+    },
   }.freeze
 
   def initialize
