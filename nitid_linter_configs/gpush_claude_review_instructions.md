@@ -19,6 +19,7 @@ Use the git commit messages to inform your review.
 - Typos
 - Security vulnerabilities
 - Violations of repo conventions
+- For any edits to localized content (en/es.yml or other translated strings), ensure values are present in all locales, free of typos, and translations are reasonably correct
 - Anything that should block commit
 
 ## Ignore (do not report):
