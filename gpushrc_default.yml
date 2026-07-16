@@ -15,19 +15,19 @@ parallel_run:
     if: "[ -f 'package.json' ] || { echo 'File does not exist.'; exit 1; }"
 
   - name: prettier
-    shell: npx prettier --check --ignore-unknown $(gpush_changed_files)
-    if: gpush_changed_files
+    shell: npx prettier --check --ignore-unknown $(gpush changed-files)
+    if: gpush changed-files
 
   - name: Uncommitted git changes
     shell: "git status --porcelain | grep '.' > /dev/null && exit 1 || exit 0"
 
   - name: eslint
-    shell: npx eslint $(gpush_changed_files --pattern "**/*.{js,jsx,ts,tsx}"})
-    if: gpush_changed_files --pattern "**/*.{js,jsx,ts,tsx}"}
+    shell: npx eslint $(gpush changed-files --pattern "**/*.{js,jsx,ts,tsx}")
+    if: gpush changed-files --pattern "**/*.{js,jsx,ts,tsx}"
 
   - name: rspec
-    shell: bundle exec rspec $(gpush_get_specs)
-    if: bundle info rspec && gpush_get_specs
+    shell: bundle exec rspec $(gpush get-specs)
+    if: bundle info rspec && gpush get-specs
 
   - name: rubocop
     shell: bundle exec rubocop

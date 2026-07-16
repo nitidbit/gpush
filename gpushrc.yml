@@ -42,10 +42,15 @@ parallel_run:
     shell: ruby nitid_linter_configs/gpush_claude_review.rb
     if: claude --version # only run if claude is installed
 
-  # just confirm this does not thorow an error
-  - shell: gpush_changed_files
+  # just confirm these do not throw an error (./bin so we test this checkout, not the installed release)
+  - shell: ./bin/gpush changed-files
 
-  - shell: gpush_get_specs
+  - shell: ./bin/gpush get-specs
+
+  # deprecated aliases, kept until removal
+  - shell: ./bin/gpush_changed_files
+
+  - shell: ./bin/gpush_get_specs
 
   - name: gpush run
     shell: gpush run shouldalways_PASS # test normalizing the command name

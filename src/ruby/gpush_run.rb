@@ -5,6 +5,10 @@ require_relative "exit_helper"
 
 module GpushRun
   class << self
+    def description
+      "Run one entry from parallel_run in gpushrc by name (matching ignores spaces, dashes, case)."
+    end
+
     def go(args:, options:) # rubocop:disable Lint/UnusedMethodArgument
       if args.nil? || args.empty?
         puts "Enter a command to run (e.g., gpush run test_name)"
@@ -16,13 +20,12 @@ module GpushRun
 
     def option_definitions
       lambda { |opts, _parsing_options| opts.banner = <<~BANNER }
-          gpush run: execute one parallel_run command by name.
+          gpush run: #{description}
 
           Usage:
             gpush run COMMAND
 
           COMMAND is matched against the name (or shell) of entries under parallel_run in gpushrc.
-          Matching ignores spaces, underscores, dashes, and case (same lookup as gpush run).
 
           Examples:
             gpush run rspec

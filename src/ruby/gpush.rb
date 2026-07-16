@@ -6,8 +6,10 @@ require_relative "config_helper" # Import the config helper
 require_relative "exit_helper" # Import the exit helper
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_error" # Import the custom error handling
+require_relative "gpush_changed_files" # Import the changed-files subcommand
 require_relative "gpush_diff_branch" # Import the diff-branch subcommand
 require_relative "gpush_fix" # Import the fix command
+require_relative "gpush_get_specs" # Import the get-specs subcommand
 require_relative "gpush_options_parser" # Import the options parser
 require_relative "gpush_run" # Import the version checker
 require_relative "notifier" # Import the desktop notifier

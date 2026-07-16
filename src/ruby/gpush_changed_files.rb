@@ -19,6 +19,74 @@ class GpushChangedFiles
     include_deleted_files: false,
   }.freeze
 
+  CLI_OPTION_KEYS = %i[
+    root_dir
+    fallback_branches
+    verbose
+    separator
+    pattern
+    include_deleted_files
+  ].freeze
+
+  def self.description
+    "Print file paths changed vs the remote base ref (see diff-branch)."
+  end
+
+  def self.option_definitions
+    lambda do |opts, parsing_options|
+      opts.banner = <<~BANNER
+        gpush changed-files: #{description}
+
+        Usage:
+          gpush changed-files [options]
+
+        Output is space-separated by default. Exits 1 if no files changed.
+        If gpushrc defines gpush_changed_files: (fallback branches, etc.), those settings apply.
+
+        Options:
+      BANNER
+      opts.on("--root-dir ROOT_DIR", "Specify root directory") do |v|
+        parsing_options[:root_dir] = v
+      end
+      opts.on(
+        "--fallback-branches x,y,z",
+        Array,
+        "Specify fallback branches",
+      ) { |v| parsing_options[:fallback_branches] = v }
+      opts.on("-v", "--verbose", "Enable verbose output") do
+        parsing_options[:verbose] = true
+      end
+      opts.on("--separator SEPARATOR", "Specify separator") do |v|
+        parsing_options[:separator] = v
+      end
+      opts.on(
+        "--pattern PATTERN",
+        "Filter files by pattern (e.g., *.rb *.js)",
+      ) { |v| parsing_options[:pattern] = v }
+      opts.on("--include-deleted-files", "Include deleted files") do
+        parsing_options[:include_deleted_files] = true
+      end
+    end
+  end
+
+  def self.go(args:, options:)
+    if args.any?
+      puts "Unexpected argument(s): #{args.join(", ")}"
+      puts "Usage: gpush changed-files [options]"
+      ExitHelper.exit(1)
+    end
+
+    section = options[:gpush_changed_files]
+    opts = (section.is_a?(Hash) ? section : {}).transform_keys(&:to_sym)
+    output_and_exit(opts.merge(options.slice(*CLI_OPTION_KEYS)))
+  end
+
+  def self.output_and_exit(options)
+    output = new(options).format_changed_files
+    puts output if output.length.positive?
+    ExitHelper.exit(output.length.positive? ? 0 : 1)
+  end
+
   def initialize(options = {})
     @options = DEFAULT_OPTIONS.merge(options)
 
@@ -143,40 +211,17 @@ class GpushChangedFiles
 end
 
 if __FILE__ == $PROGRAM_NAME
+  warn "DEPRECATED: gpush_changed_files will be removed in a future version. " \
+         "Use 'gpush changed-files' instead."
   begin
     options =
       GpushOptionsParser.parse(
         ARGV,
         config_prefix: "gpush_changed_files",
-        option_definitions:
-          lambda do |opts, parsing_options|
-            opts.on("--root-dir ROOT_DIR", "Specify root directory") do |v|
-              parsing_options[:root_dir] = v
-            end
-            opts.on(
-              "--fallback-branches x,y,z",
-              Array,
-              "Specify fallback branches",
-            ) { |v| parsing_options[:fallback_branches] = v }
-            opts.on("--verbose", "Enable verbose output") do
-              parsing_options[:verbose] = true
-            end
-            opts.on("--separator SEPARATOR", "Specify separator") do |v|
-              parsing_options[:separator] = v
-            end
-            opts.on(
-              "--pattern PATTERN",
-              "Filter files by pattern (e.g., *.rb *.js)",
-            ) { |v| parsing_options[:pattern] = v }
-            opts.on("--include-deleted-files", "Include deleted files") do
-              parsing_options[:include_deleted_files] = true
-            end
-          end,
+        option_definitions: GpushChangedFiles.option_definitions,
       )
 
-    output = GpushChangedFiles.new(options).format_changed_files
-    puts output if output.length.positive?
-    exit output.length.positive? ? 0 : 1
+    GpushChangedFiles.output_and_exit(options)
   rescue GpushError => e
     ExitHelper.exit_with_error(e)
   end

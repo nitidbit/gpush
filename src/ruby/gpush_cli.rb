@@ -5,22 +5,13 @@ require_relative "gpush_error"
 require_relative "exit_helper"
 
 module GpushCli
+  # name => lazy class reference; each class provides .description and .go
   SUBCOMMANDS = {
-    "run" => {
-      klass: -> { GpushRun },
-      description:
-        "Run one entry from parallel_run in gpushrc by name (matching ignores spaces, dashes, case).",
-    },
-    "fix" => {
-      klass: -> { GpushFix },
-      description:
-        "Run every shell command in the fix: section of gpushrc, in order.",
-    },
-    "diff-branch" => {
-      klass: -> { GpushDiffBranch },
-      description:
-        "Print the remote ref (e.g. origin/main) that gpush_changed_files uses for git diff; honors optional gpush_changed_files: settings in gpushrc.",
-    },
+    "run" => -> { GpushRun },
+    "fix" => -> { GpushFix },
+    "diff-branch" => -> { GpushDiffBranch },
+    "changed-files" => -> { GpushChangedFiles },
+    "get-specs" => -> { GpushGetSpecs },
   }.freeze
 
   def self.run(argv)
@@ -32,8 +23,8 @@ module GpushCli
       subcmd_width = subcommands.keys.map(&:length).max
       subcommands_block =
         subcommands
-          .map do |name, meta|
-            format("  %-#{subcmd_width}s  %s", name, meta[:description])
+          .map do |name, klass_ref|
+            format("  %-#{subcmd_width}s  %s", name, klass_ref.call.description)
           end
           .join("\n")
 
@@ -47,12 +38,12 @@ module GpushCli
         Subcommands:
         #{subcommands_block}
 
-        Other programs installed with this package:
-          gpush_changed_files   List paths changed vs the same origin ref as above (see diff-branch).
-          gpush_get_specs       List spec files to run for those changes.
+        Deprecated aliases (will be removed in a future version):
+          gpush_changed_files   Use 'gpush changed-files' instead.
+          gpush_get_specs       Use 'gpush get-specs' instead.
 
         More help:
-          gpush SUBCOMMAND --help    Options for run, fix, or diff-branch
+          gpush SUBCOMMAND --help    Options for each subcommand
 
         Options:
       BANNER
@@ -99,8 +90,7 @@ module GpushCli
 
   def self.run_with(argv, subcommands:, main_klass:)
     subcommand = subcommands.keys.find { |key| argv[0] == key }
-    klass =
-      subcommand ? subcommands.fetch(subcommand).fetch(:klass).call : main_klass
+    klass = subcommand ? subcommands.fetch(subcommand).call : main_klass
 
     parser_verbose = argv.include?("-v") || argv.include?("--verbose")
     arg_slice = (subcommand ? argv[1..] : argv).dup

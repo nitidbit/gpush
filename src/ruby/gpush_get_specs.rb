@@ -23,8 +23,55 @@ class GpushGetSpecs
     @options = DEFAULT_OPTIONS.merge(options)
   end
 
+  CLI_OPTION_KEYS = %i[
+    root_dir
+    include_pattern
+    exclude_pattern
+    always_include
+    exclude_words
+    min_keyword_length
+    output_separator
+    verbose
+  ].freeze
+
+  def self.go(args:, options:)
+    if args.any?
+      puts "Unexpected argument(s): #{args.join(", ")}"
+      puts "Usage: gpush get-specs [options]"
+      ExitHelper.exit(1)
+    end
+
+    section = options[:get_specs]
+    opts = (section.is_a?(Hash) ? section : {}).transform_keys(&:to_sym)
+    output_and_exit(opts.merge(options.slice(*CLI_OPTION_KEYS)))
+  end
+
+  def self.output_and_exit(options)
+    finder = new(options)
+    result = finder.find_matching_specs
+    output = finder.format_specs_for_output(result[:specs] || [])
+    puts output unless output.empty?
+    ExitHelper.exit(output.empty? ? 1 : 0)
+  end
+
+  def self.description
+    "Print a list of spec file paths heuristically generated from the changed files."
+  end
+
   def self.option_definitions
     proc do |opts, options|
+      opts.banner = <<~BANNER
+        gpush get-specs: #{description}
+
+        Usage:
+          gpush get-specs [options]
+
+        Keywords derived from changed filenames (see gpush changed-files) are matched
+        against spec filenames. Exits 1 if no specs match.
+        If gpushrc defines get_specs: settings, those apply.
+
+        Options:
+      BANNER
       opts.on(
         "-r",
         "--root-dir DIRECTORY",
@@ -175,20 +222,14 @@ end
 
 # Command-line execution
 if __FILE__ == $PROGRAM_NAME
-  config_prefix = "get_specs"
+  warn "DEPRECATED: gpush_get_specs will be removed in a future version. " \
+         "Use 'gpush get-specs' instead."
   options =
     GpushOptionsParser.parse(
       ARGV,
-      config_prefix:,
+      config_prefix: "get_specs",
       option_definitions: GpushGetSpecs.option_definitions,
     )
 
-  finder = GpushGetSpecs.new(options)
-  result = finder.find_matching_specs
-
-  if result[:specs]
-    output = finder.format_specs_for_output(result[:specs])
-    puts output unless output.empty?
-    ExitHelper.exit output.empty? ? 1 : 0
-  end
+  GpushGetSpecs.output_and_exit(options)
 end

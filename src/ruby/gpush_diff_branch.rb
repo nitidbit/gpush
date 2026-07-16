@@ -4,6 +4,10 @@ require_relative "exit_helper"
 require_relative "gpush_changed_files"
 
 module GpushDiffBranch
+  def self.description
+    "Print the remote ref (e.g. origin/main) that changed-files uses for git diff; honors optional gpush_changed_files: settings in gpushrc."
+  end
+
   def self.go(args:, options:)
     if args.any?
       puts "Unexpected argument(s): #{args.join(", ")}"
@@ -23,13 +27,10 @@ module GpushDiffBranch
   def self.option_definitions
     lambda do |opts, parsing_options|
       opts.banner = <<~BANNER
-        gpush diff-branch: print the remote ref used for changed-file diffs.
+        gpush diff-branch: #{description}
 
         Usage:
           gpush diff-branch [options]
-
-        Prints one line, e.g. origin/main (the ref passed to git diff by gpush_changed_files).
-        If gpushrc defines gpush_changed_files: (fallback branches, etc.), those settings apply.
 
         Options:
       BANNER

@@ -162,7 +162,7 @@ Clone the repo, then run the dev-install script to symlink the dev binaries into
 scripts/dev-install
 ```
 
-This links `gpush`, `gpush_get_specs`, and `gpush_changed_files` from the repo's `bin/` directory into `/opt/homebrew/bin/`. Changes to `src/ruby/` are picked up immediately — no reinstall needed.
+This links `gpush` (plus the deprecated `gpush_get_specs` and `gpush_changed_files` aliases) from the repo's `bin/` directory into `/opt/homebrew/bin/`. Changes to `src/ruby/` are picked up immediately — no reinstall needed.
 
 To revert:
 

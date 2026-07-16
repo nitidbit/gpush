@@ -4,6 +4,10 @@ require_relative "exit_helper"
 require_relative "gpush_error"
 
 module GpushFix
+  def self.description
+    "Run every shell command in the fix: section of gpushrc, in order."
+  end
+
   def self.go(args:, options:)
     if args.any?
       puts "Unexpected argument(s): #{args.join(", ")}"
@@ -34,12 +38,12 @@ module GpushFix
 
   def self.option_definitions
     lambda { |opts, _parsing_options| opts.banner = <<~BANNER }
-        gpush fix: run every command in the fix: section of gpushrc.
+        gpush fix: #{description}
 
         Usage:
           gpush fix
 
-        No arguments. Commands run in order; exits non-zero if any command fails.
+        No arguments. Exits non-zero if any command fails.
         Uses the same gpushrc discovery as gpush (walk up from the current directory).
 
         Options:
