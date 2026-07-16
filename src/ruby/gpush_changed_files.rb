@@ -87,6 +87,17 @@ class GpushChangedFiles
     ExitHelper.exit(output.length.positive? ? 0 : 1)
   end
 
+  # Build an instance from a gpush subcommand's top-level options (i.e. the
+  # gpush_changed_files: config section plus a --verbose flag), for
+  # subcommands (diff-branch, claude-review) that only need to know the
+  # config section's settings rather than accept their own changed-files flags.
+  def self.from_options(options)
+    section = options[:gpush_changed_files]
+    cf_opts = (section.is_a?(Hash) ? section : {}).transform_keys(&:to_sym)
+    cf_opts[:verbose] = true if options[:verbose]
+    new(cf_opts)
+  end
+
   def initialize(options = {})
     @options = DEFAULT_OPTIONS.merge(options)
 

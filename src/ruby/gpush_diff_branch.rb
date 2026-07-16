@@ -15,13 +15,13 @@ module GpushDiffBranch
       ExitHelper.exit(1)
     end
 
-    subsection = options[:gpush_changed_files]
-    cf_opts =
-      (subsection.is_a?(Hash) ? subsection : {}).transform_keys(&:to_sym)
-    cf_opts[:verbose] = true if options[:verbose]
-
-    puts GpushChangedFiles.new(cf_opts).diff_base_ref
+    puts base_ref(options)
     ExitHelper.exit(0)
+  end
+
+  # The remote ref reviews and changed-file diffs are based on, e.g. origin/main.
+  def self.base_ref(options)
+    GpushChangedFiles.from_options(options).diff_base_ref
   end
 
   def self.option_definitions

@@ -1,0 +1,146 @@
+# frozen_string_literal: true
+
+require "spec_helper"
+require "tmpdir"
+require_relative "../src/ruby/gpush.rb"
+
+RSpec.describe GpushClaudeReview do
+  describe ".build_prompt" do
+    it "returns the built-in instructions when no additions are given" do
+      expect(described_class.build_prompt([])).to start_with(
+        "# gPush Claude review",
+      )
+    end
+
+    it "appends file and text additions in the order given" do
+      Dir.mktmpdir do |dir|
+        file = File.join(dir, "extra.md")
+        File.write(file, "check the schema")
+
+        prompt =
+          described_class.build_prompt(
+            [{ text: "first" }, { file: }, { text: "last" }],
+          )
+
+        expect(prompt).to start_with("# gPush Claude review")
+        expect(prompt).to end_with("first\n\ncheck the schema\n\nlast")
+      end
+    end
+
+    it "raises when an instructions file is missing" do
+      expect {
+        described_class.build_prompt([{ file: "no_such_file.md" }])
+      }.to raise_error(GpushError, /Instructions file not found/)
+    end
+  end
+
+  describe ".exit_code_from" do
+    it "maps the EXIT line to an exit code" do
+      expect(described_class.exit_code_from("review text\nEXIT 0\n")).to eq 0
+      expect(described_class.exit_code_from("findings...\nEXIT 1\n")).to eq 1
+      expect(described_class.exit_code_from("EXIT 2")).to eq 2
+    end
+
+    it "returns 3 and warns when the exit line is malformed" do
+      code = nil
+      expect {
+        code = described_class.exit_code_from("looks good!\n")
+      }.to output(/did not produce a valid exit code/).to_stderr
+      expect(code).to eq 3
+    end
+  end
+
+  describe ".check_claude_auth!" do
+    subject(:check!) { described_class.send(:check_claude_auth!) }
+
+    it "does not raise when logged in" do
+      allow(Open3).to receive(:capture3).with(
+        "claude",
+        "auth",
+        "status",
+      ).and_return(
+        [%({"loggedIn": true, "email": "a@b.com"}), "", double(success?: true)],
+      )
+
+      expect { check! }.not_to raise_error
+    end
+
+    it "raises with a login hint when not logged in" do
+      allow(Open3).to receive(:capture3).with(
+        "claude",
+        "auth",
+        "status",
+      ).and_return([%({"loggedIn": false}), "", double(success?: true)])
+
+      expect { check! }.to raise_error(GpushError, /Run `claude auth login`/)
+    end
+
+    it "raises a friendly error when the claude CLI is not on PATH" do
+      allow(Open3).to receive(:capture3).with(
+        "claude",
+        "auth",
+        "status",
+      ).and_raise(Errno::ENOENT)
+
+      expect { check! }.to raise_error(GpushError, /not found on PATH/)
+    end
+
+    it "raises when the command exits non-zero" do
+      allow(Open3).to receive(:capture3).with(
+        "claude",
+        "auth",
+        "status",
+      ).and_return(
+        ["", "command not found", double(success?: false, exitstatus: 127)],
+      )
+
+      expect { check! }.to raise_error(
+        GpushError,
+        /claude auth status.*failed \(exit 127\).*command not found/m,
+      )
+    end
+
+    it "raises when the output is not JSON" do
+      allow(Open3).to receive(:capture3).with(
+        "claude",
+        "auth",
+        "status",
+      ).and_return(["not json", "", double(success?: true)])
+
+      expect { check! }.to raise_error(
+        GpushError,
+        /Unexpected output from `claude auth status`/,
+      )
+    end
+  end
+
+  describe "running via the CLI" do
+    before { Dir.chdir(__dir__) }
+
+    it "rejects extra arguments" do
+      expect(YAML).to receive(:load_file).and_return(
+        { "gpush_version" => ">=1.0" },
+      )
+
+      expect { GpushCli.run(%w[claude-review extra]) }.to output(
+        /Unexpected argument/,
+      ).to_stdout.and raise_error("Exit called with code 1")
+    end
+
+    it "exits 0 without running claude when there is nothing to review" do
+      expect(YAML).to receive(:load_file).and_return(
+        { "gpush_version" => ">=1.0" },
+      )
+      allow(GitHelper).to receive(:local_branch_name).and_return("mybranch")
+      allow(GitHelper).to receive(:branch_exists_on_origin?).and_return(true)
+      allow(Open3).to receive(:capture2).with(
+        "git diff --name-only origin/mybranch",
+      ).and_return(["", double(success?: true)])
+      expect(described_class).not_to receive(:run_review)
+
+      expect { GpushCli.run(%w[claude-review]) }.to output(
+        /Nothing to review/,
+      ).to_stdout.and raise_error("Exit called with code 0")
+    end
+  end
+end

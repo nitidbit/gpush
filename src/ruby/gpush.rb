@@ -7,6 +7,7 @@ require_relative "exit_helper" # Import the exit helper
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_error" # Import the custom error handling
 require_relative "gpush_changed_files" # Import the changed-files subcommand
+require_relative "gpush_claude_review" # Import the claude-review subcommand
 require_relative "gpush_diff_branch" # Import the diff-branch subcommand
 require_relative "gpush_fix" # Import the fix command
 require_relative "gpush_get_specs" # Import the get-specs subcommand

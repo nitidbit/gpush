@@ -12,6 +12,7 @@ module GpushCli
     "diff-branch" => -> { GpushDiffBranch },
     "changed-files" => -> { GpushChangedFiles },
     "get-specs" => -> { GpushGetSpecs },
+    "claude-review" => -> { GpushClaudeReview },
   }.freeze
 
   def self.run(argv)

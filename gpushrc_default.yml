@@ -33,6 +33,10 @@ parallel_run:
     shell: bundle exec rubocop
     if: bundle info rubocop
 
+  - name: claude review
+    shell: gpush claude-review
+    if: claude --version # only run if claude is installed
+
   - name: brakeman
     shell: "bundle exec brakeman --run-all-checks --no-pager -w2" # -w2 to only report high and medium confidence warnings (ignore weak)
     if: bundle info rubocop

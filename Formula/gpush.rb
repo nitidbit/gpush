@@ -11,7 +11,10 @@ class Gpush < Formula
 
   EXECUTABLES = %w[gpush_changed_files.rb gpush_get_specs.rb gpush.rb].freeze
 
-  OTHER_FILES = ["../../gpushrc_default.yml"].freeze
+  OTHER_FILES = %w[
+    ../../gpushrc_default.yml
+    gpush_claude_review_instructions.md
+  ].freeze
 
   # Use local path as the source for the formula
   url "file://#{Pathname.new(File.expand_path(__dir__)).parent}/src/ruby"
