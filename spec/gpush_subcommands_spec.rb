@@ -2,7 +2,7 @@ require "spec_helper"
 require_relative "../src/ruby/gpush.rb"
 
 RSpec.describe "gpush changed-files" do
-  around { |example| Dir.chdir(__dir__) { example.run } }
+  before { Dir.chdir(__dir__) }
 
   def mock_changed_files(diff_output)
     expect(GitHelper).to receive(:local_branch_name).and_return("mybranch")
@@ -76,7 +76,7 @@ RSpec.describe "gpush changed-files" do
 end
 
 RSpec.describe "gpush get-specs" do
-  around { |example| Dir.chdir(__dir__) { example.run } }
+  before { Dir.chdir(__dir__) }
 
   it "prints spec files matching keywords from the changed files and exits 0" do
     expect(YAML).to receive(:load_file).and_return(
