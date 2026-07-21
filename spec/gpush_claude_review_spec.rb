@@ -6,10 +6,11 @@ require_relative "../src/ruby/gpush.rb"
 
 RSpec.describe GpushClaudeReview do
   describe ".build_prompt" do
-    it "returns the built-in instructions when no additions are given" do
-      expect(described_class.build_prompt([])).to start_with(
-        "# gPush Claude review",
-      )
+    it "invokes /code-review with the effort and ref range, no additions" do
+      prompt = described_class.build_prompt("origin/main", "medium", [])
+
+      expect(prompt).to start_with("/code-review medium origin/main...HEAD")
+      expect(prompt).to end_with("Nothing should follow the EXIT line.")
     end
 
     it "appends file and text additions in the order given" do
@@ -19,17 +20,23 @@ RSpec.describe GpushClaudeReview do
 
         prompt =
           described_class.build_prompt(
+            "origin/main",
+            "low",
             [{ text: "first" }, { file: }, { text: "last" }],
           )
 
-        expect(prompt).to start_with("# gPush Claude review")
+        expect(prompt).to start_with("/code-review low origin/main...HEAD")
         expect(prompt).to end_with("first\n\ncheck the schema\n\nlast")
       end
     end
 
     it "raises when an instructions file is missing" do
       expect {
-        described_class.build_prompt([{ file: "no_such_file.md" }])
+        described_class.build_prompt(
+          "origin/main",
+          "medium",
+          [{ file: "no_such_file.md" }],
+        )
       }.to raise_error(GpushError, /Instructions file not found/)
     end
   end
@@ -39,6 +46,13 @@ RSpec.describe GpushClaudeReview do
       expect(described_class.exit_code_from("review text\nEXIT 0\n")).to eq 0
       expect(described_class.exit_code_from("findings...\nEXIT 1\n")).to eq 1
       expect(described_class.exit_code_from("EXIT 2")).to eq 2
+    end
+
+    it "ignores a trailing code fence and blank lines after the EXIT line" do
+      expect(described_class.exit_code_from("review\nEXIT 1\n```\n")).to eq 1
+      expect(
+        described_class.exit_code_from("review\nEXIT 0\n\n```\n\n"),
+      ).to eq 0
     end
 
     it "returns 3 and warns when the exit line is malformed" do
@@ -124,6 +138,17 @@ RSpec.describe GpushClaudeReview do
 
       expect { GpushCli.run(%w[claude-review extra]) }.to output(
         /Unexpected argument/,
+      ).to_stdout.and raise_error("Exit called with code 1")
+    end
+
+    it "rejects an invalid --effort level before touching git" do
+      expect(YAML).to receive(:load_file).and_return(
+        { "gpush_version" => ">=1.0" },
+      )
+      expect(GpushChangedFiles).not_to receive(:from_options)
+
+      expect { GpushCli.run(%w[claude-review --effort=turbo]) }.to output(
+        /Invalid --effort/,
       ).to_stdout.and raise_error("Exit called with code 1")
     end
 
