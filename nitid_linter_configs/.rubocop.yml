@@ -64,6 +64,9 @@ Naming/PredicatePrefix:
 Naming/VariableNumber:
   Enabled: false
 
+Rails/HasAndBelongsToMany:
+  Enabled: false
+
 # Trade off between obvious class searching and tons of indentation. leaving it as is.
 Style/ClassAndModuleChildren:
   Enabled: false
