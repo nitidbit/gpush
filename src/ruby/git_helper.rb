@@ -64,13 +64,13 @@ module GitHelper
   end
 
   def self.branch_exists_on_origin?(branch_name)
-    # Use git ls-remote to check if the branch exists on origin
-    result =
-      Open3
-        .capture2("git", "ls-remote", "--heads", "origin", branch_name)
-        .first
-        .strip
-    !result.empty?
+    # Fully qualify the ref: ls-remote patterns match the tail of a ref at
+    # slash boundaries, so a bare "flywheel" also matches
+    # "refs/heads/release/flywheel". Compare the returned ref exactly, which
+    # additionally guards branch names containing glob characters.
+    ref = "refs/heads/#{branch_name}"
+    result = Open3.capture2("git", "ls-remote", "--heads", "origin", ref).first
+    result.lines.any? { |line| line.split("\t").last&.strip == ref }
   end
 
   def self.behind_remote_branch?
