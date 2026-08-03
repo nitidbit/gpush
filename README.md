@@ -78,16 +78,30 @@ Gpush will look for a config file in the current directory. If not found, it wil
 | `worktree_copy_gitignored` | boolean or glob/list | copy gitignored files into the worktree. `true` copies all; a string or list of strings copies matching files only (e.g. `["config/master.key", ".env"]`). **Note:** globs must match top-level gitignored entries — files nested inside a fully-gitignored directory (e.g. `secrets/config/master.key` when `secrets/` is gitignored as a whole) will not be matched. |
 | `success_emoji`            | string               | emoji printed on success (default 🌺)                                                                                                                                                                                                                                                                                                                                  |
 | `gpush_version`            | string or list       | required gpush version constraint (e.g. `">= 2.0"`)                                                                                                                                                                                                                                                                                                                    |
+| `verbose`                  | boolean              | print command output while running, as if `--verbose` were passed                                                                                                                                                                                                                                                                                                      |
+| `fix`                      | list of commands     | commands run by `gpush fix`, in order. Not part of the normal `gpush` run.                                                                                                                                                                                                                                                                                             |
+| `get_specs`                | hash                 | settings for `gpush get-specs` (e.g. `include_pattern`, `exclude_words`). Run `gpush get-specs --help` for the full list — every flag there has a matching key here.                                                                                                                                                                                                   |
+| `gpush_changed_files`      | hash                 | settings for `gpush changed-files` (e.g. `fallback_branches`, `pattern`). Run `gpush changed-files --help` for the full list — every flag there has a matching key here.                                                                                                                                                                                               |
 
-#### Per-command flags
+Any other top-level key is ignored, with a warning naming the key.
 
-Any command in any section can include these flags:
+#### Command keys
 
-| **flag**                 | **description**                                                                              |
-| :----------------------- | -------------------------------------------------------------------------------------------- |
-| `if: SHELL COMMAND`      | only run this command when the given shell command exits 0; otherwise the command is skipped |
-| `only_worktree: true`    | only run this command when in worktree mode                                                  |
-| `only_no_worktree: true` | only run this command when not in worktree mode                                              |
+Each entry in `pre_run`, `parallel_run`, `post_run`, `post_run_success`, `post_run_failure`, and `fix` is a hash. `shell` is the only required key:
+
+| **key**            | **type** | **description**                                                                                   |
+| :----------------- | -------- | :------------------------------------------------------------------------------------------------ |
+| `shell`            | string   | **required.** the shell command to run                                                            |
+| `name`             | string   | label shown in the spinner and summary. Defaults to `shell`.                                      |
+| `if`               | string   | only run this command when the given shell command exits 0; otherwise it is reported as `SKIPPED` |
+| `env`              | hash     | environment variables prefixed onto `shell` and `if` (e.g. `env: { RAILS_ENV: test }`)            |
+| `verbose`          | boolean  | print this command's output while it runs, overriding the global setting in either direction      |
+| `only_worktree`    | boolean  | only run this command when in worktree mode                                                       |
+| `only_no_worktree` | boolean  | only run this command when not in worktree mode                                                   |
+
+Any other key is ignored, with a warning naming the key and the command.
+
+**`verbose` is only honored in the sequential sections** — `pre_run`, `post_run`, `post_run_success`, and `post_run_failure`. Commands in `parallel_run` all follow the global setting, and `gpush fix` and `gpush run` are always verbose.
 
 Because `changed-files` and `get-specs` exit 1 when nothing matched, they work as an `if:` condition on their own — this skips prettier entirely when no files changed:
 
