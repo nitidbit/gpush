@@ -62,6 +62,11 @@ module GpushCli
       end
 
       opts.on(
+        "--[no-]spinner",
+        "Show the live single-line spinner while commands run (overrides config)",
+      ) { |v| parsing_options[:spinner] = v }
+
+      opts.on(
         "--[no-]worktree",
         "Run checks in an isolated git worktree (overrides config)",
       ) { |v| parsing_options[:worktree] = v }
