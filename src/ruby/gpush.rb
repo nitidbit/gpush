@@ -59,17 +59,19 @@ module Gpush
       end
     end
 
+    # Exits non-zero on a git state we cannot work with. Returns nil when the
+    # user is asked and chooses to stop, which is a normal (zero) exit.
     def check_git_state_return_nil_for_exit(dry_run)
       will_set_up_remote_branch = false
 
       if GitHelper.not_a_git_repository?
         puts "Not inside a Git repository. Exiting."
-        return nil
+        ExitHelper.exit 1
       end
 
       unless dry_run || GitHelper.fetch
         puts "git fetch failed. Check your network connection and try again."
-        return nil
+        ExitHelper.exit 1
       end
 
       if !dry_run && GitHelper.detached_head?
@@ -98,7 +100,7 @@ module Gpush
       elsif !dry_run
         unless GitHelper.up_to_date_or_ahead_of_remote_branch?
           puts "Local branch is not up to date with the remote branch. Exiting."
-          return nil
+          ExitHelper.exit 1
         end
 
         if GitHelper.at_same_commit_as_remote_branch?
@@ -190,7 +192,7 @@ module Gpush
         Notifier.notify(success: false)
         report_tested_commit(tested_sha)
         puts "Exiting gpush."
-        return
+        ExitHelper.exit 1
       end
 
       simple_run_commands_with_output(
@@ -207,13 +209,19 @@ module Gpush
         puts "《 Dry run completed 》"
       else
         push_dir = worktree_path || original_dir
-        Dir.chdir(push_dir) do
-          if will_set_up_remote_branch
-            puts "Setting up the remote branch..."
-            Kernel.system("git", "push", "-u", "origin", original_branch)
-          else
-            Kernel.system("git", "push", "origin", "HEAD:#{original_branch}")
+        pushed =
+          Dir.chdir(push_dir) do
+            if will_set_up_remote_branch
+              puts "Setting up the remote branch..."
+              Kernel.system("git", "push", "-u", "origin", original_branch)
+            else
+              Kernel.system("git", "push", "origin", "HEAD:#{original_branch}")
+            end
           end
+
+        unless pushed
+          puts "\ngit push failed. Your checks passed, but nothing was pushed."
+          ExitHelper.exit 1
         end
 
         puts ""
