@@ -13,6 +13,7 @@ class Command
               :verbose,
               :status,
               :prefix_output,
+              :spinner_enabled,
               :pid,
               :start_time,
               :end_time
@@ -48,7 +49,12 @@ class Command
 
   SPINNER = ["|", "/", "-", '\\'].freeze
 
-  def initialize(command_dict, verbose: false, prefix_output: true)
+  def initialize(
+    command_dict,
+    verbose: false,
+    prefix_output: true,
+    spinner: true
+  )
     warn_unknown_command_keys(command_dict)
 
     if command_dict["env"]
@@ -58,6 +64,7 @@ class Command
     @verbose = verbose
     @output = []
     @prefix_output = prefix_output
+    @spinner_enabled = spinner
     @name = command_dict["name"] || command_dict["shell"]
     raise GpushError, 'must have a "shell" field.' unless command_dict["shell"]
     @shell = [env_prefix, command_dict["shell"]].compact.join(" ")
@@ -150,7 +157,8 @@ class Command
   end
 
   def print_nonverbose_output
-    self.class.clear_single_line_spinner # Clear spinner, it will be reprinted below this output
+    # Clear spinner, it will be reprinted below this output
+    self.class.clear_single_line_spinner if spinner_enabled
     puts "\n\n"
     extra_message =
       case status
@@ -236,20 +244,28 @@ class Command
   end
 
   # Class method to run commands in parallel and show summary
-  def self.run_in_parallel?(command_defs, verbose: false)
-    all_commands = command_defs.map { |cmd| new(cmd, verbose:) }
+  def self.run_in_parallel?(command_defs, verbose: false, spinner: true)
+    all_commands = command_defs.map { |cmd| new(cmd, verbose:, spinner:) }
+
+    announce_commands(all_commands) unless spinner
 
     threads = run_commands_in_threads(all_commands, verbose)
 
-    handle_interruptions(all_commands)
+    handle_interruptions(all_commands, spinner:)
 
-    spinner_thread = start_spinner(all_commands, threads, verbose)
+    spinner_thread = start_spinner(all_commands, threads, verbose) if spinner
 
     threads.each(&:join)
-    spinner_thread.kill
+    spinner_thread&.kill
 
-    finalize_output(all_commands, verbose)
+    finalize_output(all_commands, verbose, spinner:)
     print_summary_and_return_all_succeeded?(all_commands)
+  end
+
+  # Without the spinner there is no live progress, so at least say what started
+  def self.announce_commands(all_commands)
+    return if all_commands.empty?
+    puts "Running #{all_commands.size} commands: #{all_commands.map(&:name).join(", ")}"
   end
 
   def self.run_commands_in_threads(all_commands, verbose)
@@ -263,7 +279,7 @@ class Command
     end
   end
 
-  def self.handle_interruptions(all_commands)
+  def self.handle_interruptions(all_commands, spinner: true)
     processing_interruption = false
     default_int_handler =
       Signal.trap("INT") do
@@ -271,6 +287,7 @@ class Command
           all_commands,
           processing_interruption,
           default_int_handler,
+          spinner:,
         )
         processing_interruption = true
       end
@@ -279,9 +296,10 @@ class Command
   def self.process_interrupt(
     all_commands,
     processing_interruption,
-    default_int_handler
+    default_int_handler,
+    spinner: true
   )
-    clear_single_line_spinner
+    clear_single_line_spinner if spinner
     puts "\nCtrl-C detected, attempting to stop gracefully. Press Ctrl-C again to force quit."
     if processing_interruption
       execute_default_handler(default_int_handler)
@@ -333,8 +351,8 @@ class Command
     end
   end
 
-  def self.finalize_output(all_commands, verbose)
-    print_single_line_spinner(all_commands) unless verbose
+  def self.finalize_output(all_commands, verbose, spinner: true)
+    print_single_line_spinner(all_commands) if spinner && !verbose
     puts ""
     all_commands.each do |command|
       next if command.skipped? || command.success? || verbose || command.fail?

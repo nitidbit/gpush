@@ -26,7 +26,7 @@ module Gpush
       verbose ? str : "#{str} > /dev/null 2>&1"
     end
 
-    def simple_run_commands_with_output(commands, title:, verbose:)
+    def simple_run_commands_with_output(commands, title:, verbose:, spinner:)
       return if commands.nil? || commands.empty?
       some_verbose = verbose || commands.any? { |cmd| cmd["verbose"] }
 
@@ -38,7 +38,7 @@ module Gpush
         # Use command's verbose setting if specified, otherwise use global verbose setting
         command_verbose =
           cmd_dict["verbose"].nil? ? verbose : cmd_dict["verbose"]
-        command = Command.new(cmd_dict, verbose: command_verbose)
+        command = Command.new(cmd_dict, verbose: command_verbose, spinner:)
         command.run
         next if command.success?
 
@@ -160,6 +160,7 @@ module Gpush
       end
 
       verbose = options[:verbose]
+      spinner = options[:spinner] != false
       in_worktree = !worktree_path.nil?
       tested_sha = GitHelper.head_sha
 
@@ -167,18 +168,21 @@ module Gpush
         filter_commands(options[:pre_run], in_worktree:),
         title: "pre-run",
         verbose:,
+        spinner:,
       )
 
       success =
         Command.run_in_parallel?(
           filter_commands(options[:parallel_run], in_worktree:),
           verbose:,
+          spinner:,
         )
 
       simple_run_commands_with_output(
         filter_commands(options[:post_run], in_worktree:),
         title: "post-run",
         verbose:,
+        spinner:,
       )
 
       unless success
@@ -186,6 +190,7 @@ module Gpush
           filter_commands(options[:post_run_failure], in_worktree:),
           title: "post-run failure",
           verbose:,
+          spinner:,
         )
         Notifier.notify(success: false)
         report_tested_commit(tested_sha)
@@ -197,6 +202,7 @@ module Gpush
         filter_commands(options[:post_run_success], in_worktree:),
         title: "post-run success",
         verbose:,
+        spinner:,
       )
 
       Notifier.notify(success: true)

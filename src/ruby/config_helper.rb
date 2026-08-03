@@ -15,6 +15,7 @@ module ConfigHelper
     post_run_failure
     post_run_success
     pre_run
+    spinner
     success_emoji
     verbose
     worktree
