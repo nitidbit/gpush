@@ -26,7 +26,7 @@ class GpushOptionsParser
           option_definitions.call(opts, options)
           opts.on("-h", "--help", "Prints this help") do
             puts opts
-            ExitHelper.exit 1
+            ExitHelper.exit 0
           end
         end
         .parse!(arguments)
