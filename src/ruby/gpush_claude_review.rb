@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require "json"
-require "open3"
 require_relative "exit_helper"
 require_relative "gpush_changed_files"
+require_relative "gpush_claude_cli"
 require_relative "gpush_error"
 
 module GpushClaudeReview
@@ -58,8 +58,8 @@ module GpushClaudeReview
         ExitHelper.exit(0)
       end
 
-      check_claude_version!
-      check_claude_auth!
+      GpushClaudeCli.check_version!(MINIMUM_CLAUDE_VERSION)
+      GpushClaudeCli.check_auth!
       run_review(
         build_prompt(base_ref, effort, options[:instructions] || []),
         options[:allowed_tools] || [],
@@ -166,68 +166,6 @@ module GpushClaudeReview
       File.read(path)
     rescue Errno::ENOENT
       raise GpushError, "Instructions file not found: #{path}"
-    end
-
-    def check_claude_version!
-      stdout, stderr, process_status =
-        begin
-          Open3.capture3("claude", "--version")
-        rescue Errno::ENOENT
-          raise GpushError,
-                "`claude` CLI not found on PATH. Install it or skip this check."
-        end
-
-      unless process_status.success?
-        detail = stderr.strip.empty? ? stdout.strip : stderr.strip
-        raise GpushError,
-              "`claude --version` failed (exit #{process_status.exitstatus})." \
-                "#{"\n#{detail}" unless detail.empty?}"
-      end
-
-      # e.g. "2.1.223 (Claude Code)"
-      found = stdout[/\d+(?:\.\d+)+/]
-      unless found
-        raise GpushError,
-              "Could not read a version from `claude --version`: " \
-                "#{stdout.strip.inspect}"
-      end
-
-      minimum = Gem::Version.new(MINIMUM_CLAUDE_VERSION)
-      return if Gem::Version.new(found) >= minimum
-
-      raise GpushError,
-            "claude CLI #{found} is too old for gpush claude-review, which " \
-              "needs #{MINIMUM_CLAUDE_VERSION} or newer. Update the CLI and try again."
-    end
-
-    def check_claude_auth!
-      stdout, stderr, process_status =
-        begin
-          Open3.capture3("claude", "auth", "status")
-        rescue Errno::ENOENT
-          raise GpushError,
-                "`claude` CLI not found on PATH. Install it or skip this check."
-        end
-
-      unless process_status.success?
-        detail = stderr.strip.empty? ? stdout.strip : stderr.strip
-        raise GpushError,
-              "`claude auth status` failed (exit #{process_status.exitstatus}). " \
-                "Is the `claude` CLI installed and on PATH?" \
-                "#{"\n#{detail}" unless detail.empty?}"
-      end
-
-      status =
-        begin
-          JSON.parse(stdout)
-        rescue JSON::ParserError
-          raise GpushError,
-                "Unexpected output from `claude auth status` (expected JSON):\n#{stdout.strip}"
-        end
-      return if status["loggedIn"]
-
-      raise GpushError,
-            "Not logged in to Claude. Run `claude auth login` to authenticate."
     end
 
     # extra_tools comes from --allowed-tools, i.e. from gpushrc.yml or the
