@@ -82,6 +82,27 @@ RSpec.describe GpushClaudeReview do
     end
   end
 
+  describe ".claude_command with extra tools" do
+    it "appends a project's --allowed-tools after the defaults" do
+      command =
+        described_class.send(
+          :claude_command,
+          ["Bash(bundle exec rubocop*)", "Bash(bin/tsc*)"],
+        )
+
+      expect(command[command.index("--allowedTools") + 1]).to eq(
+        "Bash(git diff*),Bash(git log*),Bash(git show*)," \
+          "Bash(bundle exec rubocop*),Bash(bin/tsc*)",
+      )
+    end
+
+    it "still loads no setting sources when tools are added" do
+      command = described_class.send(:claude_command, ["Bash(anything*)"])
+
+      expect(command[command.index("--setting-sources") + 1]).to eq ""
+    end
+  end
+
   describe ".check_claude_version!" do
     subject(:check!) { described_class.send(:check_claude_version!) }
 

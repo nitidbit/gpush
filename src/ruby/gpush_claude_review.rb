@@ -60,7 +60,10 @@ module GpushClaudeReview
 
       check_claude_version!
       check_claude_auth!
-      run_review(build_prompt(base_ref, effort, options[:instructions] || []))
+      run_review(
+        build_prompt(base_ref, effort, options[:instructions] || []),
+        options[:allowed_tools] || [],
+      )
     end
 
     def option_definitions
@@ -78,7 +81,9 @@ module GpushClaudeReview
 
           The review loads no Claude settings files and inherits none of your
           local permissions. It can read the repo and run read-only git
-          commands, nothing else.
+          commands, nothing else. A project that needs more can grant it with
+          --allowed-tools in gpushrc.yml, where the grant is committed and so
+          applies identically for everyone.
 
           A REVIEW.md at the repository root, if present, is read and followed
           for per-repo review guidance.
@@ -101,6 +106,11 @@ module GpushClaudeReview
           "--instructions=TEXT",
           "Append instruction TEXT (repeatable)",
         ) { |v| (parsing_options[:instructions] ||= []) << { text: v } }
+        opts.on(
+          "--allowed-tools=TOOLS",
+          "Permit TOOLS in addition to the read-only default, in claude " \
+            "--allowedTools syntax, comma-separated (repeatable)",
+        ) { |v| (parsing_options[:allowed_tools] ||= []) << v }
       end
     end
 
@@ -220,7 +230,10 @@ module GpushClaudeReview
             "Not logged in to Claude. Run `claude auth login` to authenticate."
     end
 
-    def claude_command
+    # extra_tools comes from --allowed-tools, i.e. from gpushrc.yml or the
+    # command line -- both committed or explicit, never the developer's local
+    # settings, so the review stays reproducible across machines.
+    def claude_command(extra_tools = [])
       [
         "claude",
         "--print",
@@ -237,18 +250,19 @@ module GpushClaudeReview
         "--setting-sources",
         "",
         "--allowedTools",
-        ALLOWED_TOOLS.join(","),
+        (ALLOWED_TOOLS + extra_tools).join(","),
       ]
     end
 
-    def run_review(prompt)
+    def run_review(prompt, extra_tools = [])
       # Stream agent output as it arrives, in order, ahead of any output below.
       $stdout.sync = true
 
       output = String.new
       result_event = nil
 
-      IO.popen(claude_command + [{ err: %i[child out] }], "r+") do |io|
+      command = claude_command(extra_tools) + [{ err: %i[child out] }]
+      IO.popen(command, "r+") do |io|
         io.write(prompt)
         io.close_write
         io.each_line do |line|
