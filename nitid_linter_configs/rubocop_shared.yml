@@ -1,0 +1,196 @@
+#
+#   Nitid.co's standard RuboCop configuration
+#
+#   This file is meant to be inherited over HTTP.
+#  In your project's .rubocop.yml:
+#
+#     inherit_from:
+#       - https://raw.githubusercontent.com/nitidbit/gpush/main/nitid_linter_configs/rubocop_shared.yml
+#       - .rubocop_todo.yml
+#
+#   Notes for the inheriting project:
+#
+#   * Set your own AllCops/TargetRubyVersion — this file deliberately doesn't.
+#   * Your .rubocop_todo.yml goes in YOUR inherit_from list, not here. A remote
+#     config can only inherit other remote configs.
+#   * RuboCop REPLACES arrays from an inherited config rather than merging them.
+#     If you set your own AllCops/Exclude, add `inherit_mode` so you extend this
+#     list instead of wiping it:
+#
+#       inherit_mode:
+#         merge:
+#           - Exclude
+#
+#   * RuboCop caches the download as a file in your project root, named
+#     .rubocop- plus the URL with every non-alphanumeric turned into a dash.
+#     Add `.rubocop-https-*` to your .gitignore.
+#   * Requires rubocop >= 1.76 (for the `plugins` key) and these gems in your
+#     Gemfile: rubocop-rails, rubocop-rspec, rubocop-rails-accessibility.
+#
+
+plugins:
+  - rubocop-rails
+  - rubocop-rspec
+
+require:
+  - rubocop-rails-accessibility
+
+AllCops:
+  UseCache: true
+  NewCops: enable
+  Exclude:
+    - "node_modules/**/*"
+    - "vendor/**/*"
+    - "bin/**/*"
+    - "db/**/*"
+    - "spec/**/*"
+    - "Gemfile"
+    - "config/initializers/rack_attack.rb"
+    - "script/single_use/**/*"
+
+# ---------------------------------------------------------------------------
+# From @prettier/plugin-ruby's rubocop.yml, inlined.
+#
+# The upstream file lives in node_modules, which a remotely-inherited config
+# can't reach, so its settings are copied here. Where Nitid disagrees with
+# upstream the Nitid setting is used and noted.
+# ---------------------------------------------------------------------------
+
+# let prettier handle everything to do with Layout
+Layout:
+  Enabled: false
+
+# Layout/LineLength stays on because cops like Style/IfUnlessModifier mis-fire
+# without it, but prettier owns the actual wrapping, so the max is a formality.
+Layout/LineLength:
+  Enabled: true
+  Max: 999
+
+# Syntax Tree expands empty methods to put `end` on its own line.
+Style/EmptyMethod:
+  EnforcedStyle: expanded
+
+# lambdas built with the `lambda` method call can't become literals without
+# dropping a method call.
+Style/Lambda:
+  Enabled: false
+
+# rubocop passes multi-block chains with braces but not with do/end, and
+# prettier converts multiline blocks to do/end.
+Style/MultilineBlockChain:
+  Enabled: false
+
+Style/MultilineIfModifier:
+  Enabled: false
+
+# quoting depends on whether syntax_tree has plugin/single_quotes loaded
+Style/StringLiterals:
+  Enabled: false
+
+Style/StringLiteralsInInterpolation:
+  Enabled: false
+
+Style/QuotedSymbols:
+  Enabled: false
+
+# a lone ["value"] isn't worth converting
+Style/SymbolArray:
+  Enabled: false
+
+Style/WordArray:
+  Enabled: false
+
+Style/TrailingCommaInArguments:
+  Enabled: false
+
+# ---------------------------------------------------------------------------
+# Nitid's own settings
+# ---------------------------------------------------------------------------
+
+# Many AbcSize in the 50-100 range.
+Metrics/AbcSize:
+  Max: 80
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Max: 25
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Max: 200
+
+Metrics/PerceivedComplexity:
+  Max: 20
+
+# is_ and has_ provide extra information and were a style at one point
+Naming/PredicatePrefix:
+  Enabled: false
+
+# we have too many db fields like address_1 and population_women_13_to_44
+Naming/VariableNumber:
+  Enabled: false
+
+Rails/HasAndBelongsToMany:
+  Enabled: false
+
+# Trade off between obvious class searching and tons of indentation. leaving it as is.
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+# prettier sometimes splits a block over multiple lines if it would not fit within the line length, but keeps the {} braces if there is only one line in the block
+Style/BlockDelimiters:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+# This is a concise way to force true/false instead of returning objects or who knows what and making other people deal with it
+Style/DoubleNegation:
+  Enabled: false
+
+Style/FormatStringToken:
+  EnforcedStyle: template
+
+# Let prettier handle this one
+Style/IfUnlessModifier:
+  Enabled: false
+
+# if prettier can fit it all on one line, it's gonna do it, even if it has to use nested ternarys
+Style/NestedTernaryOperator:
+  Enabled: false
+
+# separate every three digits in a zip code/phone number? gtfo.
+Style/NumericLiterals:
+  Enabled: false
+
+# (f == 0) or (f.zero?) you decide.
+Style/NumericPredicate:
+  Enabled: false
+
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: "[]"
+
+Style/StringConcatenation:
+  Enabled: false
+
+# overrides @prettier/plugin-ruby, which disables these two — our .prettierrc.json
+# sets trailingComma "all" for ruby, so the commas are there and rubocop can check them
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+# [Winston] Rubocop's argument is a lot of safe-navigation operators can be tricky to evaluate.
+# I agree, but I feel the solution is to build our models so they don't allow 'nil' as often,
+# not to limit safe-navigator chains.
+Style/SafeNavigationChainLength:
+  Enabled: false
