@@ -82,6 +82,58 @@ RSpec.describe GpushClaudeReview do
     end
   end
 
+  describe ".check_claude_version!" do
+    subject(:check!) { described_class.send(:check_claude_version!) }
+
+    def stub_version(stdout, success: true)
+      allow(Open3).to receive(:capture3).with("claude", "--version").and_return(
+        [stdout, "", double(success?: success, exitstatus: success ? 0 : 1)],
+      )
+    end
+
+    it "accepts a version at or above the minimum" do
+      stub_version("#{GpushClaudeReview::MINIMUM_CLAUDE_VERSION} (Claude Code)")
+      expect { check! }.not_to raise_error
+
+      stub_version("2.1.223 (Claude Code)")
+      expect { check! }.not_to raise_error
+    end
+
+    it "rejects a version below the minimum, naming the version found" do
+      stub_version("2.0.9 (Claude Code)")
+
+      expect { check! }.to raise_error(GpushError, /2\.0\.9 is too old/)
+    end
+
+    it "compares numerically, not as strings" do
+      # "10.0.0" sorts BELOW "2.1.1" as a string, so a naive compare would
+      # reject a CLI that is years newer than the minimum.
+      stub_version("10.0.0 (Claude Code)")
+
+      expect { check! }.not_to raise_error
+    end
+
+    it "raises a friendly error when the claude CLI is not on PATH" do
+      allow(Open3).to receive(:capture3).with("claude", "--version").and_raise(
+        Errno::ENOENT,
+      )
+
+      expect { check! }.to raise_error(GpushError, /not found on PATH/)
+    end
+
+    it "raises when the version output is unparseable" do
+      stub_version("who knows")
+
+      expect { check! }.to raise_error(GpushError, /Could not read a version/)
+    end
+
+    it "raises when the command exits non-zero" do
+      stub_version("", success: false)
+
+      expect { check! }.to raise_error(GpushError, /`claude --version` failed/)
+    end
+  end
+
   describe ".check_claude_auth!" do
     subject(:check!) { described_class.send(:check_claude_auth!) }
 

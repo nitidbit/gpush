@@ -18,6 +18,12 @@ module GpushClaudeReview
     "Bash(git show*)",
   ].freeze
 
+  # claude_command passes --setting-sources, which older CLIs do not know. They
+  # would fail with an opaque "unknown option" error part-way through a gpush
+  # run, so check up front instead. 2.1.1 is the oldest release confirmed to
+  # support the flag; lower this if an older one is verified.
+  MINIMUM_CLAUDE_VERSION = "2.1.1"
+
   # /code-review effort levels. Lower levels give fewer, higher-confidence
   # findings; a pre-push gate defaults to medium to avoid blocking on nits.
   EFFORT_LEVELS = %w[low medium high xhigh max].freeze
@@ -52,6 +58,7 @@ module GpushClaudeReview
         ExitHelper.exit(0)
       end
 
+      check_claude_version!
       check_claude_auth!
       run_review(build_prompt(base_ref, effort, options[:instructions] || []))
     end
@@ -149,6 +156,38 @@ module GpushClaudeReview
       File.read(path)
     rescue Errno::ENOENT
       raise GpushError, "Instructions file not found: #{path}"
+    end
+
+    def check_claude_version!
+      stdout, stderr, process_status =
+        begin
+          Open3.capture3("claude", "--version")
+        rescue Errno::ENOENT
+          raise GpushError,
+                "`claude` CLI not found on PATH. Install it or skip this check."
+        end
+
+      unless process_status.success?
+        detail = stderr.strip.empty? ? stdout.strip : stderr.strip
+        raise GpushError,
+              "`claude --version` failed (exit #{process_status.exitstatus})." \
+                "#{"\n#{detail}" unless detail.empty?}"
+      end
+
+      # e.g. "2.1.223 (Claude Code)"
+      found = stdout[/\d+(?:\.\d+)+/]
+      unless found
+        raise GpushError,
+              "Could not read a version from `claude --version`: " \
+                "#{stdout.strip.inspect}"
+      end
+
+      minimum = Gem::Version.new(MINIMUM_CLAUDE_VERSION)
+      return if Gem::Version.new(found) >= minimum
+
+      raise GpushError,
+            "claude CLI #{found} is too old for gpush claude-review, which " \
+              "needs #{MINIMUM_CLAUDE_VERSION} or newer. Update the CLI and try again."
     end
 
     def check_claude_auth!
