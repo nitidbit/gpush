@@ -64,6 +64,24 @@ RSpec.describe GpushClaudeReview do
     end
   end
 
+  describe ".claude_command" do
+    subject(:command) { described_class.send(:claude_command) }
+
+    # Security-relevant: --allowedTools is additive on top of the developer's
+    # settings files, so without --setting-sources "" the review inherits their
+    # allow rules and can run anything they have ever approved.
+    it "loads no setting sources, so no local permissions are inherited" do
+      expect(command).to include("--setting-sources")
+      expect(command[command.index("--setting-sources") + 1]).to eq ""
+    end
+
+    it "grants only the read-only git commands" do
+      expect(command[command.index("--allowedTools") + 1]).to eq(
+        "Bash(git diff*),Bash(git log*),Bash(git show*)",
+      )
+    end
+  end
+
   describe ".check_claude_auth!" do
     subject(:check!) { described_class.send(:check_claude_auth!) }
 

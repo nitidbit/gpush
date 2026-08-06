@@ -9,7 +9,9 @@ require_relative "gpush_error"
 module GpushClaudeReview
   # Read-only git commands the /code-review skill needs to inspect the diff.
   # gpush passes the base ref in the prompt, so no base discovery is needed.
-  # (Read/Grep/Glob are already permitted by default in --print mode.)
+  # Read is permitted by default, and the CLI sandbox already runs read-only
+  # shell commands (grep, find, git status/blame/ls-files) without an allow
+  # rule, so this list only needs the git commands that carry the diff.
   ALLOWED_TOOLS = [
     "Bash(git diff*)",
     "Bash(git log*)",
@@ -67,6 +69,10 @@ module GpushClaudeReview
           blocking issues, 1 blocking issues found, 2 review could not complete,
           3 malformed exit line.
 
+          The review loads no Claude settings files and inherits none of your
+          local permissions. It can read the repo and run read-only git
+          commands, nothing else.
+
           A REVIEW.md at the repository root, if present, is read and followed
           for per-repo review guidance.
 
@@ -107,8 +113,8 @@ module GpushClaudeReview
         The very last line of your response must be the word EXIT, a single
         space, then a single digit (0, 1, or 2):
 
-        - EXIT 0 = review approved
-        - EXIT 1 = review rejected
+        - EXIT 0 = approved
+        - EXIT 1 = rejected
         - EXIT 2 = review could not complete (tooling/access)
 
         Nothing should follow the EXIT line.
@@ -183,6 +189,14 @@ module GpushClaudeReview
         "stream-json",
         "--verbose",
         "--include-partial-messages",
+        # Load no settings files (user, project or local), so the review starts
+        # from zero permissions and behaves identically on every machine.
+        # --allowedTools is additive: without this the review also inherits
+        # whatever the developer has already allowed -- e.g. a stray
+        # "Bash(bundle exec rspec *)" in .claude/settings.local.json lets the
+        # reviewer run the test suite alongside gpush's own Rspec step.
+        "--setting-sources",
+        "",
         "--allowedTools",
         ALLOWED_TOOLS.join(","),
       ]
