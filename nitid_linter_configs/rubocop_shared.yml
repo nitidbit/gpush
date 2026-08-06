@@ -181,8 +181,11 @@ Style/PercentLiteralDelimiters:
 Style/StringConcatenation:
   Enabled: false
 
-# overrides @prettier/plugin-ruby, which disables these two — our .prettierrc.json
-# sets trailingComma "all" for ruby, so the commas are there and rubocop can check them
+# Load-bearing, do not delete. @prettier/plugin-ruby disables both of these,
+# but that Enabled: false is deliberately NOT inlined above: .prettierrc.json
+# sets trailingComma "all" for ruby, so the commas are always written and rubocop
+# should enforce them. Drop these entries and the cops don't turn off — they fall
+# back to rubocop's default (enabled, no_comma) and fight prettier forever.
 Style/TrailingCommaInArrayLiteral:
   EnforcedStyleForMultiline: consistent_comma
 
