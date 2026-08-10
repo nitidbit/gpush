@@ -45,6 +45,25 @@ while in a directory within your git repo
 | --worktree-copy-gitignored[=GLOBS] | copy gitignored files into the worktree; optionally comma-separated globs (e.g. `config/master.key,.env`) |
 | --no-worktree-copy-gitignored      | skip copying gitignored files into the worktree                                                           |
 
+### Subcommands
+
+`gpush SUBCOMMAND --help` documents each of `run`, `fix`, `diff-branch`, `changed-files`, `get-specs`, and `claude-review`.
+
+#### `claude-review`
+
+Reviews the branch diff — the `diff-branch` base to `HEAD` — with the Claude CLI, streaming the review to your terminal and exiting non-zero on blocking findings, so it works as a `parallel_run` check like any other.
+
+| mode                    | skill              | per-repo guidance |
+| :---------------------- | :----------------- | :---------------- |
+| `--mode=code` (default) | `/code-review`     | `REVIEW.md`       |
+| `--mode=security`       | `/security-review` | `SECURITY.md`     |
+
+If the guidance file exists at the repository root, the review reads it and follows it — so your review conventions live in the repo, next to the code they apply to.
+
+The review loads no Claude settings files and inherits none of your local permissions. It can read the repo and run read-only git commands, nothing else. A project that needs more can grant it with `--allowed-tools` in `gpushrc.yml`, where the grant is committed and so applies identically for everyone.
+
+`--effort=low|medium|high|xhigh|max` (default `medium`) tunes review depth. `--instructions=TEXT` and `--instructions-file=FILE` append extra guidance to the prompt in the order given; both are repeatable.
+
 ### Exit codes
 
 `gpush` exits **0** when every check passed — whether it pushed or ran with `--dry-run` — and **1** when anything failed: a check failed, `git push` was rejected, the git state was unusable, or the config was invalid. A failing check always exits 1; the individual command's own exit code is not passed through.
@@ -53,11 +72,11 @@ Answering "no" to a prompt (`Run tests anyway?`) exits 0. That is a deliberate s
 
 Subcommands report their own result:
 
-| subcommand                   | 0                         | 1                  | other                                                         |
-| :--------------------------- | :------------------------ | :----------------- | :------------------------------------------------------------ |
-| `changed-files`, `get-specs` | found something (printed) | found nothing      | `changed-files` exits 2 if the base branch cannot be resolved |
-| `fix`, `run`                 | every command passed      | any command failed |                                                               |
-| `diff-branch`                | printed the base branch   | bad arguments      |                                                               |
+| subcommand                   | 0                         | 1                  | other                                                                              |
+| :--------------------------- | :------------------------ | :----------------- | :--------------------------------------------------------------------------------- |
+| `changed-files`, `get-specs` | found something (printed) | found nothing      | `changed-files` exits 2 if the base branch cannot be resolved                      |
+| `fix`, `run`                 | every command passed      | any command failed |                                                                                    |
+| `diff-branch`                | printed the base branch   | bad arguments      |                                                                                    |
 | `claude-review`              | no blocking findings      | blocking findings  | 2 tooling/access (from Claude), 3 no usable EXIT (CLI failure or malformed output) |
 
 **`changed-files` and `get-specs` exit 1 to mean "nothing matched", not "something went wrong."** That is what makes them usable directly as an `if:` condition — see below.
