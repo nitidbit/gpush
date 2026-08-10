@@ -40,7 +40,7 @@ RSpec.describe GpushClaudeCli do
 
       expect { described_class.check_version!("3.0.0") }.to raise_error(
         GpushError,
-        /needs 3\.0\.0 or newer/,
+        /need 3\.0\.0 or newer/,
       )
     end
 

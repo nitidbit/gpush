@@ -58,7 +58,7 @@ Subcommands report their own result:
 | `changed-files`, `get-specs` | found something (printed) | found nothing      | `changed-files` exits 2 if the base branch cannot be resolved |
 | `fix`, `run`                 | every command passed      | any command failed |                                                               |
 | `diff-branch`                | printed the base branch   | bad arguments      |                                                               |
-| `claude-review`              | no blocking findings      | blocking findings  | 2 tooling/access failure, 3 malformed review output           |
+| `claude-review`              | no blocking findings      | blocking findings  | 2 tooling/access (from Claude), 3 no usable EXIT (CLI failure or malformed output) |
 
 **`changed-files` and `get-specs` exit 1 to mean "nothing matched", not "something went wrong."** That is what makes them usable directly as an `if:` condition — see below.
 

@@ -4,7 +4,7 @@ require "json"
 require "open3"
 require_relative "gpush_error"
 
-# Preflight checks for the `claude` CLI that gpush claude-review shells out to.
+# Preflight checks for the `claude` CLI that gpush review subcommands shell out to.
 # Both run before any review work, so a missing, outdated or logged-out CLI
 # fails immediately with an explanation rather than part-way through a run.
 module GpushClaudeCli
@@ -25,8 +25,8 @@ module GpushClaudeCli
       return if Gem::Version.new(found) >= Gem::Version.new(minimum)
 
       raise GpushError,
-            "claude CLI #{found} is too old for gpush claude-review, which " \
-              "needs #{minimum} or newer. Update the CLI and try again."
+            "claude CLI #{found} is too old for gpush Claude reviews, which " \
+              "need #{minimum} or newer. Update the CLI and try again."
     end
 
     def check_auth!
