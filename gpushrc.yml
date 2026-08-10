@@ -38,8 +38,11 @@ parallel_run:
   - name: Check yaml
     shell: ruby src/ruby/check_yaml.rb
 
-  - name: Claude Review
+  - name: Claude Review Code
     shell: ./bin/gpush claude-review
+
+  - name: Claude Review Security
+    shell: ./bin/gpush claude-review --mode=security
 
   # just confirm these do not throw an error (./bin so we test this checkout, not the installed release)
   - shell: ./bin/gpush changed-files
@@ -52,7 +55,7 @@ parallel_run:
   - shell: ./bin/gpush_get_specs
 
   - name: gpush run
-    shell: gpush run shouldalways_PASS # test normalizing the command name
+    shell: ./bin/gpush run shouldalways_PASS # test normalizing the command name
 
   - name: always skipped
     shell: echo "This should never run"
