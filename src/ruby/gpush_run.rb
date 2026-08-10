@@ -2,6 +2,7 @@ require_relative "colors"
 require_relative "command"
 require_relative "config_helper"
 require_relative "exit_helper"
+require_relative "help_text"
 
 module GpushRun
   class << self
@@ -20,12 +21,13 @@ module GpushRun
 
     def option_definitions
       lambda { |opts, _parsing_options| opts.banner = <<~BANNER }
-          gpush run: #{description}
+          #{HelpText.hanging("gpush run: #{description}")}
 
           Usage:
             gpush run COMMAND
 
-          COMMAND is matched against the name (or shell) of entries under parallel_run in gpushrc.
+          COMMAND is matched against the name (or shell) of entries under
+          parallel_run in the config file.
 
           Examples:
             gpush run rspec

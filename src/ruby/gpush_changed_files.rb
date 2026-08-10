@@ -6,6 +6,7 @@ require_relative "gpush_version"
 require_relative "git_helper"
 require_relative "gpush_options_parser"
 require_relative "exit_helper"
+require_relative "help_text"
 
 class GpushChangedFiles
   DEFAULT_FALLBACK_BRANCHES = %w[main master].freeze
@@ -35,13 +36,14 @@ class GpushChangedFiles
   def self.option_definitions
     lambda do |opts, parsing_options|
       opts.banner = <<~BANNER
-        gpush changed-files: #{description}
+        #{HelpText.hanging("gpush changed-files: #{description}")}
 
         Usage:
           gpush changed-files [options]
 
         Output is space-separated by default. Exits 1 if no files changed.
-        If gpushrc defines gpush_changed_files: (fallback branches, etc.), those settings apply.
+        If gpushrc defines gpush_changed_files: (fallback branches, etc.),
+        those settings apply.
 
         Options:
       BANNER

@@ -3,6 +3,7 @@
 require_relative "gpush_options_parser"
 require_relative "gpush_error"
 require_relative "exit_helper"
+require_relative "help_text"
 
 module GpushCli
   # name => lazy class reference; each class provides .description and .go
@@ -22,22 +23,42 @@ module GpushCli
   def self.option_definitions(subcommands)
     lambda do |opts, parsing_options|
       subcmd_width = subcommands.keys.map(&:length).max
+      # Two leading spaces, the name column, then two more before the text.
+      subcmd_indent = subcmd_width + 4
       subcommands_block =
         subcommands
           .map do |name, klass_ref|
-            format("  %-#{subcmd_width}s  %s", name, klass_ref.call.description)
+            description =
+              HelpText.hanging(
+                klass_ref.call.description,
+                indent: subcmd_indent,
+              )
+            format("  %-#{subcmd_width}s  %s", name, description)
           end
           .join("\n")
 
       opts.banner = <<~BANNER
-        gpush: run pre-push checks from gpushrc, then push (unless --dry-run).
+        gpush: run your project's checks, then git push if they all pass
+        (--dry-run runs the checks but never pushes).
 
         Usage:
-          gpush [options]                      Full workflow: pre_run, parallel_run, post_run, then git push
-          gpush SUBCOMMAND [options] [args]    Subcommand (see below)
+          gpush [options]                      Run the checks, then push
+          gpush SUBCOMMAND [options] [args]    Run a subcommand (see below)
+
+        The checks come from the config file gpushrc.yml (or gpushrc.yaml),
+        found by walking up from the current directory, or specified with
+        --config-file. gpush runs pre_run, then parallel_run, then post_run,
+        and pushes only if everything passed.
 
         Subcommands:
         #{subcommands_block}
+
+        Examples:
+          gpush                     Run the checks, then push
+          gpush --dry-run           Run the checks, never push
+          gpush -v                  Same, streaming each command's output
+          gpush run rspec           Run only the parallel_run entry "rspec" (no push)
+          gpush fix                 Run the autofixers in the fix: section (no push)
 
         Deprecated aliases (will be removed in a future version):
           gpush_changed_files   Use 'gpush changed-files' instead.
@@ -45,35 +66,60 @@ module GpushCli
 
         More help:
           gpush SUBCOMMAND --help    Options for each subcommand
+          https://github.com/nitidbit/gpush
+
+        Exit status: 0 if every check passed (pushed or not), 1 if anything failed.
 
         Options:
       BANNER
 
-      opts.on("--dry-run", "Simulate the commands without executing") do
-        parsing_options[:dry_run] = true
-      end
+      opts.on(
+        "--dry-run",
+        *HelpText.option(
+          "Run every check, then stop without pushing. The checks run for " \
+            "real; only the push is skipped, along with the git fetch and " \
+            "branch-state checks that precede it.",
+        ),
+      ) { parsing_options[:dry_run] = true }
 
-      opts.on("-v", "--verbose", "Prints command output while running") do
-        parsing_options[:verbose] = true
-      end
+      opts.on(
+        "-v",
+        "--verbose",
+        *HelpText.option(
+          "Stream each command's output while it runs, instead of printing " \
+            "it only on failure",
+        ),
+      ) { parsing_options[:verbose] = true }
 
-      opts.on("--config-file=FILE", "Specify a custom config file") do |file|
-        parsing_options[:config_file] = file
-      end
+      opts.on(
+        "--config-file=FILE",
+        *HelpText.option(
+          "Use FILE instead of searching for gpushrc.yml/gpushrc.yaml",
+        ),
+      ) { |file| parsing_options[:config_file] = file }
 
       opts.on(
         "--[no-]spinner",
-        "Show the live single-line spinner while commands run (overrides config)",
+        *HelpText.option(
+          "Show the live single-line spinner while commands run " \
+            "(overrides config)",
+        ),
       ) { |v| parsing_options[:spinner] = v }
 
       opts.on(
         "--[no-]worktree",
-        "Run checks in an isolated git worktree (overrides config)",
+        *HelpText.option(
+          "Run checks in an isolated git worktree (overrides config)",
+        ),
       ) { |v| parsing_options[:worktree] = v }
 
       opts.on(
         "--worktree-copy-gitignored[=GLOBS]",
-        "Copy gitignored files into the worktree; optionally comma-separated globs (overrides config)",
+        *HelpText.option(
+          "Copy gitignored files into the worktree, so checks can see " \
+            "things like .env; optionally comma-separated globs to limit " \
+            "what is copied (overrides config)",
+        ),
       ) do |v|
         parsing_options[:worktree_copy_gitignored] = if v && !v.empty?
           v.split(",")
@@ -84,8 +130,13 @@ module GpushCli
 
       opts.on(
         "--no-worktree-copy-gitignored",
-        "Skip copying gitignored files into the worktree (overrides config)",
+        *HelpText.option(
+          "Skip copying gitignored files into the worktree (overrides config)",
+        ),
       ) { parsing_options[:worktree_copy_gitignored] = false }
+
+      opts.separator ""
+      opts.separator "Other options:"
 
       opts.on_tail("--version", "Show version") do
         puts "gpush #{VERSION}"

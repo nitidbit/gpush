@@ -4,6 +4,7 @@ require "json"
 require_relative "exit_helper"
 require_relative "gpush_changed_files"
 require_relative "gpush_claude_cli"
+require_relative "help_text"
 require_relative "gpush_error"
 
 module GpushClaudeReview
@@ -69,7 +70,7 @@ module GpushClaudeReview
     def option_definitions
       lambda do |opts, parsing_options|
         opts.banner = <<~BANNER
-          gpush claude-review: #{description}
+          #{HelpText.hanging("gpush claude-review: #{description}")}
 
           Usage:
             gpush claude-review [options]
@@ -96,7 +97,10 @@ module GpushClaudeReview
         BANNER
         opts.on(
           "--effort=LEVEL",
-          "Review effort: #{EFFORT_LEVELS.join(" | ")} (default #{DEFAULT_EFFORT})",
+          *HelpText.option(
+            "Review effort: #{EFFORT_LEVELS.join(" | ")} " \
+              "(default #{DEFAULT_EFFORT})",
+          ),
         ) { |v| parsing_options[:effort] = v }
         opts.on(
           "--instructions-file=FILE",
@@ -108,8 +112,10 @@ module GpushClaudeReview
         ) { |v| (parsing_options[:instructions] ||= []) << { text: v } }
         opts.on(
           "--allowed-tools=TOOLS",
-          "Permit TOOLS in addition to the read-only default, in claude " \
-            "--allowedTools syntax, comma-separated (repeatable)",
+          *HelpText.option(
+            "Permit TOOLS in addition to the read-only default, in claude " \
+              "--allowedTools syntax, comma-separated (repeatable)",
+          ),
         ) { |v| (parsing_options[:allowed_tools] ||= []) << v }
       end
     end

@@ -2,6 +2,7 @@
 
 require_relative "exit_helper"
 require_relative "gpush_changed_files"
+require_relative "help_text"
 
 module GpushDiffBranch
   def self.description
@@ -27,7 +28,7 @@ module GpushDiffBranch
   def self.option_definitions
     lambda do |opts, parsing_options|
       opts.banner = <<~BANNER
-        gpush diff-branch: #{description}
+        #{HelpText.hanging("gpush diff-branch: #{description}")}
 
         Usage:
           gpush diff-branch [options]

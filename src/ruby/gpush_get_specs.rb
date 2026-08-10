@@ -10,6 +10,7 @@ require_relative "gpush_version"
 require_relative "gpush_changed_files"
 require_relative "gpush_error"
 require_relative "gpush_options_parser"
+require_relative "help_text"
 
 class GpushGetSpecs
   DEFAULT_OPTIONS = {
@@ -61,7 +62,7 @@ class GpushGetSpecs
   def self.option_definitions
     proc do |opts, options|
       opts.banner = <<~BANNER
-        gpush get-specs: #{description}
+        #{HelpText.hanging("gpush get-specs: #{description}")}
 
         Usage:
           gpush get-specs [options]
@@ -81,7 +82,9 @@ class GpushGetSpecs
       opts.on(
         "-i",
         "--include-pattern PATTERN",
-        "Glob pattern to include spec files (e.g., '*spec.rb')",
+        *HelpText.option(
+          "Glob pattern to include spec files (e.g., '*spec.rb')",
+        ),
       ) { |pattern| options[:include_pattern] = pattern }
 
       opts.on(
@@ -99,7 +102,9 @@ class GpushGetSpecs
       opts.on(
         "-e",
         "--exclude-words WORDS",
-        "Comma-separated list of words to exclude from keywords",
+        *HelpText.option(
+          "Comma-separated list of words to exclude from keywords",
+        ),
       ) do |words|
         options[:exclude_words] = words.split(",").map(&:strip).map(&:downcase)
       end
@@ -114,7 +119,9 @@ class GpushGetSpecs
       opts.on(
         "-s",
         "--output-separator SEPARATOR",
-        "String used to separate output filenames (default is a space)",
+        *HelpText.option(
+          "String used to separate output filenames (default is a space)",
+        ),
       ) { |separator| options[:output_separator] = separator }
 
       opts.on("-v", "--verbose", "Enable verbose output") do
