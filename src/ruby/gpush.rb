@@ -170,7 +170,7 @@ module Gpush
       verbose = options[:verbose]
       spinner = options[:spinner] != false
       in_worktree = !worktree_path.nil?
-      tested_sha = GitHelper.head_sha
+      tested_sha_short = GitHelper.head_sha(short: true)
       tested_sha_full = GitHelper.head_sha(short: false)
 
       simple_run_commands_with_output(
@@ -202,7 +202,7 @@ module Gpush
           spinner:,
         )
         Notifier.notify(success: false)
-        report_tested_commit(tested_sha)
+        report_tested_commit(tested_sha_short)
         puts "Exiting gpush."
         ExitHelper.exit 1
       end
@@ -216,7 +216,7 @@ module Gpush
 
       Notifier.notify(success: true)
 
-      report_tested_commit(tested_sha)
+      report_tested_commit(tested_sha_short)
 
       if dry_run
         puts "《 Dry run completed 》"
