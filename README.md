@@ -172,6 +172,23 @@ setting the env vars to `default`. These default sounds are from:
 - [Pixabay, wah-wah-sad-trombone-6347](https://pixabay.com/sound-effects/wah-wah-sad-trombone-6347/) by kirbydx (Freesound)
 - [Pixabay, tada-fanfare-a-6313](https://pixabay.com/sound-effects/tada-fanfare-a-6313/) by plasterbrain (Freesound)
 
+### Git hooks: `GPUSH_TESTED_SHA`
+
+When gpush runs the final `git push`, it sets `GPUSH_TESTED_SHA` for that command only. It holds the full 40-character
+SHA of the commit gpush actually tested, so a `pre-push` hook can skip work gpush has already done:
+
+```sh
+# .git/hooks/pre-push
+if [ "$GPUSH_TESTED_SHA" = "$(git rev-parse HEAD)" ]; then
+  echo "gpush already tested $GPUSH_TESTED_SHA, skipping checks"
+  exit 0
+fi
+```
+
+The var is deliberately scoped to the push, not to the whole gpush run — a command in your `gpushrc.yml` that pushes
+something itself won't inherit it. Comparing against `HEAD` also means the hook still runs its checks if the commit
+being pushed isn't the one gpush tested.
+
 ## What actually happens during gPush?
 
 See below image:

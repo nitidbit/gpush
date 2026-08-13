@@ -143,6 +143,55 @@ RSpec.describe "Gpush" do
     end
   end
 
+  context "GPUSH_TESTED_SHA" do
+    let(:envs) { [] }
+
+    before do
+      allow(GitHelper).to receive(:head_sha).with(short: false).and_return(
+        "0123456789abcdef0123456789abcdef01234567",
+      )
+      allow(Kernel).to receive(:system) do |*args|
+        envs << args.find { |a| a.is_a?(Hash) }
+        mock_system.mocked_system_call(
+          args.reject { |a| a.is_a?(Hash) }.join(" "),
+        )
+      end
+    end
+
+    it "passes the full tested sha to the push command" do
+      expect(GitHelper).to receive(:remote_branch_name).at_least(
+        :once,
+      ).and_return("origin/mybranch")
+      expect(GitHelper).to receive(:local_branch_name).at_least(
+        :once,
+      ).and_return("mybranch")
+      expect(GitHelper).to receive(:behind_remote_branch?).and_return(false)
+      expect(GitHelper).to receive(
+        :up_to_date_or_ahead_of_remote_branch?,
+      ).and_return(true)
+      expect(GitHelper).to receive(
+        :at_same_commit_as_remote_branch?,
+      ).and_return(false)
+      mock_system.add_mock(
+        "git push origin HEAD:mybranch",
+        output: "Mock pushing to origin",
+        exit_code: 0,
+      )
+
+      GpushCli.run([])
+
+      expect(envs.compact).to eq(
+        [{ "GPUSH_TESTED_SHA" => "0123456789abcdef0123456789abcdef01234567" }],
+      )
+    end
+
+    it "is not set when nothing is pushed" do
+      GpushCli.run(%w[--dry-run])
+
+      expect(envs.compact).to be_empty
+    end
+  end
+
   # xit "runs the pre-defined git push command successfully" do
   #   # Define the mock response for the git push command
   #   mock_system.add_mock("git push", output: "Pushing to origin", exit_code: 0)

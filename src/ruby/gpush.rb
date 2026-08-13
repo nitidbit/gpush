@@ -165,6 +165,7 @@ module Gpush
       spinner = options[:spinner] != false
       in_worktree = !worktree_path.nil?
       tested_sha = GitHelper.head_sha
+      tested_sha_full = GitHelper.head_sha(short: false)
 
       simple_run_commands_with_output(
         filter_commands(options[:pre_run], in_worktree:),
@@ -215,14 +216,19 @@ module Gpush
         puts "《 Dry run completed 》"
       else
         push_dir = worktree_path || original_dir
+        push_args =
+          if will_set_up_remote_branch
+            puts "Setting up the remote branch..."
+            ["-u", "origin", original_branch]
+          else
+            ["origin", "HEAD:#{original_branch}"]
+          end
+        # Only the push itself gets this, so a pre-push hook can tell a gpush
+        # push (checks already passed) from any other push made along the way.
+        push_env = { "GPUSH_TESTED_SHA" => tested_sha_full }
         pushed =
           Dir.chdir(push_dir) do
-            if will_set_up_remote_branch
-              puts "Setting up the remote branch..."
-              Kernel.system("git", "push", "-u", "origin", original_branch)
-            else
-              Kernel.system("git", "push", "origin", "HEAD:#{original_branch}")
-            end
+            Kernel.system(push_env, "git", "push", *push_args)
           end
 
         unless pushed

@@ -55,9 +55,9 @@ module GitHelper
     `git rev-parse --abbrev-ref HEAD`.strip
   end
 
-  def self.head_sha
-    stdout, stderr, status =
-      Open3.capture3("git", "rev-parse", "--short", "HEAD")
+  def self.head_sha(short: true)
+    args = ["git", "rev-parse", ("--short" if short), "HEAD"].compact
+    stdout, stderr, status = Open3.capture3(*args)
     raise GpushError, stderr.strip unless status.success?
 
     stdout.strip
