@@ -49,4 +49,56 @@ RSpec.describe GitHelper do
       expect(described_class.branch_exists_on_origin?("flywheel")).to be false
     end
   end
+
+  describe ".ask_yes_no without a terminal" do
+    before { allow($stdin).to receive(:tty?).and_return(false) }
+
+    it "uses the default rather than reading stdin" do
+      expect($stdin).not_to receive(:getch)
+
+      expect {
+        expect(described_class.ask_yes_no("Go?", default: true)).to be true
+      }.to output(/Go\? \(no terminal to ask, assuming y\)/).to_stdout
+    end
+
+    it "honors a false default" do
+      expect(described_class.ask_yes_no("Go?", default: false)).to be false
+    end
+
+    it "raises when there is no default, naming the flag to pass" do
+      expect($stdin).not_to receive(:getch)
+
+      expect {
+        described_class.ask_yes_no("Go?", flag_hint: "Pass -u to answer yes.")
+      }.to raise_error(GpushError, /Go\? \(no terminal to ask\) Pass -u/)
+    end
+
+    it "raises without a hint when none is given" do
+      expect { described_class.ask_yes_no("Go?") }.to raise_error(
+        GpushError,
+        "Go? (no terminal to ask)",
+      )
+    end
+  end
+
+  describe ".user_wants_to_set_up_remote_branch?" do
+    before do
+      allow(described_class).to receive(:remote_branch_name).and_return(nil)
+      allow($stdin).to receive(:tty?).and_return(false)
+    end
+
+    it "points at --set-upstream when it cannot ask" do
+      expect { described_class.user_wants_to_set_up_remote_branch? }.to(
+        raise_error(GpushError, %r{Pass -u/--set-upstream to answer yes\.}),
+      )
+    end
+
+    it "does not ask at all with assume_yes" do
+      expect(described_class).not_to receive(:ask_yes_no)
+
+      expect(
+        described_class.user_wants_to_set_up_remote_branch?(assume_yes: true),
+      ).to be true
+    end
+  end
 end

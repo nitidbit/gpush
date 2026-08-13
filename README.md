@@ -46,6 +46,16 @@ while in a directory within your git repo
 | --worktree-copy-gitignored[=GLOBS] | copy gitignored files into the worktree; optionally comma-separated globs (e.g. `config/master.key,.env`) |
 | --no-worktree-copy-gitignored      | skip copying gitignored files into the worktree                                                           |
 
+### Running without a terminal
+
+gpush asks a few yes/no questions about the state of your branch. Without a terminal it cannot ask — the questions read
+single keypresses, so piping in `y` does not work — and it uses each question's default instead, announcing what it
+assumed. Those defaults all amount to "run the checks, but do not push", the same as `--dry-run`.
+
+The one question with no default is "No remote branch set. Create branch on origin if tests pass?", because answering
+yes means really pushing. Pass `-u` / `--set-upstream` to answer it ahead of time. Without it, gpush stops and tells you
+which flag to pass.
+
 ### Subcommands
 
 `gpush SUBCOMMAND --help` documents each of `run`, `fix`, `diff-branch`, `changed-files`, `get-specs`, and `claude-review`.

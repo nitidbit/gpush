@@ -77,8 +77,20 @@ module GitHelper
     !up_to_date_or_ahead_of_remote_branch?
   end
 
-  def self.ask_yes_no(question, default: nil)
+  def self.ask_yes_no(question, default: nil, flag_hint: nil)
     require "io/console" # Required to handle special key inputs like ESC
+
+    # $stdin.getch raises ENOTTY/ENODEV rather than reading, so a piped answer
+    # is not an option: without a terminal the question cannot be asked at all.
+    unless $stdin.tty?
+      if default.nil?
+        raise GpushError,
+              ["#{question} (no terminal to ask)", flag_hint].compact.join(" ")
+      end
+
+      puts "#{question} (no terminal to ask, assuming #{default ? "y" : "n"})"
+      return default
+    end
 
     print "#{question} (#{default == true ? "Y" : "y"}/#{default == false ? "N" : "n"}): "
 
@@ -118,7 +130,9 @@ module GitHelper
 
     question = "No remote branch set. Create branch on origin if tests pass?"
 
-    return true if ask_yes_no(question)
+    if ask_yes_no(question, flag_hint: "Pass -u/--set-upstream to answer yes.")
+      return true
+    end
 
     # Later use this flag to set up the remote branch
 
