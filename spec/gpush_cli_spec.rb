@@ -192,6 +192,45 @@ RSpec.describe "Gpush" do
     end
   end
 
+  context "--set-upstream" do
+    before do
+      allow(GitHelper).to receive(:detached_head?).and_return(false)
+      allow(GitHelper).to receive(:remote_branch_name).and_return(nil)
+      allow(GitHelper).to receive(:local_branch_name).and_return("mybranch")
+      mock_system.add_mock(
+        "git push -u origin mybranch",
+        output: "Mock pushing to origin",
+        exit_code: 0,
+      )
+    end
+
+    it "creates the remote branch without asking" do
+      expect(GitHelper).not_to receive(:ask_yes_no)
+
+      expect { GpushCli.run(%w[--set-upstream]) }.to output(
+        /Will create it on origin if tests pass.*Setting up the remote branch/m,
+      ).to_stdout
+
+      expect(mock_system.commands).to include("git push -u origin mybranch")
+    end
+
+    it "is available as -u" do
+      expect(GitHelper).not_to receive(:ask_yes_no)
+
+      GpushCli.run(%w[-u])
+
+      expect(mock_system.commands).to include("git push -u origin mybranch")
+    end
+
+    it "still asks when the flag is absent" do
+      expect(GitHelper).to receive(:ask_yes_no).and_return(true)
+
+      GpushCli.run([])
+
+      expect(mock_system.commands).to include("git push -u origin mybranch")
+    end
+  end
+
   # xit "runs the pre-defined git push command successfully" do
   #   # Define the mock response for the git push command
   #   mock_system.add_mock("git push", output: "Pushing to origin", exit_code: 0)

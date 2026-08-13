@@ -39,6 +39,7 @@ while in a directory within your git repo
 | --version                          | print the current version                                                                                 |
 | -h, --help                         | print the help documentation                                                                              |
 | --dry-run                          | run pre_run, parallel_run, and post_run without pushing to git                                            |
+| -u, --set-upstream                 | create the branch on origin without asking, when it has no remote branch yet                              |
 | --config-file=FILE                 | use an alternate config file. Default is gpushrc(.yml \| .yaml)                                           |
 | --spinner / --no-spinner           | show/hide the live single-line spinner while commands run (overrides config)                              |
 | --worktree / --no-worktree         | run checks in an isolated git worktree (overrides config)                                                 |

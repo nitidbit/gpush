@@ -108,8 +108,13 @@ module GitHelper
     end
   end
 
-  def self.user_wants_to_set_up_remote_branch?
+  def self.user_wants_to_set_up_remote_branch?(assume_yes: false)
     return false if remote_branch_name
+
+    if assume_yes
+      puts "No remote branch set. Will create it on origin if tests pass."
+      return true
+    end
 
     question = "No remote branch set. Create branch on origin if tests pass?"
 

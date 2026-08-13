@@ -61,7 +61,7 @@ module Gpush
 
     # Exits non-zero on a git state we cannot work with. Returns nil when the
     # user is asked and chooses to stop, which is a normal (zero) exit.
-    def check_git_state_return_nil_for_exit(dry_run)
+    def check_git_state_return_nil_for_exit(dry_run, set_upstream: false)
       will_set_up_remote_branch = false
 
       if GitHelper.not_a_git_repository?
@@ -84,7 +84,9 @@ module Gpush
         end
       elsif !dry_run && !GitHelper.remote_branch_name
         will_set_up_remote_branch =
-          GitHelper.user_wants_to_set_up_remote_branch?
+          GitHelper.user_wants_to_set_up_remote_branch?(
+            assume_yes: set_upstream,
+          )
       elsif !dry_run && GitHelper.behind_remote_branch?
         puts "Cannot push to remote branch"
         output = `git status | grep 'branch'`
@@ -119,7 +121,11 @@ module Gpush
     end
 
     def go(options)
-      git_state_result = check_git_state_return_nil_for_exit(options[:dry_run])
+      git_state_result =
+        check_git_state_return_nil_for_exit(
+          options[:dry_run],
+          set_upstream: options[:set_upstream],
+        )
       return unless git_state_result
 
       dry_run, will_set_up_remote_branch = git_state_result

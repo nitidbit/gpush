@@ -92,6 +92,16 @@ module GpushCli
       ) { parsing_options[:verbose] = true }
 
       opts.on(
+        "-u",
+        "--set-upstream",
+        *HelpText.option(
+          "Create the branch on origin without asking, when it has no " \
+            "remote branch yet. Answers the only prompt that a real push " \
+            "can hit, so gpush can run without a terminal.",
+        ),
+      ) { parsing_options[:set_upstream] = true }
+
+      opts.on(
         "--config-file=FILE",
         *HelpText.option(
           "Use FILE instead of searching for gpushrc.yml/gpushrc.yaml",
