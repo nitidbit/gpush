@@ -132,23 +132,11 @@ module Gpush
 
       puts "Starting dry run" if dry_run
 
-      worktree_result =
-        if will_set_up_remote_branch && options[:worktree]
-          puts "Cannot create a new remote branch from a worktree (git push -u requires a real branch)."
-          unless GitHelper.ask_yes_no("Run without worktree?", default: true)
-            puts EXITING_MESSAGE
-            return
-          end
-          false
-        else
-          !!options[:worktree]
-        end
-
       original_dir = Dir.pwd
       original_branch = GitHelper.local_branch_name
       worktree_path = nil
 
-      if worktree_result
+      if options[:worktree]
         git_root = GitHelper.git_root_dir
         ENV["GPUSH_BRANCH"] = original_branch
         worktree_path = WorktreeHelper.create
@@ -222,13 +210,12 @@ module Gpush
         puts "《 Dry run completed 》"
       else
         push_dir = worktree_path || original_dir
-        push_args =
-          if will_set_up_remote_branch
-            puts "Setting up the remote branch..."
-            ["-u", "origin", original_branch]
-          else
-            ["origin", "HEAD:#{original_branch}"]
-          end
+        puts "Setting up the remote branch..." if will_set_up_remote_branch
+        # Push HEAD rather than the branch, which may have moved on while the
+        # checks ran, and spell out refs/heads, which git requires of a
+        # destination that is not on the remote yet. A worktree is detached,
+        # so its upstream is set afterwards rather than with push -u.
+        push_args = ["origin", "HEAD:refs/heads/#{original_branch}"]
         # Only the push itself gets this, so a pre-push hook can tell a gpush
         # push (checks already passed) from any other push made along the way.
         push_env = { "GPUSH_TESTED_SHA" => tested_sha_full }
@@ -242,6 +229,8 @@ module Gpush
           ExitHelper.exit 1
         end
 
+        track_remote_branch(original_branch) if will_set_up_remote_branch
+
         puts ""
         puts "《 #{options[:success_emoji] || "🌺"} 》 Good job! You're doing great."
         puts ""
@@ -249,6 +238,19 @@ module Gpush
 
       # Check for updates after a successful run (even in dry run mode)
       VersionChecker.print_message_if_new_version(VERSION)
+    end
+
+    def track_remote_branch(branch)
+      if Kernel.system(
+           "git",
+           "branch",
+           "--set-upstream-to=origin/#{branch}",
+           branch,
+         )
+        return
+      end
+
+      puts "Pushed origin/#{branch}, but could not set it as the upstream."
     end
 
     def report_tested_commit(sha)

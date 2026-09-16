@@ -58,7 +58,7 @@ RSpec.describe "exit codes" do
       )
       allow_a_clean_push
       mock_system.add_mock(
-        "git push origin HEAD:mybranch",
+        "git push origin HEAD:refs/heads/mybranch",
         output: "! [remote rejected]",
         exit_code: 1,
       )

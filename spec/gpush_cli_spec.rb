@@ -127,7 +127,7 @@ RSpec.describe "Gpush" do
         :at_same_commit_as_remote_branch?,
       ).and_return(false)
       mock_system.add_mock(
-        "git push origin HEAD:mybranch",
+        "git push origin HEAD:refs/heads/mybranch",
         output: "Mock pushing to origin",
         exit_code: 0,
       )
@@ -173,7 +173,7 @@ RSpec.describe "Gpush" do
         :at_same_commit_as_remote_branch?,
       ).and_return(false)
       mock_system.add_mock(
-        "git push origin HEAD:mybranch",
+        "git push origin HEAD:refs/heads/mybranch",
         output: "Mock pushing to origin",
         exit_code: 0,
       )
@@ -198,8 +198,13 @@ RSpec.describe "Gpush" do
       allow(GitHelper).to receive(:remote_branch_name).and_return(nil)
       allow(GitHelper).to receive(:local_branch_name).and_return("mybranch")
       mock_system.add_mock(
-        "git push -u origin mybranch",
+        "git push origin HEAD:refs/heads/mybranch",
         output: "Mock pushing to origin",
+        exit_code: 0,
+      )
+      mock_system.add_mock(
+        "git branch --set-upstream-to=origin/mybranch mybranch",
+        output: "Mock tracking",
         exit_code: 0,
       )
     end
@@ -211,7 +216,9 @@ RSpec.describe "Gpush" do
         /Will create it on origin if tests pass.*Setting up the remote branch/m,
       ).to_stdout
 
-      expect(mock_system.commands).to include("git push -u origin mybranch")
+      expect(mock_system.commands).to include(
+        "git push origin HEAD:refs/heads/mybranch",
+      )
     end
 
     it "is available as -u" do
@@ -219,7 +226,9 @@ RSpec.describe "Gpush" do
 
       GpushCli.run(%w[-u])
 
-      expect(mock_system.commands).to include("git push -u origin mybranch")
+      expect(mock_system.commands).to include(
+        "git push origin HEAD:refs/heads/mybranch",
+      )
     end
 
     it "still asks when the flag is absent" do
@@ -227,7 +236,71 @@ RSpec.describe "Gpush" do
 
       GpushCli.run([])
 
-      expect(mock_system.commands).to include("git push -u origin mybranch")
+      expect(mock_system.commands).to include(
+        "git push origin HEAD:refs/heads/mybranch",
+      )
+    end
+  end
+
+  context "a branch with no remote branch, in a worktree" do
+    let(:worktree_path) do
+      Dir
+        .mktmpdir("gpush-spec-worktree")
+        .tap { |path| FileUtils.cp(File.join(__dir__, "gpushrc.yml"), path) }
+    end
+    let(:push) { "git push origin HEAD:refs/heads/mybranch" }
+    let(:track) { "git branch --set-upstream-to=origin/mybranch mybranch" }
+
+    before do
+      allow(GitHelper).to receive(:detached_head?).and_return(false)
+      allow(GitHelper).to receive(:remote_branch_name).and_return(nil)
+      allow(GitHelper).to receive(:local_branch_name).and_return("mybranch")
+      allow(GitHelper).to receive(:git_root_dir) { Dir.pwd }
+      allow(WorktreeHelper).to receive(:create).and_return(worktree_path)
+      allow(WorktreeHelper).to receive(:remove)
+      mock_system.add_mock(push, output: "Mock pushing", exit_code: 0)
+      mock_system.add_mock(track, output: "Mock tracking", exit_code: 0)
+    end
+
+    after { FileUtils.remove_entry(worktree_path, true) }
+
+    # gpush exports GPUSH_BRANCH for the commands it runs in the worktree;
+    # left set, it decides the diff branch for every example after this one.
+    around do |example|
+      original = ENV.fetch("GPUSH_BRANCH", nil)
+      example.run
+    ensure
+      ENV["GPUSH_BRANCH"] = original
+    end
+
+    it "keeps the worktree instead of offering to drop it" do
+      expect(GitHelper).not_to receive(:ask_yes_no).with(/worktree/, any_args)
+
+      expect { GpushCli.run(%w[--worktree -u]) }.to output(
+        /Running in worktree/,
+      ).to_stdout
+    end
+
+    it "creates the branch on origin from the worktree, once checks pass" do
+      GpushCli.run(%w[--worktree -u])
+
+      expect(mock_system.commands.grep(/git push|git branch/)).to eq(
+        [push, track],
+      )
+    end
+
+    it "pushes nothing when the checks have not passed" do
+      GpushCli.run(%w[--worktree -u --dry-run])
+
+      expect(mock_system.commands.grep(/git push|git branch/)).to be_empty
+    end
+
+    it "carries on when the branch cannot be set as the upstream" do
+      mock_system.add_mock(track, output: "Mock failed", exit_code: 1)
+
+      expect { GpushCli.run(%w[--worktree -u]) }.to output(
+        /could not set it as the upstream/,
+      ).to_stdout
     end
   end
 
