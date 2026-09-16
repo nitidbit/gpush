@@ -57,6 +57,17 @@ The one question with no default is "No remote branch set. Create branch on orig
 yes means really pushing. Pass `-u` / `--set-upstream` to answer it ahead of time. Without it, gpush stops and tells you
 which flag to pass.
 
+### Worktree runs
+
+With `worktree: true`, or `--worktree`, the checks run in a detached git worktree created from your HEAD. The commit
+under test is then fixed for the whole run, and you can keep working in your own checkout while it happens. Commands
+in the worktree get the branch name in `GPUSH_BRANCH`, since the worktree itself is on a detached HEAD.
+
+The push at the end runs from the worktree and pushes `HEAD:refs/heads/<branch>` — the commit that was tested, rather
+than whatever the branch points at by the time the checks finish. A branch with no remote branch yet is created by
+that same push, once the checks have passed, and its upstream is set straight after with `git branch -u`. If only
+that last step fails, your work is pushed and gpush says so.
+
 ### Subcommands
 
 `gpush SUBCOMMAND --help` documents each of `run`, `fix`, `diff-branch`, `changed-files`, `get-specs`, and `claude-review`.
