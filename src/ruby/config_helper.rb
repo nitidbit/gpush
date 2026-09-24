@@ -11,6 +11,8 @@ module ConfigHelper
     gpush_changed_files
     gpush_version
     parallel_run
+    post_push_failure
+    post_push_success
     post_run
     post_run_failure
     post_run_success

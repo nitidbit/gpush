@@ -117,6 +117,8 @@ Gpush will look for a config file in the current directory. If not found, it wil
 | `post_run`                 | list of commands     | run after parallel checks, regardless of result                                                                                                                                                                                                                                                                                                                        |
 | `post_run_success`         | list of commands     | run only if all checks passed                                                                                                                                                                                                                                                                                                                                          |
 | `post_run_failure`         | list of commands     | run only if any check failed                                                                                                                                                                                                                                                                                                                                           |
+| `post_push_success`        | list of commands     | run after a successful push. See [After the push](#after-the-push-post_push_success-and-post_push_failure).                                                                                                                                                                                                                                                            |
+| `post_push_failure`        | list of commands     | run after a failed push. See [After the push](#after-the-push-post_push_success-and-post_push_failure).                                                                                                                                                                                                                                                                |
 | `spinner`                  | boolean              | show the live single-line spinner while commands run (default `true`). Set to `false` for CI or piped logs.                                                                                                                                                                                                                                                            |
 | `worktree`                 | boolean              | run checks in an isolated git worktree                                                                                                                                                                                                                                                                                                                                 |
 | `worktree_copy_gitignored` | boolean or glob/list | copy gitignored files into the worktree. `true` copies all; a string or list of strings copies matching files only (e.g. `["config/master.key", ".env"]`). **Note:** globs must match top-level gitignored entries — files nested inside a fully-gitignored directory (e.g. `secrets/config/master.key` when `secrets/` is gitignored as a whole) will not be matched. |
@@ -131,7 +133,7 @@ Any other top-level key is ignored, with a warning naming the key.
 
 #### Command keys
 
-Each entry in `pre_run`, `parallel_run`, `post_run`, `post_run_success`, `post_run_failure`, and `fix` is a hash. `shell` is the only required key:
+Each entry in `pre_run`, `parallel_run`, `post_run`, `post_run_success`, `post_run_failure`, `post_push_success`, `post_push_failure`, and `fix` is a hash. `shell` is the only required key:
 
 | **key**            | **type** | **description**                                                                                   |
 | :----------------- | -------- | :------------------------------------------------------------------------------------------------ |
@@ -145,7 +147,7 @@ Each entry in `pre_run`, `parallel_run`, `post_run`, `post_run_success`, `post_r
 
 Any other key is ignored, with a warning naming the key and the command.
 
-**`verbose` is only honored in the sequential sections** — `pre_run`, `post_run`, `post_run_success`, and `post_run_failure`. Commands in `parallel_run` all follow the global setting, and `gpush fix` and `gpush run` are always verbose.
+**`verbose` is only honored in the sequential sections** — `pre_run`, `post_run`, `post_run_success`, `post_run_failure`, `post_push_success`, and `post_push_failure`. Commands in `parallel_run` all follow the global setting, and `gpush fix` and `gpush run` are always verbose.
 
 Because `changed-files` and `get-specs` exit 1 when nothing matched, they work as an `if:` condition on their own — this skips prettier entirely when no files changed:
 
@@ -179,6 +181,36 @@ post_run_success:
     shell: echo "All good!"
 ```
 
+### After the push: `post_push_success` and `post_push_failure`
+
+Every other section runs before the push, so none of them can react to the push itself — and git has no post-push hook.
+These two run after the push attempt:
+
+| **section**         | **runs when**      |
+| :------------------ | :----------------- |
+| `post_push_success` | the push succeeded |
+| `post_push_failure` | the push failed    |
+
+Neither runs on `--dry-run`, when a check failed (nothing was pushed), or when you decline a push prompt. They run
+sequentially from the push directory (the worktree in worktree mode), take the same command keys as the other sections,
+and get `GPUSH_BRANCH` and `GPUSH_TESTED_SHA` (the full SHA of the pushed commit).
+
+- If a `post_push_success` command fails, gpush exits 1 and says the push itself succeeded.
+- If a `post_push_failure` command fails, gpush still reports that the push failed, and exits 1 either way.
+- With `-u`/`--set-upstream`, the push counts as succeeded once the branch lands on origin, even if setting it as the
+  upstream afterwards fails (that is reported separately).
+
+```yaml
+post_push_success:
+  - name: deploy to staging
+    shell: bundle exec rake heroku:deploy:staging
+    if: test "$GPUSH_BRANCH" = main
+
+post_push_failure:
+  - name: say so
+    shell: echo "push failed; staging not deployed"
+```
+
 ### Notifications
 
 Because builds can take a while, there is a notification system in place to let you know when the build is complete.
@@ -208,9 +240,9 @@ if [ "$GPUSH_TESTED_SHA" = "$(git rev-parse HEAD)" ]; then
 fi
 ```
 
-The var is deliberately scoped to the push, not to the whole gpush run — a command in your `gpushrc.yml` that pushes
-something itself won't inherit it. Comparing against `HEAD` also means the hook still runs its checks if the commit
-being pushed isn't the one gpush tested.
+The var is deliberately scoped to the push (and the `post_push_*` sections), not to the whole gpush run — a check in
+your `gpushrc.yml` that pushes something itself won't inherit it. Comparing against `HEAD` also means the hook still
+runs its checks if the commit being pushed isn't the one gpush tested.
 
 ## What actually happens during gPush?
 

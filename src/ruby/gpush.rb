@@ -12,6 +12,7 @@ require_relative "gpush_diff_branch" # Import the diff-branch subcommand
 require_relative "gpush_fix" # Import the fix command
 require_relative "gpush_get_specs" # Import the get-specs subcommand
 require_relative "gpush_options_parser" # Import the options parser
+require_relative "gpush_push" # Import the push step
 require_relative "gpush_run" # Import the version checker
 require_relative "notifier" # Import the desktop notifier
 require_relative "version_checker" # Import the version checker
@@ -26,7 +27,13 @@ module Gpush
       verbose ? str : "#{str} > /dev/null 2>&1"
     end
 
-    def simple_run_commands_with_output(commands, title:, verbose:, spinner:)
+    def simple_run_commands_with_output(
+      commands,
+      title:,
+      verbose:,
+      spinner:,
+      failure_note: nil
+    )
       return if commands.nil? || commands.empty?
       some_verbose = verbose || commands.any? { |cmd| cmd["verbose"] }
 
@@ -45,7 +52,8 @@ module Gpush
         message = "#{title} command failed - #{command.name}"
         message += " (`#{command.shell}`)" if command.shell != command.name
         puts "#{message}\nHalting further execution and exiting gpush"
-        exit 1 # Halt execution if a command fails
+        puts failure_note if failure_note
+        ExitHelper.exit 1
       end
 
       some_verbose ? puts("#{title} DONE") : print("DONE\n")
@@ -209,48 +217,17 @@ module Gpush
       if dry_run
         puts "《 Dry run completed 》"
       else
-        push_dir = worktree_path || original_dir
-        puts "Setting up the remote branch..." if will_set_up_remote_branch
-        # Push HEAD rather than the branch, which may have moved on while the
-        # checks ran, and spell out refs/heads, which git requires of a
-        # destination that is not on the remote yet. A worktree is detached,
-        # so its upstream is set afterwards rather than with push -u.
-        push_args = ["origin", "HEAD:refs/heads/#{original_branch}"]
-        # Only the push itself gets this, so a pre-push hook can tell a gpush
-        # push (checks already passed) from any other push made along the way.
-        push_env = { "GPUSH_TESTED_SHA" => tested_sha_full }
-        pushed =
-          Dir.chdir(push_dir) do
-            Kernel.system(push_env, "git", "push", *push_args)
-          end
-
-        unless pushed
-          puts "\ngit push failed. Your checks passed, but nothing was pushed."
-          ExitHelper.exit 1
-        end
-
-        track_remote_branch(original_branch) if will_set_up_remote_branch
-
-        puts ""
-        puts "《 #{options[:success_emoji] || "🌺"} 》 Good job! You're doing great."
-        puts ""
+        GpushPush.new(
+          options,
+          branch: original_branch,
+          push_dir: worktree_path || original_dir,
+          tested_sha: tested_sha_full,
+          in_worktree:,
+        ).run(set_up_remote_branch: will_set_up_remote_branch)
       end
 
       # Check for updates after a successful run (even in dry run mode)
       VersionChecker.print_message_if_new_version(VERSION)
-    end
-
-    def track_remote_branch(branch)
-      if Kernel.system(
-           "git",
-           "branch",
-           "--set-upstream-to=origin/#{branch}",
-           branch,
-         )
-        return
-      end
-
-      puts "Pushed origin/#{branch}, but could not set it as the upstream."
     end
 
     def report_tested_commit(sha)

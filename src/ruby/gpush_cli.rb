@@ -48,7 +48,8 @@ module GpushCli
         The checks come from the config file gpushrc.yml (or gpushrc.yaml),
         found by walking up from the current directory, or specified with
         --config-file. gpush runs pre_run, then parallel_run, then post_run,
-        and pushes only if everything passed.
+        and pushes only if everything passed. post_push_success or
+        post_push_failure then runs, depending on how the push went.
 
         Subcommands:
         #{subcommands_block}
