@@ -69,8 +69,11 @@ module Gpush
 
     # Exits non-zero on a git state we cannot work with. Returns nil when the
     # user is asked and chooses to stop, which is a normal (zero) exit.
+    # unpushable_reason is set when there was no terminal to ask, so the run
+    # became a dry run by default rather than by anyone's choice.
     def check_git_state_return_nil_for_exit(dry_run, set_upstream: false)
       will_set_up_remote_branch = false
+      unpushable_reason = nil
 
       if GitHelper.not_a_git_repository?
         puts "Not inside a Git repository. Exiting."
@@ -86,6 +89,9 @@ module Gpush
         puts "Cannot push from a detached HEAD"
         if GitHelper.ask_yes_no("Run tests anyway?", default: true)
           dry_run = true
+          unless GitHelper.terminal?
+            unpushable_reason = "cannot push from a detached HEAD"
+          end
         else
           puts EXITING_MESSAGE
           return nil
@@ -103,6 +109,10 @@ module Gpush
         puts output
         if GitHelper.ask_yes_no("Run tests anyway?", default: true)
           dry_run = true
+          unless GitHelper.terminal?
+            unpushable_reason =
+              "the branch is behind or diverged from its remote branch"
+          end
         else
           puts EXITING_MESSAGE
           return nil
@@ -125,7 +135,7 @@ module Gpush
         end
       end
 
-      [dry_run, will_set_up_remote_branch]
+      [dry_run, will_set_up_remote_branch, unpushable_reason]
     end
 
     def go(options)
@@ -136,7 +146,7 @@ module Gpush
         )
       return unless git_state_result
 
-      dry_run, will_set_up_remote_branch = git_state_result
+      dry_run, will_set_up_remote_branch, unpushable_reason = git_state_result
 
       puts "Starting dry run" if dry_run
 
@@ -216,6 +226,10 @@ module Gpush
 
       if dry_run
         puts "《 Dry run completed 》"
+        if unpushable_reason
+          puts "\nChecks passed, but nothing was pushed: #{unpushable_reason}."
+          ExitHelper.exit 2
+        end
       else
         GpushPush.new(
           options,

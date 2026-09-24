@@ -69,7 +69,9 @@ module GpushCli
           gpush SUBCOMMAND --help    Options for each subcommand
           https://github.com/nitidbit/gpush
 
-        Exit status: 0 if every check passed (pushed or not), 1 if anything failed.
+        Exit status: 0 if every check passed (pushed or not), 1 if anything failed,
+        2 if the checks passed but, with no terminal to ask, the branch could not
+        be pushed (detached HEAD, or behind its remote branch).
 
         Options:
       BANNER
@@ -97,8 +99,8 @@ module GpushCli
         "--set-upstream",
         *HelpText.option(
           "Create the branch on origin without asking, when it has no " \
-            "remote branch yet. Answers the only prompt that a real push " \
-            "can hit, so gpush can run without a terminal.",
+            "remote branch yet. Answers the one prompt with no default, " \
+            "so gpush can run without a terminal.",
         ),
       ) { parsing_options[:set_upstream] = true }
 

@@ -116,6 +116,64 @@ RSpec.describe "exit codes" do
     end
   end
 
+  context "when the branch cannot be pushed and there is no terminal to ask" do
+    before do
+      allow(YAML).to receive(:load_file).and_return(
+        "parallel_run" => [{ "name" => "passing check", "shell" => "exit 0" }],
+      )
+      allow_a_clean_push
+      allow(GitHelper).to receive(:terminal?).and_return(false)
+    end
+
+    it "exits 2 from a detached HEAD, saying nothing was pushed" do
+      allow(GitHelper).to receive(:detached_head?).and_return(true)
+
+      expect { GpushCli.run([]) }.to raise_error(
+        "Exit called with code 2",
+      ).and output(
+              /Checks passed, but nothing was pushed: cannot push from a detached HEAD/,
+            ).to_stdout
+    end
+
+    it "exits 2 when the branch is behind its remote branch" do
+      allow(GitHelper).to receive(:behind_remote_branch?).and_return(true)
+      mock_system.add_mock(
+        "git status | grep 'branch'",
+        output: "Your branch and 'origin/mybranch' have diverged",
+        exit_code: 0,
+      )
+
+      expect { GpushCli.run([]) }.to raise_error(
+        "Exit called with code 2",
+      ).and output(/nothing was pushed: .*behind or diverged/).to_stdout
+    end
+
+    it "exits 1 when a check fails" do
+      allow(GitHelper).to receive(:detached_head?).and_return(true)
+      allow(YAML).to receive(:load_file).and_return(
+        "parallel_run" => [{ "name" => "failing check", "shell" => "exit 1" }],
+      )
+
+      expect { GpushCli.run([]) }.to raise_error("Exit called with code 1")
+    end
+
+    it "exits 0 when origin already has the commit" do
+      allow(GitHelper).to receive(:at_same_commit_as_remote_branch?).and_return(
+        true,
+      )
+
+      expect { GpushCli.run([]) }.not_to raise_error
+    end
+
+    it "exits 0 when someone at a terminal chose to run the checks anyway" do
+      allow(GitHelper).to receive(:terminal?).and_return(true)
+      allow(GitHelper).to receive(:detached_head?).and_return(true)
+      allow(GitHelper).to receive(:ask_yes_no).and_return(true)
+
+      expect { GpushCli.run([]) }.not_to raise_error
+    end
+  end
+
   it "exits 0 for --help" do
     expect { GpushCli.run(%w[--help]) }.to raise_error(
       "Exit called with code 0",

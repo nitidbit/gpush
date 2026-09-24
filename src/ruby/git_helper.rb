@@ -77,12 +77,14 @@ module GitHelper
     !up_to_date_or_ahead_of_remote_branch?
   end
 
+  # $stdin.getch raises ENOTTY/ENODEV rather than reading, so a piped answer
+  # is not an option: without a terminal a question cannot be asked at all.
+  def self.terminal? = $stdin.tty?
+
   def self.ask_yes_no(question, default: nil, flag_hint: nil)
     require "io/console" # Required to handle special key inputs like ESC
 
-    # $stdin.getch raises ENOTTY/ENODEV rather than reading, so a piped answer
-    # is not an option: without a terminal the question cannot be asked at all.
-    unless $stdin.tty?
+    unless terminal?
       if default.nil?
         raise GpushError,
               ["#{question} (no terminal to ask)", flag_hint].compact.join(" ")

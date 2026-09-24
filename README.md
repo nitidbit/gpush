@@ -51,7 +51,9 @@ while in a directory within your git repo
 
 gpush asks a few yes/no questions about the state of your branch. Without a terminal it cannot ask — the questions read
 single keypresses, so piping in `y` does not work — and it uses each question's default instead, announcing what it
-assumed. Those defaults all amount to "run the checks, but do not push", the same as `--dry-run`.
+assumed. Those defaults all amount to "run the checks, but do not push", the same as `--dry-run`. When that is because
+the branch cannot be pushed (a detached HEAD, or a branch behind or diverged from its remote branch), gpush exits 2
+even if every check passed, so a caller cannot mistake the run for a push.
 
 The one question with no default is "No remote branch set. Create branch on origin if tests pass?", because answering
 yes means really pushing. Pass `-u` / `--set-upstream` to answer it ahead of time. Without it, gpush stops and tells you
@@ -100,6 +102,8 @@ The review loads no Claude settings files and inherits none of your local permis
 ### Exit codes
 
 `gpush` exits **0** when every check passed — whether it pushed or ran with `--dry-run` — and **1** when anything failed: a check failed, `git push` was rejected, the git state was unusable, or the config was invalid. A failing check always exits 1; the individual command's own exit code is not passed through.
+
+It exits **2** when every check passed but nothing could be pushed and there was no terminal to ask about it: a detached HEAD, or a branch behind or diverged from its remote branch. See [Running without a terminal](#running-without-a-terminal).
 
 Answering "no" to a prompt (`Run tests anyway?`) exits 0. That is a deliberate stop, not a failure.
 
