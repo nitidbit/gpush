@@ -12,7 +12,7 @@ module GpushDiffBranch
   def self.go(args:, options:)
     if args.any?
       puts "Unexpected argument(s): #{args.join(", ")}"
-      puts "Usage: gpush diff-branch [--config-file=FILE] [--verbose]"
+      puts "Usage: gpush diff-branch [--config-file=FILE] [--diff-branch=BRANCH] [--verbose]"
       ExitHelper.exit(1)
     end
 
@@ -38,6 +38,10 @@ module GpushDiffBranch
       opts.on("--config-file=FILE", "Specify a custom config file") do |file|
         parsing_options[:config_file] = file
       end
+      opts.on(
+        "--diff-branch BRANCH",
+        *HelpText.option("Use origin/BRANCH instead of the current branch"),
+      ) { |v| parsing_options[:diff_branch] = v }
       opts.on("-v", "--verbose", "Show which branch is used for the diff") do
         parsing_options[:verbose] = true
       end

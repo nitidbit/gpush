@@ -13,6 +13,7 @@ class GpushChangedFiles
 
   DEFAULT_OPTIONS = {
     root_dir: nil,
+    diff_branch: nil,
     fallback_branches: DEFAULT_FALLBACK_BRANCHES,
     verbose: false,
     separator: " ",
@@ -22,6 +23,7 @@ class GpushChangedFiles
 
   CLI_OPTION_KEYS = %i[
     root_dir
+    diff_branch
     fallback_branches
     verbose
     separator
@@ -50,6 +52,12 @@ class GpushChangedFiles
       opts.on("--root-dir ROOT_DIR", "Specify root directory") do |v|
         parsing_options[:root_dir] = v
       end
+      opts.on(
+        "--diff-branch BRANCH",
+        *HelpText.option(
+          "Diff against origin/BRANCH instead of the current branch",
+        ),
+      ) { |v| parsing_options[:diff_branch] = v }
       opts.on(
         "--fallback-branches x,y,z",
         Array,
@@ -90,13 +98,14 @@ class GpushChangedFiles
   end
 
   # Build an instance from a gpush subcommand's top-level options (i.e. the
-  # gpush_changed_files: config section plus a --verbose flag), for
+  # gpush_changed_files: config section plus --verbose and --diff-branch), for
   # subcommands (diff-branch, claude-review) that only need to know the
   # config section's settings rather than accept their own changed-files flags.
   def self.from_options(options)
     section = options[:gpush_changed_files]
     cf_opts = (section.is_a?(Hash) ? section : {}).transform_keys(&:to_sym)
     cf_opts[:verbose] = true if options[:verbose]
+    cf_opts[:diff_branch] = options[:diff_branch] if options[:diff_branch]
     new(cf_opts)
   end
 
@@ -159,6 +168,18 @@ class GpushChangedFiles
   private
 
   def resolved_diff_branch_name
+    explicit = @options[:diff_branch]
+    if explicit
+      branch = explicit.sub(%r{\Aorigin/}, "")
+      if GitHelper.branch_exists_on_origin?(branch)
+        log("Using diff branch origin/#{branch} (explicitly requested)")
+        return branch
+      end
+
+      puts "Branch #{branch} not found on origin."
+      ExitHelper.exit(2)
+    end
+
     branch_name = ENV.fetch("GPUSH_BRANCH", nil) || GitHelper.local_branch_name
 
     if GitHelper.branch_exists_on_origin?(branch_name)

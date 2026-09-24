@@ -72,6 +72,16 @@ that last step fails, your work is pushed and gpush says so.
 
 `gpush SUBCOMMAND --help` documents each of `run`, `fix`, `diff-branch`, `changed-files`, `get-specs`, and `claude-review`.
 
+#### The diff base
+
+`changed-files`, `get-specs`, and `claude-review` all diff against the same base, which `diff-branch` prints: `origin/`
+plus the current branch (or `GPUSH_BRANCH` in a worktree), falling back to `origin/main` or `origin/master` when the
+branch is not on origin yet.
+
+Pass `--diff-branch BRANCH` to any of the four to use `origin/BRANCH` instead, e.g. to review a stacked branch against
+its parent. `BRANCH` may include the `origin/` prefix. If it is not on origin, the command exits 2 rather than falling
+back.
+
 #### `claude-review`
 
 Reviews the branch diff — the `diff-branch` base to `HEAD` — with the Claude CLI, streaming the review to your terminal and exiting non-zero on blocking findings, so it works as a `parallel_run` check like any other.
@@ -99,7 +109,7 @@ Subcommands report their own result:
 | :--------------------------- | :------------------------ | :----------------- | :--------------------------------------------------------------------------------- |
 | `changed-files`, `get-specs` | found something (printed) | found nothing      | `changed-files` exits 2 if the base branch cannot be resolved                      |
 | `fix`, `run`                 | every command passed      | any command failed |                                                                                    |
-| `diff-branch`                | printed the base branch   | bad arguments      |                                                                                    |
+| `diff-branch`                | printed the base branch   | bad arguments      | exits 2 if the base branch cannot be resolved                                      |
 | `claude-review`              | no blocking findings      | blocking findings  | 2 tooling/access (from Claude), 3 no usable EXIT (CLI failure or malformed output) |
 
 **`changed-files` and `get-specs` exit 1 to mean "nothing matched", not "something went wrong."** That is what makes them usable directly as an `if:` condition — see below.

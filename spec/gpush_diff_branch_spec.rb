@@ -54,4 +54,18 @@ RSpec.describe "gpush diff-branch" do
       /Unexpected argument/,
     ).to_stdout.and raise_error("Exit called with code 1")
   end
+
+  it "honors --diff-branch instead of the current branch" do
+    expect(YAML).to receive(:load_file).and_return(
+      { "gpush_version" => ">=1.0" },
+    )
+    expect(GitHelper).not_to receive(:local_branch_name)
+    expect(GitHelper).to receive(:branch_exists_on_origin?).with(
+      "other",
+    ).and_return(true)
+
+    expect { GpushCli.run(%w[diff-branch --diff-branch other]) }.to output(
+      "origin/other\n",
+    ).to_stdout.and raise_error("Exit called with code 0")
+  end
 end

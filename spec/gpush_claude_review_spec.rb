@@ -30,9 +30,7 @@ RSpec.describe GpushClaudeReview do
           instructions: [],
         )
 
-      expect(prompt).to start_with(
-        "/security-review medium origin/main...HEAD",
-      )
+      expect(prompt).to start_with("/security-review medium origin/main...HEAD")
       expect(prompt).to include("If SECURITY.md exists")
       expect(prompt).not_to include("REVIEW.md")
       expect(prompt).to end_with("Nothing should follow the EXIT line.")
@@ -105,6 +103,23 @@ RSpec.describe GpushClaudeReview do
 
       expect { GpushCli.run(%w[claude-review --mode=security]) }.to output(
         /Nothing to review/,
+      ).to_stdout.and raise_error("Exit called with code 0")
+    end
+
+    it "reviews against --diff-branch instead of the current branch" do
+      expect(YAML).to receive(:load_file).and_return(
+        { "gpush_version" => ">=1.0" },
+      )
+      expect(GitHelper).not_to receive(:local_branch_name)
+      allow(GitHelper).to receive(:branch_exists_on_origin?).with(
+        "other",
+      ).and_return(true)
+      allow(Open3).to receive(:capture2).with(
+        "git diff --name-only origin/other",
+      ).and_return(["", double(success?: true)])
+
+      expect { GpushCli.run(%w[claude-review --diff-branch other]) }.to output(
+        %r{Nothing to review \(no changes vs origin/other\)},
       ).to_stdout.and raise_error("Exit called with code 0")
     end
   end

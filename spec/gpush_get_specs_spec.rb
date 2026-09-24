@@ -29,7 +29,9 @@ RSpec.describe GpushGetSpecs do
 
     context "without exclude_pattern" do
       it "returns spec paths matching keywords from the include glob" do
-        expect(spec_paths.map { |p| File.basename(p) }.sort).to eq(%w[bar_spec.rb foo_spec.rb])
+        expect(spec_paths.map { |p| File.basename(p) }.sort).to eq(
+          %w[bar_spec.rb foo_spec.rb],
+        )
       end
     end
 
@@ -39,6 +41,21 @@ RSpec.describe GpushGetSpecs do
       it "omits paths matched by exclude_pattern" do
         expect(spec_paths.map { |p| File.basename(p) }).to eq(["foo_spec.rb"])
       end
+    end
+  end
+
+  describe "#find_matching_specs" do
+    it "diffs against --diff-branch" do
+      changed_files = instance_double(GpushChangedFiles, all_changed_files: [])
+      expect(GpushChangedFiles).to receive(:new).with(
+        hash_including(diff_branch: "other"),
+      ).and_return(changed_files)
+
+      described_class.new(
+        include_pattern: "spec/**/*_spec.rb",
+        exclude_words: [],
+        diff_branch: "other",
+      ).find_matching_specs
     end
   end
 end

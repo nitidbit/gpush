@@ -85,8 +85,15 @@ module GpushClaudeAgent
       3
     end
 
-    # Shared --instructions / --instructions-file / --allowed-tools flags.
+    # Shared --diff-branch / --instructions / --instructions-file /
+    # --allowed-tools flags.
     def add_common_options(opts, parsing_options)
+      opts.on(
+        "--diff-branch BRANCH",
+        *HelpText.option(
+          "Review against origin/BRANCH instead of the current branch",
+        ),
+      ) { |v| parsing_options[:diff_branch] = v }
       opts.on(
         "--instructions-file=FILE",
         *HelpText.option("Append instructions from FILE (repeatable)"),

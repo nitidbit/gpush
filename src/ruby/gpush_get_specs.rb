@@ -26,6 +26,7 @@ class GpushGetSpecs
 
   CLI_OPTION_KEYS = %i[
     root_dir
+    diff_branch
     include_pattern
     exclude_pattern
     always_include
@@ -78,6 +79,13 @@ class GpushGetSpecs
         "--root-dir DIRECTORY",
         "Root directory of the project",
       ) { |dir| options[:root_dir] = dir }
+
+      opts.on(
+        "--diff-branch BRANCH",
+        *HelpText.option(
+          "Diff against origin/BRANCH instead of the current branch",
+        ),
+      ) { |v| options[:diff_branch] = v }
 
       opts.on(
         "-i",
@@ -139,6 +147,7 @@ class GpushGetSpecs
     changed_files =
       GpushChangedFiles.new(
         root_dir: GitHelper.git_root_dir,
+        diff_branch: @options[:diff_branch],
         include_deleted_files: true,
       )
     changed_filenames = changed_files.all_changed_files

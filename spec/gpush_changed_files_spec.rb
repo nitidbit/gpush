@@ -107,13 +107,62 @@ RSpec.describe "gpush_changed_files" do
 
     context "when the branch exists on origin" do
       before do
-        expect(GitHelper).to receive(:local_branch_name).and_return("test-branch")
+        expect(GitHelper).to receive(:local_branch_name).and_return(
+          "test-branch",
+        )
         expect(GitHelper).to receive(:branch_exists_on_origin?).with(
           "test-branch",
         ).and_return(true)
       end
 
       it { is_expected.to eq "origin/test-branch" }
+    end
+
+    context "with an explicit diff_branch" do
+      let(:options) { { diff_branch: "other-branch" } }
+
+      before do
+        allow(ENV).to receive(:fetch).and_call_original
+        allow(ENV).to receive(:fetch).with("GPUSH_BRANCH", nil).and_return(
+          "env-branch",
+        )
+        expect(GitHelper).not_to receive(:local_branch_name)
+        expect(GitHelper).to receive(:branch_exists_on_origin?).with(
+          "other-branch",
+        ).and_return(true)
+      end
+
+      it "wins over GPUSH_BRANCH and the current branch" do
+        expect(subject).to eq "origin/other-branch"
+      end
+    end
+
+    context "with an explicit diff_branch that has an origin/ prefix" do
+      let(:options) { { diff_branch: "origin/other-branch" } }
+
+      before do
+        expect(GitHelper).to receive(:branch_exists_on_origin?).with(
+          "other-branch",
+        ).and_return(true)
+      end
+
+      it { is_expected.to eq "origin/other-branch" }
+    end
+
+    context "with an explicit diff_branch that is not on origin" do
+      let(:options) { { diff_branch: "no-such-branch" } }
+
+      before do
+        expect(GitHelper).to receive(:branch_exists_on_origin?).with(
+          "no-such-branch",
+        ).and_return(false)
+      end
+
+      it "exits 2 without falling back" do
+        expect { subject }.to output(
+          /Branch no-such-branch not found on origin/,
+        ).to_stdout.and raise_error("Exit called with code 2")
+      end
     end
 
     context "when falling back to main" do
