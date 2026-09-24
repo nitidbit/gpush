@@ -249,7 +249,7 @@ class Command
 
     announce_commands(all_commands) unless spinner
 
-    threads = run_commands_in_threads(all_commands, verbose)
+    threads = run_commands_in_threads(all_commands, verbose, spinner:)
 
     handle_interruptions(all_commands, spinner:)
 
@@ -268,13 +268,16 @@ class Command
     puts "Running #{all_commands.size} commands: #{all_commands.map(&:name).join(", ")}"
   end
 
-  def self.run_commands_in_threads(all_commands, verbose)
+  def self.run_commands_in_threads(all_commands, verbose, spinner: true)
     all_commands.map do |command|
       Thread.new do
         command.run
       rescue GpushError
         command.set_status "fail"
         command.print_nonverbose_output unless verbose
+      ensure
+        # Without the spinner, this is the only sign a command has finished
+        puts command.final_summary unless spinner
       end
     end
   end

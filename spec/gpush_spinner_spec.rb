@@ -71,4 +71,41 @@ RSpec.describe "spinner option" do
       ).to_stdout
     end
   end
+
+  context "reporting each command as it finishes" do
+    before do
+      expect(YAML).to receive(:load_file).exactly(:once).and_return(
+        "parallel_run" => [
+          { "name" => "slow", "shell" => "sleep 1" },
+          { "name" => "fast", "shell" => "echo hello" },
+          { "name" => "skipped one", "shell" => "echo nope", "if" => "exit 1" },
+        ],
+      )
+    end
+
+    def plain_output(args)
+      original = $stdout
+      $stdout = StringIO.new
+      GpushCli.run(args)
+      $stdout.string.gsub(/\e\[[\d;]*m/, "")
+    ensure
+      $stdout = original
+    end
+
+    it "prints each result with --no-spinner, before slower commands finish" do
+      output = plain_output(%w[--dry-run --no-spinner])
+
+      fast_done = output.index("fast: SUCCESS")
+      expect(fast_done).to be < output.index("slow: SUCCESS")
+      expect(output.index("skipped one: SKIPPED")).to be <
+        output.index("Summary")
+      expect(fast_done).to be < output.index("Summary")
+    end
+
+    it "leaves progress to the spinner when it is on" do
+      output = plain_output(%w[--dry-run])
+
+      expect(output.index("fast: SUCCESS")).to be > output.index("Summary")
+    end
+  end
 end
