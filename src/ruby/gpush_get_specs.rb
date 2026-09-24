@@ -182,7 +182,7 @@ class GpushGetSpecs
     partial_filenames =
       filenames.map { |filepath| File.basename(filepath, ".*") }
     keywords =
-      partial_filenames.flat_map { |filename| filename.split(/[_\-\.]/) } # Split by underscore, hyphen, or period
+      partial_filenames.flat_map { |filename| filename.split(/[_\-.]/) } # Split by underscore, hyphen, or period
     keywords.map!(&:downcase)
     keywords.reject! do |word|
       word.length < @options[:min_keyword_length] ||
@@ -220,7 +220,7 @@ class GpushGetSpecs
     matching_files =
       (files_include - files_exclude).each_with_object([]) do |path, specs|
         filename = File.basename(path, ".*").downcase # Returns "example_spec"
-        filename_keywords = filename.split(/[_\-\.]/) # Returns ["example", "spec"]
+        filename_keywords = filename.split(/[_\-.]/) # Returns ["example", "spec"]
         specs << path if filename_keywords.intersect? keywords
       end
 
