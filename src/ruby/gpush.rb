@@ -47,7 +47,7 @@ module Gpush
           cmd_dict["verbose"].nil? ? verbose : cmd_dict["verbose"]
         command = Command.new(cmd_dict, verbose: command_verbose, spinner:)
         command.run
-        next if command.success?
+        next if command.success? || command.skipped?
 
         message = "#{title} command failed - #{command.name}"
         message += " (`#{command.shell}`)" if command.shell != command.name

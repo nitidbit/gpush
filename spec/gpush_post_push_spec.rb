@@ -95,6 +95,16 @@ RSpec.describe "post_push_success and post_push_failure" do
       expect(ENV.fetch("GPUSH_TESTED_SHA", nil)).to be_nil
     end
 
+    context "and a post_push_success command is skipped by its 'if'" do
+      let(:post_push_success) do
+        [{ "name" => "deploy", "shell" => "exit 3", "if" => "exit 1" }]
+      end
+
+      it "does not fail the run" do
+        expect { GpushCli.run([]) }.not_to raise_error
+      end
+    end
+
     context "and a post_push_success command fails" do
       let(:post_push_success) { [{ "name" => "deploy", "shell" => "exit 3" }] }
 
