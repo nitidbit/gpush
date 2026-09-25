@@ -17,6 +17,8 @@ module GpushCli
   }.freeze
 
   def self.run(argv)
+    # Ruby buffers stdout when it isn't a TTY, hiding progress in a redirected log
+    $stdout.sync = true
     run_with(argv, subcommands: SUBCOMMANDS, main_klass: Gpush)
   end
 

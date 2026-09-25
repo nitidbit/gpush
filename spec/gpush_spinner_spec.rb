@@ -102,6 +102,18 @@ RSpec.describe "spinner option" do
       expect(fast_done).to be < output.index("Summary")
     end
 
+    it "writes output immediately when stdout is a file" do
+      original = $stdout
+      log = Tempfile.new("gpush_log")
+      log.sync = false
+      $stdout = log
+      GpushCli.run(%w[--dry-run --no-spinner])
+      expect(log.sync).to be true
+    ensure
+      $stdout = original
+      log.close!
+    end
+
     it "leaves progress to the spinner when it is on" do
       output = plain_output(%w[--dry-run])
 
