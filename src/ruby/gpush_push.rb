@@ -36,10 +36,8 @@ class GpushPush
     )
 
     puts ""
-    skipped_names = SkipHelper.resolve(@options[:skip], @options)
-    if skipped_names.any?
-      puts "Pushed with #{SkipHelper.summary(skipped_names)}"
-    end
+    skipped = SkipHelper.summary
+    puts "Pushed#{skipped}" unless skipped.empty?
     puts "《 #{@options[:success_emoji] || "🌺"} 》 Good job! You're doing great."
     puts ""
   end
@@ -76,7 +74,7 @@ class GpushPush
     Dir.chdir(@push_dir)
     with_env("GPUSH_BRANCH" => @branch, "GPUSH_TESTED_SHA" => @tested_sha) do
       Gpush.simple_run_commands_with_output(
-        Gpush.filter_commands(@options[section], in_worktree: @in_worktree),
+        Command.runnable(@options[section], in_worktree: @in_worktree),
         title:,
         options: @options,
         failure_note:,

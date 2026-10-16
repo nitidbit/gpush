@@ -33,46 +33,39 @@ module Gpush
       commands,
       title:,
       options:,
-      failure_note: nil,
-      halt_on_failure: true
+      failure_note: nil
     )
       return if commands.nil? || commands.empty?
-      verbose = options[:verbose]
-      spinner = options[:spinner] != false
-      skip = options[:skip] || []
-      some_verbose = verbose || commands.any? { |cmd| cmd["verbose"] }
+      some_verbose = options[:verbose] || commands.any? { |cmd| cmd["verbose"] }
 
       puts "\n"
       print "Running #{title}..."
       puts "\n" if some_verbose
 
-      commands.each do |cmd_dict|
-        # Use command's verbose setting if specified, otherwise use global verbose setting
-        command_verbose =
-          cmd_dict["verbose"].nil? ? verbose : cmd_dict["verbose"]
-        command =
-          Command.new(cmd_dict, verbose: command_verbose, spinner:, skip:)
-        command.run
-        next if command.success? || command.skipped?
+      InterruptController.current.section do
+        commands.each do |cmd_dict|
+          command =
+            Command.new(cmd_dict, **Command.run_settings(options, cmd_dict))
+          command.run
+          next if command.success? || command.skipped?
 
-        message = "#{title} command failed - #{command.name}"
-        message += " (`#{command.shell}`)" if command.shell != command.name
-        next puts(message) unless halt_on_failure
-
-        puts "#{message}\nHalting further execution and exiting gpush"
+          message = "#{title} command #{command.outcome} - #{command.name}"
+          message += " (`#{command.shell}`)" if command.shell != command.name
+          puts "#{message}\nHalting further execution and exiting gpush"
+          puts failure_note if failure_note
+          ExitHelper.exit 1
+        end
+      end
+      # A Ctrl-C that landed as the commands finished interrupted nothing,
+      # but still means stop
+      if InterruptController.current.interrupted?
+        puts "#{title} was interrupted\nHalting further execution and exiting gpush"
         puts failure_note if failure_note
         ExitHelper.exit 1
       end
 
       some_verbose ? puts("#{title} DONE") : print("DONE\n")
       puts "\n"
-    end
-
-    def filter_commands(commands, in_worktree:)
-      (commands || []).reject do |cmd|
-        (cmd["only_worktree"] && !in_worktree) ||
-          (cmd["only_no_worktree"] && in_worktree)
-      end
     end
 
     # Exits non-zero on a git state we cannot work with. Returns nil when the
@@ -147,7 +140,9 @@ module Gpush
     end
 
     def go(options)
-      skipped_names = SkipHelper.resolve(options[:skip], options)
+      GpushCleanup.validate(options[:cleanup])
+      SkipHelper.reset_skips
+      SkipHelper.validate_names(options)
 
       git_state_result =
         check_git_state_return_nil_for_exit(
@@ -188,33 +183,32 @@ module Gpush
       tested_sha_full = GitHelper.head_sha(short: false)
 
       GpushCleanup.register(
-        filter_commands(options[:cleanup], in_worktree:),
+        Command.runnable(options[:cleanup], in_worktree:),
         options,
       )
+      InterruptController.install
 
       simple_run_commands_with_output(
-        filter_commands(options[:pre_run], in_worktree:),
+        Command.runnable(options[:pre_run], in_worktree:),
         title: "pre-run",
         options:,
       )
 
       success =
         Command.run_in_parallel?(
-          filter_commands(options[:parallel_run], in_worktree:),
-          verbose: options[:verbose],
-          spinner: options[:spinner] != false,
-          skip: options[:skip] || [],
+          Command.runnable(options[:parallel_run], in_worktree:),
+          options:,
         )
 
       simple_run_commands_with_output(
-        filter_commands(options[:post_run], in_worktree:),
+        Command.runnable(options[:post_run], in_worktree:),
         title: "post-run",
         options:,
       )
 
       unless success
         simple_run_commands_with_output(
-          filter_commands(options[:post_run_failure], in_worktree:),
+          Command.runnable(options[:post_run_failure], in_worktree:),
           title: "post-run failure",
           options:,
         )
@@ -225,7 +219,7 @@ module Gpush
       end
 
       simple_run_commands_with_output(
-        filter_commands(options[:post_run_success], in_worktree:),
+        Command.runnable(options[:post_run_success], in_worktree:),
         title: "post-run success",
         options:,
       )
@@ -235,10 +229,7 @@ module Gpush
       report_tested_commit(tested_sha_short)
 
       if dry_run
-        puts "《 Dry run completed 》"
-        if skipped_names.any?
-          puts "\nDry run completed with #{SkipHelper.summary(skipped_names)}"
-        end
+        puts "《 Dry run completed#{SkipHelper.summary} 》"
         if unpushable_reason
           puts "\nChecks passed, but nothing was pushed: #{unpushable_reason}."
           ExitHelper.exit 2
@@ -255,6 +246,8 @@ module Gpush
 
       # Check for updates after a successful run (even in dry run mode)
       VersionChecker.print_message_if_new_version(VERSION)
+    ensure
+      InterruptController.uninstall
     end
 
     def report_tested_commit(sha)

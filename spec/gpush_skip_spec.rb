@@ -46,6 +46,22 @@ RSpec.describe "--skip" do
     [output.string, error]
   end
 
+  # Lets a non-dry-run get as far as the push
+  def allow_a_clean_push
+    allow(GitHelper).to receive(:local_branch_name).and_return("mybranch")
+    allow(GitHelper).to receive(:remote_branch_name).and_return(
+      "origin/mybranch",
+    )
+    allow(GitHelper).to receive(:detached_head?).and_return(false)
+    allow(GitHelper).to receive(:behind_remote_branch?).and_return(false)
+    allow(GitHelper).to receive(
+      :up_to_date_or_ahead_of_remote_branch?,
+    ).and_return(true)
+    allow(GitHelper).to receive(:at_same_commit_as_remote_branch?).and_return(
+      false,
+    )
+  end
+
   it "does not run the skipped command" do
     output, error = run_gpush("--skip=rspec")
 
@@ -117,6 +133,62 @@ RSpec.describe "--skip" do
     expect(output).not_to include("SETUP-RAN")
   end
 
+  it "rejects an unknown name before touching git" do
+    expect(GitHelper).not_to receive(:fetch)
+
+    expect { GpushCli.run(%w[--skip=rspek]) }.to raise_error(
+      "Exit called with code 1",
+    ).and output(/no command named 'rspek'/).to_stdout
+  end
+
+  it "rejects an ambiguous name before touching git" do
+    config["post_run"] << { "name" => "RSpec", "shell" => "echo AGAIN" }
+    expect(GitHelper).not_to receive(:fetch)
+
+    expect { GpushCli.run(%w[--skip=rspec]) }.to raise_error(
+      "Exit called with code 1",
+    ).and output(/matches more than one command/).to_stdout
+  end
+
+  it "only reports commands that were actually skipped" do
+    config["post_run_failure"] = [
+      { "name" => "notify", "shell" => "echo NOTIFY" },
+    ]
+
+    output, error = run_gpush("--skip=notify")
+
+    expect(error).to be_nil
+    expect(output).not_to include("skipped: notify")
+  end
+
+  it "warns when a name's only commands don't run in this mode" do
+    config["parallel_run"] << {
+      "name" => "worktree only",
+      "shell" => "echo WT",
+      "only_worktree" => true,
+    }
+
+    output, error = run_gpush("--skip=worktree only")
+
+    expect(error).to be_nil
+    expect(output).to include(
+      "--skip: 'worktree only' is only on only_worktree commands, and this run isn't in a worktree",
+    )
+  end
+
+  it "says when a name's commands don't run with --dry-run" do
+    config["post_push_success"] = [
+      { "name" => "deploy", "shell" => "echo DEPLOY" },
+    ]
+
+    output, error = run_gpush("--skip=deploy")
+
+    expect(error).to be_nil
+    expect(output).to include(
+      "--skip: 'deploy' is only in post_push_success, which doesn't run with --dry-run",
+    )
+  end
+
   it "rejects a name that matches more than one command" do
     config["post_run"] << { "name" => "RSpec", "shell" => "echo AGAIN" }
 
@@ -127,6 +199,140 @@ RSpec.describe "--skip" do
     expect(output).to include("parallel_run: rspec (`echo RSPEC-RAN`)")
     expect(output).to include("post_run: RSpec (`echo AGAIN`)")
     expect(output).not_to include("SETUP-RAN")
+  end
+
+  it "only counts commands that run in this mode when matching" do
+    config["parallel_run"] = [
+      {
+        "name" => "rspec",
+        "shell" => "echo WORKTREE-RSPEC-RAN",
+        "only_worktree" => true,
+      },
+      {
+        "name" => "rspec",
+        "shell" => "echo LOCAL-RSPEC-RAN",
+        "only_no_worktree" => true,
+      },
+    ]
+
+    output, error = run_gpush("--skip=rspec")
+
+    expect(error).to be_nil
+    expect(output).not_to include(
+      "running shell command `echo LOCAL-RSPEC-RAN`",
+    )
+    expect(output).to include("1 check skipped: rspec")
+  end
+
+  it "reports a command with no shell as such, not as a crash" do
+    config["post_run"] << { "if" => "true" }
+
+    output, error = run_gpush("--skip=rspec")
+
+    expect(error.message).to eq("Exit called with code 1")
+    expect(output).to include('must have a "shell" field')
+  end
+
+  it "matches a name that isn't a string" do
+    config["parallel_run"] << { "name" => 2024, "shell" => "echo YEAR-RAN" }
+
+    output, error = run_gpush("--skip=2024")
+
+    expect(error).to be_nil
+    expect(output).not_to include("running shell command `echo YEAR-RAN`")
+  end
+
+  it "allows one name in sections that never both run" do
+    config["post_run_success"] = [
+      { "name" => "notify", "shell" => "echo PASS-NOTIFY-RAN" },
+    ]
+    config["post_run_failure"] = [
+      { "name" => "notify", "shell" => "echo FAIL-NOTIFY-RAN" },
+    ]
+
+    output, error = run_gpush("--skip=notify")
+
+    expect(error).to be_nil
+    expect(output).not_to include(
+      "running shell command `echo PASS-NOTIFY-RAN`",
+    )
+    expect(output).to include("1 check skipped: notify")
+  end
+
+  it "allows one name in post_run_failure and post_push_success" do
+    options = {
+      skip: ["notify"],
+      post_run_failure: [{ "name" => "notify", "shell" => "echo FAIL-NOTIFY" }],
+      post_push_success: [{ "name" => "notify", "shell" => "echo DEPLOY" }],
+    }
+
+    expect { SkipHelper.validate_names(options) }.not_to raise_error
+  end
+
+  it "still rejects one name in post_run and post_push_success" do
+    options = {
+      skip: ["notify"],
+      post_run: [{ "name" => "notify", "shell" => "echo NOTIFY" }],
+      post_push_success: [{ "name" => "notify", "shell" => "echo DEPLOY" }],
+    }
+
+    expect { SkipHelper.validate_names(options) }.to raise_error(
+      GpushError,
+      /matches more than one command/,
+    )
+  end
+
+  it "lists a command once when it is named twice" do
+    output, = run_gpush("--skip=brakeman", "--skip=BRAKEMAN")
+
+    expect(output).to include("1 check skipped: Brakeman")
+  end
+
+  it "aborts before anything runs when the config sets skip:" do
+    config["skip"] = "brakeman"
+
+    output, error = run_gpush
+
+    expect(error.message).to eq("Exit called with code 1")
+    expect(output).to include("'skip' can't be set in the config file")
+    expect(output).not_to include("SETUP-RAN")
+  end
+
+  it "skips a check that shares its name with a cleanup command" do
+    config["cleanup"] = [{ "name" => "rspec", "shell" => "echo CLEANUP-RAN" }]
+
+    output, error = run_gpush("--skip=rspec")
+
+    expect(error).to be_nil
+    expect(output).not_to include("running shell command `echo RSPEC-RAN`")
+  end
+
+  it "doesn't count post_push commands on a dry run" do
+    config["post_run"] << { "name" => "notify", "shell" => "echo NOTIFY-RAN" }
+    config["post_push_success"] = [
+      { "name" => "notify", "shell" => "echo DEPLOY" },
+    ]
+
+    output, error = run_gpush("--skip=notify")
+
+    expect(error).to be_nil
+    expect(output).to include("1 check skipped: notify")
+  end
+
+  it "judges a name by the run asked for, even if it falls back to a dry run" do
+    allow_a_clean_push
+    allow(GitHelper).to receive(:at_same_commit_as_remote_branch?).and_return(
+      true,
+    )
+    allow(GitHelper).to receive(:ask_yes_no).and_return(true)
+    config["post_run"] << { "name" => "notify", "shell" => "echo NOTIFY-RAN" }
+    config["post_push_success"] = [
+      { "name" => "notify", "shell" => "echo DEPLOY" },
+    ]
+
+    expect { GpushCli.run(%w[--skip=notify]) }.to raise_error(
+      "Exit called with code 1",
+    ).and output(/matches more than one command/).to_stdout
   end
 
   it "says which checks were skipped after a push" do

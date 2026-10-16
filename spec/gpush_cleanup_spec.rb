@@ -40,6 +40,15 @@ RSpec.describe "cleanup" do
     end
   end
 
+  # Worktree mode exports GPUSH_BRANCH; left set, it decides the diff branch
+  # for every example after this one.
+  around do |example|
+    original = ENV.fetch("GPUSH_BRANCH", nil)
+    example.run
+  ensure
+    ENV["GPUSH_BRANCH"] = original
+  end
+
   # at_exit hooks run in reverse order of registration
   def run_at_exit_hooks = at_exit_hooks.reverse_each(&:call)
 
@@ -107,6 +116,61 @@ RSpec.describe "cleanup" do
     expect(output).to include("CLEANUP-RAN")
   end
 
+  it "runs the rest when a cleanup command can't even start" do
+    config["cleanup"].unshift(
+      { "name" => "missing", "shell" => "gpush-no-such-command" },
+    )
+
+    output, error = run_gpush_and_exit
+
+    expect(error).to be_nil
+    expect(output).to include("cleanup command failed - missing")
+    expect(output).to include("CLEANUP-RAN")
+  end
+
+  it "runs the rest when a cleanup command raises" do
+    config["cleanup"].unshift(
+      { "name" => "bad env", "shell" => "true", "env" => "oops" },
+    )
+
+    output, error = run_gpush_and_exit
+
+    expect(error).to be_nil
+    expect(output).to include("cleanup command failed - bad env")
+    expect(output).to include("CLEANUP-RAN")
+  end
+
+  it "reports it, and runs nothing, when the cleanup directory is gone" do
+    gone = Dir.mktmpdir("gone", __dir__)
+    FileUtils.touch(File.join(gone, "gpushrc.yml"))
+
+    output, error =
+      capture_stdout do
+        begin
+          Dir.chdir(gone) { GpushCli.run(%w[--dry-run -v]) }
+        ensure
+          FileUtils.rm_rf(gone)
+        end
+        run_at_exit_hooks
+      end
+
+    expect(error).to be_nil
+    expect(output).to include("cleanup failed:")
+    expect(output).not_to include("CLEANUP-RAN")
+  end
+
+  it "rejects a cleanup command with no shell before anything runs" do
+    config["cleanup"].unshift({ "name" => "no shell" })
+
+    output, error = run_gpush_and_exit
+
+    expect(error.message).to eq("Exit called with code 1")
+    expect(output).to include(
+      'cleanup command "no shell" must have a "shell" field',
+    )
+    expect(output).not_to include("SETUP-RAN")
+  end
+
   it "runs cleanup from the directory gpush ran the checks in" do
     config["cleanup"] = [{ "name" => "where", "shell" => "echo PWD=$(pwd)" }]
 
@@ -118,6 +182,33 @@ RSpec.describe "cleanup" do
       end
 
     expect(output).to include("PWD=#{__dir__}")
+  end
+
+  it "stops a hung cleanup command on a second Ctrl-C, then runs the rest" do
+    stub_const("InterruptController::STOP_GRACE_SECONDS", 0.3)
+    config["cleanup"] = [
+      {
+        "name" => "hangs",
+        "shell" =>
+          "trap '' INT; kill -INT $PPID; sleep 0.3; kill -INT $PPID; sleep 30",
+      },
+      { "name" => "after", "shell" => "echo CLEANUP-RAN" },
+    ]
+
+    output, error = run_gpush_and_exit
+
+    expect(error).to be_nil
+    expect(output).to include("cleanup command interrupted - hangs")
+    expect(output).to include("CLEANUP-RAN")
+  end
+
+  it "rejects a cleanup section that isn't a list" do
+    config["cleanup"] = { "shell" => "rm -rf tmp" }
+
+    output, error = run_gpush_and_exit
+
+    expect(error.message).to eq("Exit called with code 1")
+    expect(output).to include("cleanup must be a list of commands")
   end
 
   it "ignores Ctrl-C while cleanup runs, then restores the previous handler" do

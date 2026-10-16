@@ -1,10 +1,12 @@
 #!/usr/bin/env ruby
 require "pty"
 require "io/console"
+require "monitor"
 require "open3"
 require_relative "colors"
 require_relative "gpush_error"
 require_relative "gpush_options_parser"
+require_relative "interrupt_controller"
 require_relative "skip_helper"
 
 class Command
@@ -45,7 +47,7 @@ class Command
     unless STATUS.include?(new_status)
       raise GpushError, "Invalid status: #{new_status}"
     end
-    @status = new_status
+    @status_lock.synchronize { @status = new_status }
   end
 
   SPINNER = ["|", "/", "-", '\\'].freeze
@@ -57,6 +59,12 @@ class Command
     spinner: true,
     skip: []
   )
+    # The watcher thread marks a command interrupting while its own thread may
+    # be setting the final status
+    @status_lock = Monitor.new
+    # Kept, so a command left running after a force quit can't start under
+    # whatever controller (or none) comes next
+    @controller = InterruptController.current
     warn_unknown_command_keys(command_dict)
 
     if command_dict["env"]
@@ -67,7 +75,7 @@ class Command
     @output = []
     @prefix_output = prefix_output
     @spinner_enabled = spinner
-    @name = command_dict["name"] || command_dict["shell"]
+    @name = self.class.name_of(command_dict)
     raise GpushError, 'must have a "shell" field.' unless command_dict["shell"]
     @skipped_by_flag = SkipHelper.skip?(@name, skip)
     @shell = [env_prefix, command_dict["shell"]].compact.join(" ")
@@ -101,71 +109,152 @@ class Command
 
   def run
     @start_time = Time.now # Start time for duration tracking
-    exit_status = nil
     set_status "working"
 
-    unless should_run?
+    case precondition
+    when :skipped
       set_status "skipped"
       return
+    when :interrupted
+      set_status "interrupted"
+      return false
     end
 
+    started = false
     begin
-      # Use PTY for real-time command output, capturing both stdout and stderr
-      PTY.spawn(shell) do |thread_stdout, _stdin, pid|
-        @pid = pid
-        puts with_prefix("running shell command `#{shell}`") if verbose
-
-        thread_stdout.each do |line|
-          if verbose
-            puts(prefix_output ? with_prefix(line) : line)
-          else
-            @output << line
-          end
-        end
-
-        # Wait for the child process to exit and capture its status
-        _, exit_status = Process.wait2(pid)
+      # A force quit's Interrupt waits while the process is spawned and
+      # registered, and while it is unregistered, so neither step is skipped
+      Thread.handle_interrupt(Interrupt => :never) { started = spawn }
+      unless started
+        set_status "interrupted" unless fail?
+        return false
       end
 
-      # Determine the final status of the command
-      if exit_status.signaled?
-        set_status "interrupted"
-      elsif exit_status.success?
-        set_status "success"
-      else
-        set_status interrupting? ? "interrupted" : "fail"
-      end
-      success?
-    rescue PTY::ChildExited => e
-      puts "\n\nRESCUED Exception: #{e.message} - Command '#{name}' exited unexpectedly"
-      set_status "fail"
-      false
+      wait_for_exit
     ensure
-      @end_time = Time.now # End time for duration tracking
-      print_nonverbose_output if fail? && !verbose # Print output if command failed and not in verbose mode
+      if started
+        Thread.handle_interrupt(Interrupt => :never) do
+          [@reader, @writer].each { |io| io&.close unless io&.closed? }
+          @controller.finished(self)
+        end
+      end
+    end
+    success?
+  ensure
+    @end_time = Time.now # End time for duration tracking
+    print_nonverbose_output if show_output_after_run?
+  end
+
+  # Without verbose, output is held back unless the command failed or was
+  # interrupted part way (one stopped before it started has none)
+  def show_output_after_run?
+    !verbose && (fail? || (interrupted? && output.any?))
+  end
+
+  def wait_for_exit
+    read_output
+    _, exit_status = Process.wait2(pid)
+    if exit_status.success?
+      set_status "success"
+    elsif interrupting?
+      # Only a command gpush sent Ctrl-C counts as interrupted; one killed
+      # by anything else (a crash, the OOM killer) failed
+      set_status "interrupted"
+    else
+      set_status "fail"
     end
   end
 
-  def should_run?
+  def mark_interrupting
+    @status_lock.synchronize { set_status "interrupting" if working? }
+  end
+
+  # Uses PTY for real-time output, capturing both stdout and stderr. Returns
+  # false when the section was interrupted first or the shell can't start.
+  def spawn
+    started =
+      @controller.start(self) do
+        @reader, @writer, @pid = PTY.spawn(shell)
+        @pid
+      end
+    puts with_prefix("running shell command `#{shell}`") if started && verbose
+    started
+  rescue SystemCallError => e
+    verbose ? puts(with_prefix(e.message)) : @output << e.message
+    set_status "fail"
+    false
+  end
+
+  def read_output
+    @reader.each do |line|
+      verbose ? puts(prefix_output ? with_prefix(line) : line) : @output << line
+    end
+  rescue Errno::EIO
+    # Linux reports the end of a PTY's output as EIO rather than EOF
+  end
+
+  def outcome = interrupted? ? "interrupted" : "failed"
+
+  # :run, :skipped (by --skip or a failing `if`), or :interrupted
+  def precondition
     if @skipped_by_flag
       puts "#{name} skipped by --skip" if verbose
-      return false
+      SkipHelper.record_skip(name)
+      return :skipped
     end
-    return true unless @run_if
+    return :run unless @run_if
 
     puts with_prefix("running 'if' command `#{@run_if}`") if verbose
-    stdout, stderr, status = Open3.capture3(@run_if)
-    if verbose
-      { output: stdout, ERROR: stderr }.each do |label, lines|
-        lines.each_line do |line|
-          puts with_prefix(line, prefix: "#{name} 'if' #{label}")
-        end
-      end
-    end
-    return true if status.success?
+    output, errors, status = run_if_check
+    return :interrupted unless status # its section was interrupted first
+
+    print_if_output(output, errors) if verbose
+    # A check cut short by Ctrl-C says nothing about whether to skip
+    return :interrupted if status.signaled? || @controller.interrupted?
+    return :run if status.success?
 
     puts "#{name} skipped because 'if' condition failed" if verbose
-    false
+    :skipped
+  rescue SystemCallError => e
+    return :interrupted if @controller.interrupted?
+
+    # Like any failing `if`, e.g. a tool that isn't installed on this machine
+    if verbose
+      puts "#{name} skipped because 'if' command couldn't start: #{e.message}"
+    end
+    :skipped
+  end
+
+  # Outside cleanup, the check runs in gpush's own process group, so one that
+  # prompts on the terminal still can, and a terminal Ctrl-C reaches it
+  # directly. In cleanup, where a first Ctrl-C is only a warning, it runs in
+  # its own group, registered like a command so a later press can stop it.
+  def run_if_check
+    return Open3.capture3(@run_if) unless @controller.patient?
+
+    stdin = stdout = stderr = waiter = nil
+    started =
+      @controller.start(self) do
+        stdin, stdout, stderr, waiter = Open3.popen3(@run_if, pgroup: true)
+        waiter.pid
+      end
+    return nil, nil, nil unless started
+
+    stdin.close
+    output, errors =
+      [stdout, stderr].map { |io| Thread.new { io.read } }.map(&:value)
+    [output, errors, waiter.value]
+  ensure
+    [stdin, stdout, stderr].each { |io| io&.close unless io&.closed? }
+    @controller.finished(self) if started
+  end
+
+  def print_if_output(output, errors)
+    { output:, ERROR: errors }.each do |label, lines|
+      lines.each_line do |line|
+        puts with_prefix(line, prefix: "#{name} 'if' #{label}")
+      end
+    end
   end
 
   def print_nonverbose_output
@@ -234,7 +323,7 @@ class Command
   def warn_unknown_command_keys(command_dict)
     unknown = command_dict.keys.map(&:to_s) - KNOWN_COMMAND_KEYS
     return if unknown.empty?
-    command_id = command_dict["name"] || command_dict["shell"] || "unknown"
+    command_id = self.class.name_of(command_dict) || "unknown"
     unknown.each do |key|
       puts ""
       puts "#{COLORS[:bold_red]}WARNING: Unknown config key '#{key}' in command '#{command_id}'#{COLORS[:reset]}"
@@ -256,29 +345,58 @@ class Command
     self.class.status_method_names.include?(method_name) || super
   end
 
+  def self.name_of(command_dict) = command_dict["name"] || command_dict["shell"]
+
+  def self.runnable(commands, in_worktree:)
+    (commands || []).reject do |cmd|
+      (cmd["only_worktree"] && !in_worktree) ||
+        (cmd["only_no_worktree"] && in_worktree)
+    end
+  end
+
+  # The gpush options a command run depends on, with their defaults
+  # With a command's own entry, its verbose setting overrides the global one
+  def self.run_settings(options, command_dict = {})
+    own_verbose = command_dict["verbose"]
+    {
+      verbose: own_verbose.nil? ? options[:verbose] : own_verbose,
+      spinner: options[:spinner] != false,
+      skip: options[:skip] || [],
+    }
+  end
+
   # Class method to run commands in parallel and show summary
-  def self.run_in_parallel?(
-    command_defs,
-    verbose: false,
-    spinner: true,
-    skip: []
-  )
+  def self.run_in_parallel?(command_defs, options: {})
+    verbose, spinner, skip =
+      run_settings(options).values_at(:verbose, :spinner, :skip)
     all_commands =
       command_defs.map { |cmd| new(cmd, verbose:, spinner:, skip:) }
 
     announce_commands(all_commands) unless spinner
 
-    threads = run_commands_in_threads(all_commands, verbose, spinner:)
-
-    handle_interruptions(all_commands, spinner:)
-
-    spinner_thread = start_spinner(all_commands, threads, verbose) if spinner
-
-    threads.each(&:join)
-    spinner_thread&.kill
+    InterruptController
+      .current
+      .section(spinner:) do
+        threads = run_commands_in_threads(all_commands, verbose, spinner:)
+        spinner_thread =
+          start_spinner(all_commands, threads, verbose) if spinner
+        begin
+          threads.each(&:join)
+        ensure
+          spinner_thread&.kill
+          # After a force quit, so their last output lands before cleanup's
+          deadline = Time.now + InterruptController::STOP_GRACE_SECONDS
+          threads.each { |thread| thread.join([deadline - Time.now, 0].max) }
+        end
+      end
 
     finalize_output(all_commands, verbose, spinner:)
-    print_summary_and_return_all_succeeded?(all_commands)
+    print_summary_and_return_all_succeeded?(
+      all_commands,
+      # A Ctrl-C that landed as the commands finished interrupted nothing,
+      # but still means stop
+      interrupted: InterruptController.current.interrupted?,
+    )
   end
 
   # Without the spinner there is no live progress, so at least say what started
@@ -291,68 +409,15 @@ class Command
     all_commands.map do |command|
       Thread.new do
         command.run
-      rescue GpushError
+      rescue StandardError => e
+        # Anything that stops a check from finishing fails it, so the run
+        # can't count it as passed
+        command.output << e.message
         command.set_status "fail"
         command.print_nonverbose_output unless verbose
       ensure
         # Without the spinner, this is the only sign a command has finished
         puts command.final_summary unless spinner
-      end
-    end
-  end
-
-  def self.handle_interruptions(all_commands, spinner: true)
-    processing_interruption = false
-    default_int_handler =
-      Signal.trap("INT") do
-        process_interrupt(
-          all_commands,
-          processing_interruption,
-          default_int_handler,
-          spinner:,
-        )
-        processing_interruption = true
-      end
-  end
-
-  def self.process_interrupt(
-    all_commands,
-    processing_interruption,
-    default_int_handler,
-    spinner: true
-  )
-    clear_single_line_spinner if spinner
-    puts "\nCtrl-C detected, attempting to stop gracefully. Press Ctrl-C again to force quit."
-    if processing_interruption
-      execute_default_handler(default_int_handler)
-    else
-      interrupt_commands(all_commands)
-    end
-  end
-
-  def self.execute_default_handler(default_int_handler)
-    if default_int_handler.respond_to?(:call)
-      default_int_handler.call
-    elsif default_int_handler == "DEFAULT"
-      Signal.trap("INT", "DEFAULT")
-      Process.kill("INT", Process.pid)
-    elsif default_int_handler == "IGNORE"
-      puts "Signal was previously ignored"
-    end
-  end
-
-  def self.interrupt_commands(all_commands)
-    all_commands.each do |command|
-      next unless command.working? || command.not_started?
-      time_now = Time.now
-      sleep 0.1 while !command.pid && Time.now - time_now < 2 # Wait for the command to start
-      next unless command.working? || command.not_started?
-      if command.pid
-        Process.kill("INT", -command.pid)
-        command.set_status "interrupting"
-      else
-        raise GpushError,
-              "Command '#{command.name}' does not have a PID to interrupt"
       end
     end
   end
@@ -376,20 +441,19 @@ class Command
   def self.finalize_output(all_commands, verbose, spinner: true)
     print_single_line_spinner(all_commands) if spinner && !verbose
     puts ""
-    all_commands.each do |command|
-      next if command.skipped? || command.success? || verbose || command.fail?
-      command.print_nonverbose_output
-    end
   end
 
-  def self.print_summary_and_return_all_succeeded?(all_commands)
+  def self.print_summary_and_return_all_succeeded?(
+    all_commands,
+    interrupted: false
+  )
     puts "\n#{COLORS[:bold]}Summary#{COLORS[:reset]}"
     all_commands.each { |cmd| puts cmd.final_summary }
 
-    if all_commands.any?(&:interrupted?)
+    if interrupted || all_commands.any?(&:interrupted?)
       puts "\n#{COLORS[:cyan]}《 Interruption detected 》#{COLORS[:reset]}"
       return false
-    elsif all_commands.any?(&:fail?)
+    elsif all_commands.any? { |cmd| !(cmd.success? || cmd.skipped?) }
       puts "\n#{COLORS[:red]}《 Errors detected 》#{COLORS[:reset]}"
       return false
     end

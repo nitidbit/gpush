@@ -46,7 +46,7 @@ module GpushRun
     def run_one_command_and_exit(command_input)
       cmd_dict =
         ConfigHelper.parse_config["parallel_run"].find do |cmd|
-          normalize_command_name(cmd["name"] || cmd["shell"]) ==
+          normalize_command_name(Command.name_of(cmd)) ==
             normalize_command_name(command_input)
         end
 

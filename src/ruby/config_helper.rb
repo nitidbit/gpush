@@ -5,24 +5,30 @@ require_relative "git_helper"
 module ConfigHelper
   CONFIG_NAMES = %w[gpushrc.yml gpushrc.yaml].freeze
 
-  KNOWN_TOP_LEVEL_KEYS = %w[
-    cleanup
-    fix
-    get_specs
-    gpush_changed_files
-    gpush_version
-    parallel_run
-    post_push_failure
-    post_push_success
-    post_run
-    post_run_failure
-    post_run_success
+  # The sections of commands a gpush run goes through, in order (cleanup,
+  # which runs however gpush exits, isn't one of them)
+  COMMAND_SECTIONS = %w[
     pre_run
-    spinner
-    success_emoji
-    verbose
-    worktree
-    worktree_copy_gitignored
+    parallel_run
+    post_run
+    post_run_success
+    post_run_failure
+    post_push_success
+    post_push_failure
+  ].freeze
+
+  KNOWN_TOP_LEVEL_KEYS = [
+    *COMMAND_SECTIONS,
+    "cleanup",
+    "fix",
+    "get_specs",
+    "gpush_changed_files",
+    "gpush_version",
+    "spinner",
+    "success_emoji",
+    "verbose",
+    "worktree",
+    "worktree_copy_gitignored",
   ].freeze
 
   class << self
@@ -76,11 +82,22 @@ module ConfigHelper
       config = YAML.load_file full_path
       raise GpushError, "Configuration file is empty!" if config.empty?
 
-      warn_if_any_top_level_keys_are_not_known(config) if unknown_key_warn
+      if unknown_key_warn
+        reject_skip_key(config)
+        warn_if_any_top_level_keys_are_not_known(config)
+      end
       config
     end
 
     private
+
+    # Skipping is for one run; a skip: in the config would skip on every run
+    def reject_skip_key(config)
+      return unless config.key?("skip")
+
+      raise GpushError,
+            "'skip' can't be set in the config file. Use --skip=NAME on the command line to skip a command for one run."
+    end
 
     def warn_if_any_top_level_keys_are_not_known(config)
       unknown_keys = config.keys.map(&:to_s) - KNOWN_TOP_LEVEL_KEYS

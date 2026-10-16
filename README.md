@@ -58,10 +58,19 @@ gpush --skip brakeman --skip "npm audit"
 
 - Each `--skip` names exactly one command; repeat it to skip more. Values aren't split on commas.
 - It matches a command's `name`, or its `shell` when it has no `name`: case-insensitive, exact, no globs.
-- It applies to every section: `pre_run`, `parallel_run`, `post_run*` and `post_push_*`. Naming a `cleanup` command is
-  an error: skipping one would leave behind whatever `pre_run` created.
-- A name that matches no command, or more than one, is an error before anything runs.
-- Skipped commands show as SKIPPED (by --skip) and don't fail the run, so gpush still pushes, and says so:
+- It applies to every section: `pre_run`, `parallel_run`, `post_run*` and `post_push_*`. `cleanup` commands are never
+  skipped, since that would leave behind whatever `pre_run` created; naming only a cleanup command is an error.
+- A name that matches no command is an error before anything runs, even `git fetch`.
+- A name that matches more than one command that could both run, in the run you asked for, is an error too, also
+  before anything runs. Commands that can't both run may
+  share a name, and `--skip` skips both: a pair split by `only_worktree` / `only_no_worktree`, or one in
+  `post_run_failure` and one in `post_run_success` or `post_push_*`, or `post_push_success` and `post_push_failure`.
+  `post_push_*` commands don't count at all with `--dry-run`, but do count on a run that only falls back to
+  a dry run later (with nothing to push, say), since that's checked before git is. A name whose commands don't run this time (say, only in
+  `only_worktree` commands, without `--worktree`) gets a warning.
+- `skip:` can't be set in `gpushrc.yml`; gpush stops with an error if it is. Skipping is for one run.
+- Skipped commands show as SKIPPED (by --skip) and don't fail the run, so gpush still pushes, and says which commands
+  it actually skipped:
   `Pushed with 2 checks skipped: brakeman, npm audit`.
 
 ### Running without a terminal
@@ -167,15 +176,15 @@ Any other top-level key is ignored, with a warning naming the key.
 
 Each entry in `pre_run`, `parallel_run`, `post_run`, `post_run_success`, `post_run_failure`, `post_push_success`, `post_push_failure`, `cleanup`, and `fix` is a hash. `shell` is the only required key:
 
-| **key**            | **type** | **description**                                                                                   |
-| :----------------- | -------- | :------------------------------------------------------------------------------------------------ |
-| `shell`            | string   | **required.** the shell command to run                                                            |
-| `name`             | string   | label shown in the spinner and summary. Defaults to `shell`.                                      |
-| `if`               | string   | only run this command when the given shell command exits 0; otherwise it is reported as `SKIPPED` |
-| `env`              | hash     | environment variables prefixed onto `shell` and `if` (e.g. `env: { RAILS_ENV: test }`)            |
-| `verbose`          | boolean  | print this command's output while it runs, overriding the global setting in either direction      |
-| `only_worktree`    | boolean  | only run this command when in worktree mode                                                       |
-| `only_no_worktree` | boolean  | only run this command when not in worktree mode                                                   |
+| **key**            | **type** | **description**                                                                                    |
+| :----------------- | -------- | :------------------------------------------------------------------------------------------------- |
+| `shell`            | string   | **required.** the shell command to run                                                             |
+| `name`             | string   | label shown in the spinner and summary. Defaults to `shell`.                                       |
+| `if`               | string   | only run this command when the given shell command exits 0; otherwise it is reported as `SKIPPED`. |
+| `env`              | hash     | environment variables prefixed onto `shell` and `if` (e.g. `env: { RAILS_ENV: test }`)             |
+| `verbose`          | boolean  | print this command's output while it runs, overriding the global setting in either direction       |
+| `only_worktree`    | boolean  | only run this command when in worktree mode                                                        |
+| `only_no_worktree` | boolean  | only run this command when not in worktree mode                                                    |
 
 Any other key is ignored, with a warning naming the key and the command.
 
@@ -260,11 +269,32 @@ cleanup:
 
 - It runs last, one command at a time, from the directory the checks ran in. In worktree mode that's the worktree,
   before it is removed.
-- It runs on a normal exit, on any failure, and on Ctrl-C. It doesn't run on `kill -9` or a crash, so keep a sweep for
-  anything that must never pile up.
-- Ctrl-C is ignored while it runs, so a stray press can't cut teardown off halfway.
+- It is set up just before `pre_run`. From then on it runs on a normal exit, on any failure, on Ctrl-C, and when gpush
+  itself raises an error, so it may run before `pre_run` got far. Make cleanup commands safe to run when there's
+  nothing to tear down. An exit before that point (a failed `git fetch`, a declined prompt) runs no cleanup.
+- It doesn't run when the gpush process is killed outright with `kill -9`, so keep a sweep for anything that must
+  never pile up.
+- Cleanup never runs alongside a check: see [Ctrl-C](#ctrl-c). While cleanup runs, the first Ctrl-C is ignored (it doesn't reach cleanup `if` checks either), so a
+  stray press can't cut teardown off halfway. Each one after that stops the cleanup command that's running (Ctrl-C,
+  then `kill -9` after 5 seconds), and cleanup goes on to the next one.
 - Every cleanup command runs even if an earlier one fails. Failures are reported but don't change gpush's exit status.
 - `--skip` can't skip a cleanup command.
+
+### Ctrl-C
+
+Every command runs in its own process group, so Ctrl-C reaches gpush, which passes it on. (`if` checks run in gpush's
+own group, so they can still prompt on the terminal, and get a terminal Ctrl-C directly. During cleanup they run in
+their own group, like commands.)
+
+- **The first Ctrl-C** interrupts the commands running in the current section (`pre_run`, `parallel_run`, ...), and
+  no more of that section's commands start. Interrupted commands, including ones still in their `if` check, count as
+  INTERRUPTED, never SKIPPED, and the section counts as interrupted even if its commands were just finishing, so the
+  run fails and nothing is pushed. Each gets as long as it needs to exit; anything
+  it leaves running behind it gets 5 seconds, then `kill -9`. After an interrupted `parallel_run`, gpush prints the
+  summary and runs `post_run` and `post_run_failure` as usual.
+- **A second Ctrl-C** in the same section, or a Ctrl-C between sections, force quits. Every running or
+  interrupted command, with anything it started, gets Ctrl-C, then `kill -9` after 5 seconds. gpush names anything it
+  still couldn't stop, then exits; `cleanup` runs, but `post_run` doesn't.
 
 ### Notifications
 
