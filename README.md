@@ -34,18 +34,34 @@ while in a directory within your git repo
 
 ### Command line options
 
-|                                    |                                                                                                           |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| --version                          | print the current version                                                                                 |
-| -h, --help                         | print the help documentation                                                                              |
-| --dry-run                          | run pre_run, parallel_run, and post_run without pushing to git                                            |
-| -v, --verbose                      | stream each command's output while it runs, instead of only on failure                                    |
-| -u, --set-upstream                 | create the branch on origin without asking, when it has no remote branch yet                              |
-| --config-file=FILE                 | use an alternate config file. Default is gpushrc(.yml \| .yaml)                                           |
-| --spinner / --no-spinner           | show/hide the live single-line spinner while commands run (overrides config)                              |
-| --worktree / --no-worktree         | run checks in an isolated git worktree (overrides config)                                                 |
-| --worktree-copy-gitignored[=GLOBS] | copy gitignored files into the worktree; optionally comma-separated globs (e.g. `config/master.key,.env`) |
-| --no-worktree-copy-gitignored      | skip copying gitignored files into the worktree                                                           |
+|                                    |                                                                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| --version                          | print the current version                                                                                            |
+| -h, --help                         | print the help documentation                                                                                         |
+| --dry-run                          | run pre_run, parallel_run, and post_run without pushing to git                                                       |
+| -v, --verbose                      | stream each command's output while it runs, instead of only on failure                                               |
+| -u, --set-upstream                 | create the branch on origin without asking, when it has no remote branch yet                                         |
+| --skip=NAME                        | skip the command with this name (or shell) for one run; repeat to skip more. See [Skipping checks](#skipping-checks) |
+| --config-file=FILE                 | use an alternate config file. Default is gpushrc(.yml \| .yaml)                                                      |
+| --spinner / --no-spinner           | show/hide the live single-line spinner while commands run (overrides config)                                         |
+| --worktree / --no-worktree         | run checks in an isolated git worktree (overrides config)                                                            |
+| --worktree-copy-gitignored[=GLOBS] | copy gitignored files into the worktree; optionally comma-separated globs (e.g. `config/master.key,.env`)            |
+| --no-worktree-copy-gitignored      | skip copying gitignored files into the worktree                                                                      |
+
+### Skipping checks
+
+`--skip=NAME` leaves one command out of a single run, e.g. a slow integration suite while you iterate:
+
+```sh
+gpush --skip brakeman --skip "npm audit"
+```
+
+- Each `--skip` names exactly one command; repeat it to skip more. Values aren't split on commas.
+- It matches a command's `name`, or its `shell` when it has no `name`: case-insensitive, exact, no globs.
+- It applies to every section: `pre_run`, `parallel_run`, `post_run*` and `post_push_*`.
+- A name that matches no command, or more than one, is an error before anything runs.
+- Skipped commands show as SKIPPED (by --skip) and don't fail the run, so gpush still pushes, and says so:
+  `Pushed with 2 checks skipped: brakeman, npm audit`.
 
 ### Running without a terminal
 

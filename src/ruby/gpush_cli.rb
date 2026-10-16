@@ -107,6 +107,15 @@ module GpushCli
       ) { parsing_options[:set_upstream] = true }
 
       opts.on(
+        "--skip=NAME",
+        *HelpText.option(
+          "Skip the command with this name (or shell, when it has no " \
+            "name) for this run. Case-insensitive, exact match; repeat to " \
+            "skip more. Skipped checks don't fail the run.",
+        ),
+      ) { |name| (parsing_options[:skip] ||= []) << name }
+
+      opts.on(
         "--config-file=FILE",
         *HelpText.option(
           "Use FILE instead of searching for gpushrc.yml/gpushrc.yaml",

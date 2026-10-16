@@ -5,6 +5,7 @@ require "open3"
 require_relative "colors"
 require_relative "gpush_error"
 require_relative "gpush_options_parser"
+require_relative "skip_helper"
 
 class Command
   attr_reader :name,
@@ -53,7 +54,8 @@ class Command
     command_dict,
     verbose: false,
     prefix_output: true,
-    spinner: true
+    spinner: true,
+    skip: []
   )
     warn_unknown_command_keys(command_dict)
 
@@ -67,6 +69,7 @@ class Command
     @spinner_enabled = spinner
     @name = command_dict["name"] || command_dict["shell"]
     raise GpushError, 'must have a "shell" field.' unless command_dict["shell"]
+    @skipped_by_flag = SkipHelper.skip?(@name, skip)
     @shell = [env_prefix, command_dict["shell"]].compact.join(" ")
     @run_if =
       command_dict["if"] && [env_prefix, command_dict["if"]].compact.join(" ")
@@ -101,22 +104,9 @@ class Command
     exit_status = nil
     set_status "working"
 
-    # Check if the command should be run based on the 'if' condition
-    if @run_if
-      puts with_prefix("running 'if' command `#{@run_if}`") if verbose
-      stdout, stderr, status = Open3.capture3(@run_if)
-      if verbose
-        { output: stdout, ERROR: stderr }.each do |label, lines|
-          lines.each_line do |line|
-            puts with_prefix(line, prefix: "#{name} 'if' #{label}")
-          end
-        end
-      end
-      unless status.success?
-        puts "#{name} skipped because 'if' condition failed" if verbose
-        set_status "skipped"
-        return
-      end
+    unless should_run?
+      set_status "skipped"
+      return
     end
 
     begin
@@ -156,6 +146,28 @@ class Command
     end
   end
 
+  def should_run?
+    if @skipped_by_flag
+      puts "#{name} skipped by --skip" if verbose
+      return false
+    end
+    return true unless @run_if
+
+    puts with_prefix("running 'if' command `#{@run_if}`") if verbose
+    stdout, stderr, status = Open3.capture3(@run_if)
+    if verbose
+      { output: stdout, ERROR: stderr }.each do |label, lines|
+        lines.each_line do |line|
+          puts with_prefix(line, prefix: "#{name} 'if' #{label}")
+        end
+      end
+    end
+    return true if status.success?
+
+    puts "#{name} skipped because 'if' condition failed" if verbose
+    false
+  end
+
   def print_nonverbose_output
     # Clear spinner, it will be reprinted below this output
     self.class.clear_single_line_spinner if spinner_enabled
@@ -176,7 +188,8 @@ class Command
   end
 
   def final_summary
-    "#{COLORS[:reset]}#{name}: #{color}#{status.upcase}#{COLORS[:reset]} #{duration_text}"
+    reason = " (by --skip)" if @skipped_by_flag
+    "#{COLORS[:reset]}#{name}: #{color}#{status.upcase}#{COLORS[:reset]}#{reason} #{duration_text}"
   end
 
   def duration = end_time && start_time ? (end_time - start_time) : nil
@@ -244,8 +257,14 @@ class Command
   end
 
   # Class method to run commands in parallel and show summary
-  def self.run_in_parallel?(command_defs, verbose: false, spinner: true)
-    all_commands = command_defs.map { |cmd| new(cmd, verbose:, spinner:) }
+  def self.run_in_parallel?(
+    command_defs,
+    verbose: false,
+    spinner: true,
+    skip: []
+  )
+    all_commands =
+      command_defs.map { |cmd| new(cmd, verbose:, spinner:, skip:) }
 
     announce_commands(all_commands) unless spinner
 

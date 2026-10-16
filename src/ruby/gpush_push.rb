@@ -36,6 +36,10 @@ class GpushPush
     )
 
     puts ""
+    skipped_names = SkipHelper.resolve(@options[:skip], @options)
+    if skipped_names.any?
+      puts "Pushed with #{SkipHelper.summary(skipped_names)}"
+    end
     puts "《 #{@options[:success_emoji] || "🌺"} 》 Good job! You're doing great."
     puts ""
   end
@@ -74,8 +78,7 @@ class GpushPush
       Gpush.simple_run_commands_with_output(
         Gpush.filter_commands(@options[section], in_worktree: @in_worktree),
         title:,
-        verbose: @options[:verbose],
-        spinner: @options[:spinner] != false,
+        options: @options,
         failure_note:,
       )
     end

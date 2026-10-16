@@ -15,6 +15,7 @@ require_relative "gpush_options_parser" # Import the options parser
 require_relative "gpush_push" # Import the push step
 require_relative "gpush_run" # Import the version checker
 require_relative "notifier" # Import the desktop notifier
+require_relative "skip_helper"
 require_relative "version_checker" # Import the version checker
 require_relative "worktree_helper" # Import the worktree helper
 require_relative "gpush_cli"
@@ -30,11 +31,13 @@ module Gpush
     def simple_run_commands_with_output(
       commands,
       title:,
-      verbose:,
-      spinner:,
+      options:,
       failure_note: nil
     )
       return if commands.nil? || commands.empty?
+      verbose = options[:verbose]
+      spinner = options[:spinner] != false
+      skip = options[:skip] || []
       some_verbose = verbose || commands.any? { |cmd| cmd["verbose"] }
 
       puts "\n"
@@ -45,7 +48,8 @@ module Gpush
         # Use command's verbose setting if specified, otherwise use global verbose setting
         command_verbose =
           cmd_dict["verbose"].nil? ? verbose : cmd_dict["verbose"]
-        command = Command.new(cmd_dict, verbose: command_verbose, spinner:)
+        command =
+          Command.new(cmd_dict, verbose: command_verbose, spinner:, skip:)
         command.run
         next if command.success? || command.skipped?
 
@@ -139,6 +143,8 @@ module Gpush
     end
 
     def go(options)
+      skipped_names = SkipHelper.resolve(options[:skip], options)
+
       git_state_result =
         check_git_state_return_nil_for_exit(
           options[:dry_run],
@@ -173,8 +179,6 @@ module Gpush
         Dir.chdir(worktree_path)
       end
 
-      verbose = options[:verbose]
-      spinner = options[:spinner] != false
       in_worktree = !worktree_path.nil?
       tested_sha_short = GitHelper.head_sha(short: true)
       tested_sha_full = GitHelper.head_sha(short: false)
@@ -182,30 +186,28 @@ module Gpush
       simple_run_commands_with_output(
         filter_commands(options[:pre_run], in_worktree:),
         title: "pre-run",
-        verbose:,
-        spinner:,
+        options:,
       )
 
       success =
         Command.run_in_parallel?(
           filter_commands(options[:parallel_run], in_worktree:),
-          verbose:,
-          spinner:,
+          verbose: options[:verbose],
+          spinner: options[:spinner] != false,
+          skip: options[:skip] || [],
         )
 
       simple_run_commands_with_output(
         filter_commands(options[:post_run], in_worktree:),
         title: "post-run",
-        verbose:,
-        spinner:,
+        options:,
       )
 
       unless success
         simple_run_commands_with_output(
           filter_commands(options[:post_run_failure], in_worktree:),
           title: "post-run failure",
-          verbose:,
-          spinner:,
+          options:,
         )
         Notifier.notify(success: false)
         report_tested_commit(tested_sha_short)
@@ -216,8 +218,7 @@ module Gpush
       simple_run_commands_with_output(
         filter_commands(options[:post_run_success], in_worktree:),
         title: "post-run success",
-        verbose:,
-        spinner:,
+        options:,
       )
 
       Notifier.notify(success: true)
@@ -226,6 +227,9 @@ module Gpush
 
       if dry_run
         puts "《 Dry run completed 》"
+        if skipped_names.any?
+          puts "\nDry run completed with #{SkipHelper.summary(skipped_names)}"
+        end
         if unpushable_reason
           puts "\nChecks passed, but nothing was pushed: #{unpushable_reason}."
           ExitHelper.exit 2
