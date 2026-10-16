@@ -7,6 +7,7 @@ require_relative "exit_helper" # Import the exit helper
 require_relative "git_helper" # Import Git helper methods
 require_relative "gpush_error" # Import the custom error handling
 require_relative "gpush_changed_files" # Import the changed-files subcommand
+require_relative "gpush_cleanup"
 require_relative "gpush_claude_review" # Import the claude-review subcommand
 require_relative "gpush_diff_branch" # Import the diff-branch subcommand
 require_relative "gpush_fix" # Import the fix command
@@ -32,7 +33,8 @@ module Gpush
       commands,
       title:,
       options:,
-      failure_note: nil
+      failure_note: nil,
+      halt_on_failure: true
     )
       return if commands.nil? || commands.empty?
       verbose = options[:verbose]
@@ -55,6 +57,8 @@ module Gpush
 
         message = "#{title} command failed - #{command.name}"
         message += " (`#{command.shell}`)" if command.shell != command.name
+        next puts(message) unless halt_on_failure
+
         puts "#{message}\nHalting further execution and exiting gpush"
         puts failure_note if failure_note
         ExitHelper.exit 1
@@ -182,6 +186,11 @@ module Gpush
       in_worktree = !worktree_path.nil?
       tested_sha_short = GitHelper.head_sha(short: true)
       tested_sha_full = GitHelper.head_sha(short: false)
+
+      GpushCleanup.register(
+        filter_commands(options[:cleanup], in_worktree:),
+        options,
+      )
 
       simple_run_commands_with_output(
         filter_commands(options[:pre_run], in_worktree:),

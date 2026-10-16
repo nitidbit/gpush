@@ -58,7 +58,8 @@ gpush --skip brakeman --skip "npm audit"
 
 - Each `--skip` names exactly one command; repeat it to skip more. Values aren't split on commas.
 - It matches a command's `name`, or its `shell` when it has no `name`: case-insensitive, exact, no globs.
-- It applies to every section: `pre_run`, `parallel_run`, `post_run*` and `post_push_*`.
+- It applies to every section: `pre_run`, `parallel_run`, `post_run*` and `post_push_*`. Naming a `cleanup` command is
+  an error: skipping one would leave behind whatever `pre_run` created.
 - A name that matches no command, or more than one, is an error before anything runs.
 - Skipped commands show as SKIPPED (by --skip) and don't fail the run, so gpush still pushes, and says so:
   `Pushed with 2 checks skipped: brakeman, npm audit`.
@@ -149,6 +150,7 @@ Gpush will look for a config file in the current directory. If not found, it wil
 | `post_run_failure`         | list of commands     | run only if any check failed                                                                                                                                                                                                                                                                                                                                           |
 | `post_push_success`        | list of commands     | run after a successful push. See [After the push](#after-the-push-post_push_success-and-post_push_failure).                                                                                                                                                                                                                                                            |
 | `post_push_failure`        | list of commands     | run after a failed push. See [After the push](#after-the-push-post_push_success-and-post_push_failure).                                                                                                                                                                                                                                                                |
+| `cleanup`                  | list of commands     | run however gpush exits, to tear down what `pre_run` set up. See [Cleanup](#cleanup-cleanup).                                                                                                                                                                                                                                                                          |
 | `spinner`                  | boolean              | show the live single-line spinner while commands run (default `true`). Set to `false` for CI or piped logs; each command's result is then printed as it finishes.                                                                                                                                                                                                      |
 | `worktree`                 | boolean              | run checks in an isolated git worktree                                                                                                                                                                                                                                                                                                                                 |
 | `worktree_copy_gitignored` | boolean or glob/list | copy gitignored files into the worktree. `true` copies all; a string or list of strings copies matching files only (e.g. `["config/master.key", ".env"]`). **Note:** globs must match top-level gitignored entries — files nested inside a fully-gitignored directory (e.g. `secrets/config/master.key` when `secrets/` is gitignored as a whole) will not be matched. |
@@ -163,7 +165,7 @@ Any other top-level key is ignored, with a warning naming the key.
 
 #### Command keys
 
-Each entry in `pre_run`, `parallel_run`, `post_run`, `post_run_success`, `post_run_failure`, `post_push_success`, `post_push_failure`, and `fix` is a hash. `shell` is the only required key:
+Each entry in `pre_run`, `parallel_run`, `post_run`, `post_run_success`, `post_run_failure`, `post_push_success`, `post_push_failure`, `cleanup`, and `fix` is a hash. `shell` is the only required key:
 
 | **key**            | **type** | **description**                                                                                   |
 | :----------------- | -------- | :------------------------------------------------------------------------------------------------ |
@@ -177,7 +179,7 @@ Each entry in `pre_run`, `parallel_run`, `post_run`, `post_run_success`, `post_r
 
 Any other key is ignored, with a warning naming the key and the command.
 
-**`verbose` is only honored in the sequential sections** — `pre_run`, `post_run`, `post_run_success`, `post_run_failure`, `post_push_success`, and `post_push_failure`. Commands in `parallel_run` all follow the global setting, and `gpush fix` and `gpush run` are always verbose.
+**`verbose` is only honored in the sequential sections** — `pre_run`, `post_run`, `post_run_success`, `post_run_failure`, `post_push_success`, `post_push_failure`, and `cleanup`. Commands in `parallel_run` all follow the global setting, and `gpush fix` and `gpush run` are always verbose.
 
 Because `changed-files` and `get-specs` exit 1 when nothing matched, they work as an `if:` condition on their own — this skips prettier entirely when no files changed:
 
@@ -240,6 +242,29 @@ post_push_failure:
   - name: say so
     shell: echo "push failed; staging not deployed"
 ```
+
+### Cleanup: `cleanup`
+
+`post_run` doesn't run when a `pre_run` command fails, or when you press Ctrl-C twice to force quit. `cleanup` runs
+however gpush exits, so it's the place to tear down what `pre_run` set up, such as a per-run test database:
+
+```yaml
+pre_run:
+  - shell: bin/rails db:create db:schema:load RAILS_ENV=test
+    only_worktree: true
+
+cleanup:
+  - shell: bin/rails db:drop RAILS_ENV=test
+    only_worktree: true
+```
+
+- It runs last, one command at a time, from the directory the checks ran in. In worktree mode that's the worktree,
+  before it is removed.
+- It runs on a normal exit, on any failure, and on Ctrl-C. It doesn't run on `kill -9` or a crash, so keep a sweep for
+  anything that must never pile up.
+- Ctrl-C is ignored while it runs, so a stray press can't cut teardown off halfway.
+- Every cleanup command runs even if an earlier one fails. Failures are reported but don't change gpush's exit status.
+- `--skip` can't skip a cleanup command.
 
 ### Notifications
 

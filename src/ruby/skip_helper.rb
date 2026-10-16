@@ -29,6 +29,13 @@ module SkipHelper
         end
 
       skip.map do |skip_name|
+        if (options[:cleanup] || []).any? { |cmd|
+             skip?(name_of(cmd), [skip_name])
+           }
+          raise GpushError,
+                "--skip: '#{skip_name}' is a cleanup command, which can't be skipped"
+        end
+
         matches = commands.select { |_, cmd| skip?(name_of(cmd), [skip_name]) }
         case matches.size
         when 0

@@ -52,6 +52,7 @@ module GpushCli
         --config-file. gpush runs pre_run, then parallel_run, then post_run,
         and pushes only if everything passed. post_push_success or
         post_push_failure then runs, depending on how the push went.
+        cleanup runs last, however gpush exits.
 
         Subcommands:
         #{subcommands_block}

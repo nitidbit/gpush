@@ -6,6 +6,7 @@ module ConfigHelper
   CONFIG_NAMES = %w[gpushrc.yml gpushrc.yaml].freeze
 
   KNOWN_TOP_LEVEL_KEYS = %w[
+    cleanup
     fix
     get_specs
     gpush_changed_files
