@@ -63,6 +63,12 @@ RSpec.describe "Gpush" do
           ).to_stdout
   end
 
+  it "says which commit it is testing before running any command" do
+    expect { GpushCli.run(%w[--dry-run --verbose]) }.to output(
+      /Testing commit 0123456\n.*Pre-run command/m,
+    ).to_stdout
+  end
+
   it "can print the version" do
     stub_const("VERSION", "42.0.0")
     expect { GpushCli.run(%w[--version]) }.to output(
@@ -278,6 +284,12 @@ RSpec.describe "Gpush" do
 
       expect { GpushCli.run(%w[--worktree -u]) }.to output(
         /Running in worktree/,
+      ).to_stdout
+    end
+
+    it "says which commit it is testing before entering the worktree" do
+      expect { GpushCli.run(%w[--worktree -u]) }.to output(
+        /Testing commit 0123456\nRunning in worktree/,
       ).to_stdout
     end
 

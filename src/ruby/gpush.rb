@@ -158,6 +158,9 @@ module Gpush
       original_dir = Dir.pwd
       original_branch = GitHelper.local_branch_name
       worktree_path = nil
+      tested_sha_short = GitHelper.head_sha(short: true)
+      tested_sha_full = GitHelper.head_sha(short: false)
+      puts "Testing commit #{tested_sha_short}"
 
       if options[:worktree]
         git_root = GitHelper.git_root_dir
@@ -179,8 +182,6 @@ module Gpush
       end
 
       in_worktree = !worktree_path.nil?
-      tested_sha_short = GitHelper.head_sha(short: true)
-      tested_sha_full = GitHelper.head_sha(short: false)
 
       GpushCleanup.register(
         Command.runnable(options[:cleanup], in_worktree:),
