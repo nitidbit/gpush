@@ -22,7 +22,7 @@ module SkipHelper
 
   class << self
     def skip?(name, skip)
-      skip.any? { |skip_name| skip_name.casecmp?(name.to_s) }
+      skip.any? { |skip_name| Command.name_matches?(name, skip_name) }
     end
 
     # Fails fast, before git or any command runs, on a name no command has,

@@ -83,6 +83,19 @@ RSpec.describe "--skip" do
     expect(output).not_to include("BRAKEMAN-RAN")
   end
 
+  it "matches the name ignoring spaces, dashes and underscores, like gpush run" do
+    config["parallel_run"] << {
+      "name" => "npm audit",
+      "shell" => "echo AUDIT-RAN",
+    }
+
+    output, error = run_gpush("--skip=NPM_audit", "--skip= brake-man ")
+
+    expect(error).to be_nil
+    expect(output).not_to include("AUDIT-RAN")
+    expect(output).not_to include("BRAKEMAN-RAN")
+  end
+
   it "matches the shell of a command with no name" do
     output, error = run_gpush("--skip=echo UNNAMED-RAN")
 

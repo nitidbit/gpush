@@ -347,6 +347,13 @@ class Command
 
   def self.name_of(command_dict) = command_dict["name"] || command_dict["shell"]
 
+  # Ignores case, whitespace, dashes and underscores
+  def self.name_matches?(name, input)
+    normalize_name(name) == normalize_name(input)
+  end
+
+  def self.normalize_name(name) = name.to_s.gsub(/[\s_-]/, "").downcase
+
   def self.runnable(commands, in_worktree:)
     (commands || []).reject do |cmd|
       (cmd["only_worktree"] && !in_worktree) ||

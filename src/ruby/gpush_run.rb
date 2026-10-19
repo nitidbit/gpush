@@ -39,15 +39,10 @@ module GpushRun
 
     private
 
-    def normalize_command_name(command_input)
-      command_input.strip.gsub(/[\s_-]/, "").downcase
-    end
-
     def run_one_command_and_exit(command_input)
       cmd_dict =
         ConfigHelper.parse_config["parallel_run"].find do |cmd|
-          normalize_command_name(Command.name_of(cmd)) ==
-            normalize_command_name(command_input)
+          Command.name_matches?(Command.name_of(cmd), command_input)
         end
 
       if cmd_dict

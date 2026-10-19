@@ -57,7 +57,8 @@ gpush --skip brakeman --skip "npm audit"
 ```
 
 - Each `--skip` names exactly one command; repeat it to skip more. Values aren't split on commas.
-- It matches a command's `name`, or its `shell` when it has no `name`: case-insensitive, exact, no globs.
+- It matches a command's `name`, or its `shell` when it has no `name`: the same way
+  `gpush run` does, ignoring case, spaces, dashes and underscores (so `npm_audit` matches `npm audit`). No globs.
 - It applies to every section: `pre_run`, `parallel_run`, `post_run*` and `post_push_*`. `cleanup` commands are never
   skipped, since that would leave behind whatever `pre_run` created; naming only a cleanup command is an error.
 - A name that matches no command is an error before anything runs, even `git fetch`.

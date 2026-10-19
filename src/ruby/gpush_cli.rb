@@ -111,8 +111,9 @@ module GpushCli
         "--skip=NAME",
         *HelpText.option(
           "Skip the command with this name (or shell, when it has no " \
-            "name) for this run. Case-insensitive, exact match; repeat to " \
-            "skip more. Skipped checks don't fail the run.",
+            "name) for this run. Matches like gpush run, ignoring case, " \
+            "spaces, dashes and underscores; repeat to skip more. Skipped " \
+            "checks don't fail the run.",
         ),
       ) { |name| (parsing_options[:skip] ||= []) << name }
 
